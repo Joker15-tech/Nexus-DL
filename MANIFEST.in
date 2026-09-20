@@ -1,0 +1,548 @@
+# ==============================================================================
+#  NexusDL — MANIFEST.in
+# ==============================================================================
+#  Spécifie les fichiers à inclure/exclure dans le sdist (source distribution).
+#
+#  Rappel :
+#    - `include`  : ajoute des fichiers
+#    - `exclude`  : retire des fichiers
+#    - `recursive-include DIR PATTERN` : ajoute récursivement
+#    - `recursive-exclude DIR PATTERN` : retire récursivement
+#    - `graft DIR`    : inclut tout un dossier
+#    - `prune DIR`    : exclut tout un dossier
+#    - `global-include PATTERN` : inclut partout
+#    - `global-exclude PATTERN` : exclut partout
+#
+#  Note : Ce fichier est utilisé par setuptools. Hatchling (notre build backend)
+#  utilise `[tool.hatch.build.targets.sdist]` dans pyproject.toml. Ce MANIFEST.in
+#  reste utile pour :
+#    - La compatibilité avec setuptools (fallback)
+#    - Une documentation lisible de ce qui est distribué
+#    - Les outils tiers qui parsent MANIFEST.in
+#
+#  Copyright (C) 2026 NEXUS-QUANTUM
+#  SPDX-License-Identifier: GPL-3.0-or-later
+# ==============================================================================
+
+
+# ==============================================================================
+#  FICHIERS DE MÉTADONNÉES RACINE
+# ==============================================================================
+
+include README.md
+include README.rst
+include LICENSE
+include LICENSE.txt
+include COPYING
+include CHANGELOG.md
+include CHANGES.md
+include CONTRIBUTING.md
+include CODE_OF_CONDUCT.md
+include SECURITY.md
+include SECURITY_HALL_OF_FAME.md
+include AUTHORS.md
+include CONTRIBUTORS.md
+include ACKNOWLEDGMENTS.md
+include CITATION.cff
+include FUNDING.yml
+include ROADMAP.md
+
+
+# ==============================================================================
+#  CONFIGURATION BUILD & PROJET
+# ==============================================================================
+
+include pyproject.toml
+include MANIFEST.in
+include setup.py
+include setup.cfg
+include tox.ini
+include Makefile
+include justfile
+include .editorconfig
+include .gitattributes
+include .gitignore
+include .pre-commit-config.yaml
+include .python-version
+include .env.example
+include .dockerignore
+
+
+# ==============================================================================
+#  FICHIERS DE DÉPENDANCES
+# ==============================================================================
+
+include requirements.txt
+include requirements-dev.txt
+include requirements-web.txt
+include requirements-gui.txt
+include requirements-all.txt
+include uv.lock
+include poetry.lock
+include Pipfile.lock
+
+
+# ==============================================================================
+#  MANIFESTES NEXUS.DL (système custom du projet)
+# ==============================================================================
+
+include nexus.dl
+recursive-include . nexus.dl
+recursive-include src nexus.dl
+recursive-include scripts nexus.dl
+recursive-include docker nexus.dl
+recursive-include docs nexus.dl
+recursive-include config nexus.dl
+recursive-include assets nexus.dl
+
+
+# ==============================================================================
+#  SOURCE PRINCIPALE (src/nexusdl/)
+# ==============================================================================
+
+# Le code source Python est inclus automatiquement par le build backend,
+# mais on le déclare explicitement pour la clarté et la compatibilité.
+recursive-include src/nexusdl *.py
+recursive-include src/nexusdl *.pyi
+recursive-include src/nexusdl py.typed
+
+# Fichiers de données embarqués dans le package
+recursive-include src/nexusdl/data *.yaml
+recursive-include src/nexusdl/data *.yml
+recursive-include src/nexusdl/data *.json
+recursive-include src/nexusdl/data *.toml
+recursive-include src/nexusdl/data *.xml
+recursive-include src/nexusdl/data *.sql
+recursive-include src/nexusdl/data *.txt
+recursive-include src/nexusdl/data *.md
+recursive-include src/nexusdl/data *.jinja2
+recursive-include src/nexusdl/data *.j2
+recursive-include src/nexusdl/data *.tcss
+
+# Traductions (i18n)
+recursive-include src/nexusdl/data/translations *.json
+recursive-include src/nexusdl/data/translations *.po
+recursive-include src/nexusdl/data/translations *.mo
+
+# Templates du système de plugins
+recursive-include src/nexusdl/plugins *.yaml
+recursive-include src/nexusdl/plugins *.json
+recursive-include src/nexusdl/plugins *.j2
+
+# Migrations SQLite (bibliothèque locale)
+recursive-include src/nexusdl/core/library/migrations *.sql
+
+# Schémas JSON (validation nexus.dl, sites.yaml, etc.)
+recursive-include src/nexusdl/data *.schema.json
+recursive-include src/nexusdl/core/registry *.json
+
+# Templates de parsers
+recursive-include src/nexusdl/parsers/custom *.py
+recursive-include src/nexusdl/parsers/custom *.j2
+
+
+# ==============================================================================
+#  SCRIPTS UTILITAIRES
+# ==============================================================================
+
+recursive-include scripts *.py
+recursive-include scripts *.sh
+recursive-include scripts *.ps1
+recursive-include scripts *.bat
+recursive-include scripts *.j2
+
+
+# ==============================================================================
+#  CONFIGURATION (exemples)
+# ==============================================================================
+
+recursive-include config *.yaml
+recursive-include config *.yml
+recursive-include config *.json
+recursive-include config *.toml
+recursive-include config *.example
+
+
+# ==============================================================================
+#  DOCKER
+# ==============================================================================
+
+recursive-include docker Dockerfile*
+recursive-include docker docker-compose*.yml
+recursive-include docker docker-compose*.yaml
+recursive-include docker *.conf
+recursive-include docker *.sh
+recursive-include docker .dockerignore
+
+
+# ==============================================================================
+#  ASSETS (images, icônes, bannières)
+# ==============================================================================
+
+recursive-include assets *.png
+recursive-include assets *.jpg
+recursive-include assets *.jpeg
+recursive-include assets *.gif
+recursive-include assets *.svg
+recursive-include assets *.ico
+recursive-include assets *.icns
+recursive-include assets *.webp
+recursive-include assets *.avif
+
+
+# ==============================================================================
+#  DOCUMENTATION
+# ==============================================================================
+
+recursive-include docs *.md
+recursive-include docs *.rst
+recursive-include docs *.txt
+recursive-include docs *.py
+recursive-include docs *.html
+recursive-include docs *.css
+recursive-include docs *.js
+recursive-include docs *.json
+recursive-include docs *.yaml
+recursive-include docs *.yml
+recursive-include docs Makefile
+recursive-include docs make.bat
+recursive-include docs conf.py
+recursive-include docs nexus.dl
+
+# Exclure les builds de docs
+prune docs/_build
+prune docs/_static/built
+prune site
+
+
+# ==============================================================================
+#  GITHUB (workflows, templates)
+# ==============================================================================
+
+recursive-include .github *.yml
+recursive-include .github *.yaml
+recursive-include .github *.md
+recursive-include .github CODEOWNERS
+recursive-include .github nexus.dl
+
+
+# ==============================================================================
+#  TEMPLATES INTERNES
+# ==============================================================================
+
+recursive-include templates *.j2
+recursive-include templates *.jinja2
+recursive-include templates *.tmpl
+recursive-include templates *.template
+
+
+# ==============================================================================
+#  LOCALISATION (i18n / l10n)
+# ==============================================================================
+
+recursive-include locale *.po
+recursive-include locale *.mo
+recursive-include locale *.json
+
+
+# ==============================================================================
+#  EXCLUSIONS GLOBALES (fichiers à ne JAMAIS inclure)
+# ==============================================================================
+
+# --- Caches Python ---
+global-exclude *.py[cod]
+global-exclude *.pyo
+global-exclude *.pyd
+global-exclude __pycache__
+global-exclude *.so
+global-exclude *.egg
+global-exclude *.egg-info
+
+# --- Environnements virtuels ---
+prune .venv
+prune venv
+prune env
+prune .env.d
+prune .tox
+prune .nox
+prune .virtualenvs
+
+# --- Caches d'outils ---
+prune .pytest_cache
+prune .mypy_cache
+prune .ruff_cache
+prune .pyre
+prune .pytype
+prune .hypothesis
+prune .cache
+prune .uv
+
+# --- Build artifacts ---
+prune build
+prune dist
+prune wheels
+prune *.egg-info
+prune .eggs
+prune htmlcov
+prune .coverage
+prune coverage.xml
+prune .coverage.*
+global-exclude .coverage
+global-exclude .coverage.*
+global-exclude coverage.xml
+global-exclude *.cover
+
+# --- Tests (exclus du sdist par défaut) ---
+prune tests
+prune test
+global-exclude test_*.py
+global-exclude *_test.py
+global-exclude conftest.py
+
+# --- Frontend (Node.js) ---
+prune src/nexusdl/interfaces/web/frontend/node_modules
+prune src/nexusdl/interfaces/web/frontend/.next
+prune src/nexusdl/interfaces/web/frontend/out
+prune src/nexusdl/interfaces/web/frontend/dist
+prune src/nexusdl/interfaces/web/frontend/.turbo
+prune node_modules
+global-exclude *.tsbuildinfo
+global-exclude .eslintcache
+
+# --- Docker local ---
+prune .docker
+global-exclude docker-compose.override.yml
+
+# --- IDE & éditeurs ---
+prune .idea
+prune .vscode
+prune .vs
+prune .fleet
+prune .history
+prune .atom
+prune .sublime
+global-exclude *.swp
+global-exclude *.swo
+global-exclude *.swn
+global-exclude *~
+global-exclude .project
+global-exclude .classpath
+global-exclude .settings
+global-exclude *.code-workspace
+
+# --- OS spécifique ---
+global-exclude .DS_Store
+global-exclude Thumbs.db
+global-exclude desktop.ini
+global-exclude .AppleDouble
+global-exclude .LSOverride
+global-exclude ._*
+global-exclude .Spotlight-V100
+global-exclude .Trashes
+global-exclude ehthumbs.db
+global-exclude [Dd]esktop.ini
+
+# --- Secrets & données sensibles ---
+global-exclude .env
+global-exclude .env.local
+global-exclude .env.*.local
+global-exclude *.pem
+global-exclude *.key
+global-exclude *.crt
+global-exclude *.p12
+global-exclude *.pfx
+global-exclude *.jks
+global-exclude *.keystore
+global-exclude secrets.yaml
+global-exclude secrets.json
+global-exclude credentials.json
+global-exclude service-account*.json
+global-exclude cookies.txt
+global-exclude cookies.json
+global-exclude *.session
+global-exclude *.token
+global-exclude .netrc
+global-exclude .pgpass
+global-exclude id_rsa*
+global-exclude id_ed25519*
+global-exclude known_hosts
+global-exclude authorized_keys
+
+# --- Bases de données locales ---
+global-exclude *.db
+global-exclude *.db-journal
+global-exclude *.db-wal
+global-exclude *.db-shm
+global-exclude *.sqlite
+global-exclude *.sqlite3
+prune backups
+prune data/library
+prune .nexusdl
+
+# --- Fichiers de logs ---
+global-exclude *.log
+global-exclude *.log.*
+global-exclude logs/
+prune logs
+prune log
+global-exclude *.log.gz
+global-exclude *.log.zip
+
+# --- Téléchargements / mangas (runtime) ---
+prune downloads
+prune manga
+prune Manga
+prune library
+prune Library
+
+# --- Caches de navigateur / Playwright ---
+prune .playwright
+prune .cache/ms-playwright
+prune chromium
+prune firefox
+prune webkit
+
+# --- Fichiers temporaires ---
+global-exclude *.tmp
+global-exclude *.temp
+global-exclude *.bak
+global-exclude *.backup
+global-exclude *.old
+global-exclude *.orig
+global-exclude *.rej
+global-exclude *.patch
+global-exclude *.diff
+
+# --- Archives ---
+global-exclude *.zip
+global-exclude *.tar
+global-exclude *.tar.gz
+global-exclude *.tar.bz2
+global-exclude *.tar.xz
+global-exclude *.tgz
+global-exclude *.rar
+global-exclude *.7z
+global-exclude *.cbz
+global-exclude *.cbr
+global-exclude *.pdf
+
+# --- Screenshots & vidéos (dev only) ---
+prune screenshots
+prune videos
+prune recordings
+global-exclude *.mp4
+global-exclude *.webm
+global-exclude *.mov
+
+# --- Notebooks (dev only) ---
+prune notebooks
+global-exclude *.ipynb
+global-exclude .ipynb_checkpoints
+
+# --- Profiling & benchmarks (dev only) ---
+prune .profiling
+prune profiles
+global-exclude *.prof
+global-exclude *.lprof
+global-exclude profile.svg
+global-exclude flamegraph.html
+
+# --- Benchmarks (dev only) ---
+prune benchmarks
+global-exclude *.bench
+
+# --- Fuzz & corpus ---
+prune .hypothesis
+prune corpus
+prune fuzz
+prune .fuzz
+
+# --- Mutmut / mutants ---
+prune mutants
+prune .mutmut-cache
+
+# --- Build systems alternatifs ---
+prune .nox
+prune .pdbrc
+prune .pdm-build
+
+# --- Poetry local ---
+prune .poetry
+
+# --- Coverage alternatives ---
+prune .coverage-reports
+prune codecov
+
+# --- SonarQube ---
+prune .scannerwork
+global-exclude sonar-project.properties
+
+# --- Semgrep ---
+prune .semgrep
+global-exclude .semgrepignore
+
+# --- Trivy / scans ---
+prune .trivy
+global-exclude trivy-report.json
+
+# --- SBOM (optionnel : peut être inclus si souhaité) ---
+# global-exclude sbom.*.json
+# global-exclude sbom.*.xml
+# global-exclude cyclonedx-*.json
+
+# --- Fichiers de test locaux ---
+global-exclude test-*.py
+global-exclude local-*.py
+global-exclude sandbox*.py
+global-exclude scratch*.py
+global-exclude playground*.py
+global-exclude *.local.py
+
+
+# ==============================================================================
+#  INCLUSIONS SPÉCIALES
+# ==============================================================================
+
+# Inclure explicitement le README et LICENSE même s'ils sont ailleurs
+include README.md
+include LICENSE
+
+# Inclure le fichier py.typed (marqueur PEP 561 pour le typage)
+include src/nexusdl/py.typed
+
+# Inclure les schémas JSON critiques (validation)
+include src/nexusdl/data/sites_schema.json
+include src/nexusdl/data/nexus_schema.json
+include src/nexusdl/data/default_config.yaml
+include src/nexusdl/data/comic_info_template.xml
+include src/nexusdl/data/user_agents.txt
+
+# Inclure les traductions (essentielles au runtime)
+recursive-include src/nexusdl/data/translations *.json
+
+# Inclure la configuration des sites (essentielle au runtime)
+include src/nexusdl/core/registry/sites.yaml
+
+
+# ==============================================================================
+#  NOTES POUR LES CONTRIBUTEURS
+# ==============================================================================
+#
+#  Ce MANIFEST.in est maintenu en parallèle avec :
+#    - [tool.hatch.build.targets.sdist] dans pyproject.toml (source de vérité)
+#    - .gitignore (ce qui n'est PAS versionné)
+#    - .dockerignore (ce qui n'est PAS copié dans Docker)
+#
+#  Règle d'or : si un fichier est nécessaire au RUNTIME (import, lecture,
+#  chargement), il DOIT être inclus dans le sdist. Si c'est un fichier de
+#  DEV/TEST/BUILD uniquement, il doit être exclu.
+#
+#  Pour vérifier ce qui sera effectivement inclus dans le sdist :
+#      python -m build --sdist
+#      tar -tzf dist/nexusdl-*.tar.gz | sort
+#
+#  Ou plus simplement :
+#      make build
+#      tar -tzf dist/nexusdl-*.tar.gz | head -100
+#
+# ==============================================================================
