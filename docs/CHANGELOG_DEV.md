@@ -1,6 +1,4 @@
-Voici le fichier **`docs/CHANGELOG_DEV.md`** complet, production-ready, pour NexusDL. C'est le **journal de développement interne** — distinct du `CHANGELOG.md` public (destiné aux utilisateurs).
 
-```markdown
 # 🛠️ Changelog Développeur — NexusDL
 
 <div align="center">
