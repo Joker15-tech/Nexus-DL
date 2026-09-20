@@ -1,0 +1,400 @@
+# ==============================================================================
+#  nexus.dl — Manifeste du dossier docs/
+# ==============================================================================
+#  Décrit la fonction, le contenu et les règles du dossier de documentation.
+#  À maintenir à jour à chaque ajout/suppression de fichier.
+#
+#  Format : YAML 1.2
+#  Version du schéma : 1.0.0
+#  Généré par : scripts/generate_nexus_manifests.py
+#  Licence : GPL-3.0-or-later
+# ==============================================================================
+
+# ------------------------------------------------------------------------------
+# MÉTADONNÉES DU MANIFESTE
+# ------------------------------------------------------------------------------
+manifest:
+  schema_version: "1.0.0"
+  generated_at: "2026-01-15T00:00:00Z"
+  generator: "NexusDL Manifest Generator v1.0.0"
+  auto_generated: false
+  editable: true
+
+# ------------------------------------------------------------------------------
+# DESCRIPTION DU DOSSIER
+# ------------------------------------------------------------------------------
+folder:
+  path: "docs"
+  name: "docs"
+  purpose: |
+    Contient toute la documentation de NexusDL, à la fois pour les
+    utilisateurs finaux (installation, utilisation, configuration),
+    pour les développeurs (architecture, ajout de sites, plugins),
+    et pour les mainteneurs (ADR, changelog dev, sécurité).
+
+    La documentation est rédigée en Markdown (via MyST) et en
+    reStructuredText (Sphinx), puis compilée en HTML statique
+    publié sur https://docs.nexus-quantum.dev/nexusdl.
+  layer: "root"
+  depth: 1
+  parent: "."
+  children:
+    - "source"
+
+# ------------------------------------------------------------------------------
+# CONTENU DU DOSSIER (fichiers directs)
+# ------------------------------------------------------------------------------
+contents:
+  files:
+    - name: "README.md"
+      purpose: "Guide interne de la documentation (navigation, contribution, build)"
+      required: true
+      generated: false
+      audience: ["developers", "maintainers"]
+
+    - name: "API.md"
+      purpose: "Référence complète de l'API REST et de l'API Python"
+      required: true
+      generated: false
+      audience: ["developers", "integrators"]
+
+    - name: "CHANGELOG_DEV.md"
+      purpose: "Journal de développement interne (ADR, breaking changes, migrations)"
+      required: true
+      generated: false
+      audience: ["developers", "maintainers"]
+
+    - name: "nexus.dl"
+      purpose: "Ce manifeste — décrit la fonction du dossier docs/"
+      required: true
+      generated: false
+
+  directories:
+    - name: "source"
+      purpose: "Sources Sphinx/MkDocs (Markdown + rST + Python)"
+      required: true
+      manifest: "source/nexus.dl"
+
+    - name: "_build"
+      purpose: "Sortie de build Sphinx (HTML, doctrees) — ignorée par Git"
+      required: false
+      generated: true
+
+    - name: "site"
+      purpose: "Sortie de build MkDocs (HTML statique) — ignorée par Git"
+      required: false
+      generated: true
+
+# ------------------------------------------------------------------------------
+# FICHIERS GÉNÉRÉS / IGNORÉS
+# ------------------------------------------------------------------------------
+generated:
+  directories:
+    - "_build/"
+    - "site/"
+    - "source/_autosummary/"
+    - "source/api/generated/"
+    - "source/_build/"
+
+  gitignore_patterns:
+    - "docs/_build/"
+    - "docs/site/"
+    - "docs/source/_autosummary/"
+    - "docs/source/api/generated/"
+    - "docs/source/_build/"
+
+  manifestignore_patterns:
+    - "_build"
+    - "site"
+    - "_autosummary"
+    - "generated"
+
+# ------------------------------------------------------------------------------
+# DÉPENDANCES AUTORISÉES / INTERDITES
+# ------------------------------------------------------------------------------
+dependencies:
+  allowed:
+    - "stdlib"
+    - "sphinx"
+    - "sphinx_rtd_theme"
+    - "sphinx_autodoc_typehints"
+    - "sphinx_copybutton"
+    - "sphinx_design"
+    - "sphinxcontrib.mermaid"
+    - "myst_parser"
+    - "mkdocs"
+    - "mkdocs-material"
+    - "mkdocstrings"
+    - "nexusdl.*"  # Pour autodoc
+  forbidden:
+    - "nexusdl.interfaces.web.frontend"  # Pas de build frontend dans la doc
+    - "nexusdl.interfaces.gui"           # Pas de dépendance GUI
+
+# ------------------------------------------------------------------------------
+# RÈGLES SPÉCIFIQUES AU DOSSIER docs/
+# ------------------------------------------------------------------------------
+rules:
+  writing:
+    - "Langue principale : français (utilisateur) + anglais (technique)"
+    - "Vouvoiement obligatoire (`vous`)"
+    - "Temps : présent de l'indicatif"
+    - "Voix : active privilégiée"
+    - "Phrases courtes (< 25 mots si possible)"
+    - "Un seul H1 par fichier"
+    - "Hiérarchie stricte : H1 → H2 → H3 → H4 (pas de saut)"
+    - "Émojis dans les titres de grandes sections"
+    - "Encadrés MyST (`:::note`, `:::warning`, `:::tip`, `:::danger`)"
+
+  formatting:
+    - "UTF-8 sans BOM"
+    - "Fins de ligne : LF (Unix)"
+    - "Line length : 100 caractères maximum"
+    - "Espaces : 2 pour Markdown/YAML, 4 pour rST/Python"
+    - "Pas de trailing whitespace (sauf Markdown pour <br>)"
+    - "Newline final obligatoire"
+    - "Code : toujours avec langage (```python)"
+
+  structure:
+    - "Un fichier = un sujet principal"
+    - "Découper si > 500 lignes"
+    - "Table des matières si > 200 lignes"
+    - "Nommage kebab-case : `adding-sites.md`"
+    - "`nexus.dl` dans chaque sous-dossier"
+
+  links:
+    - "Liens relatifs pour la doc interne"
+    - "Liens absolus pour l'externe (http/https)"
+    - "Descriptifs : [Guide CLI](cli.md) pas [cliquez ici](cli.md)"
+    - "Vérifiés via `make docs-linkcheck` avant PR"
+    - "Pas de liens morts en production"
+
+  code_examples:
+    - "Toujours testés (copier-coller fonctionne)"
+    - "Commentés si complexes"
+    - "Sortie attendue affichée"
+    - "Erreurs communes documentées"
+    - "Alternatives présentées"
+
+  images:
+    - "Placées dans `source/_static/images/`"
+    - "Nom explicite : `cli-search-results.png`"
+    - "Alt text obligatoire"
+    - "Format PNG (screenshots) ou SVG (diagrammes)"
+    - "Taille < 500 KB (optimiser avant commit)"
+    - "Pas d'images externes (les copier localement)"
+
+  i18n:
+    - "Français : docs utilisateur principales"
+    - "Anglais : termes techniques, code, noms de fichiers"
+    - "Traductions : `src/nexusdl/data/translations/`"
+    - "Ne pas traduire : code, endpoints, noms de fichiers"
+
+  build:
+    - "Sphinx : `make docs` (recommandé)"
+    - "MkDocs : `make docs-mkdocs` (alternative)"
+    - "Warnings traités comme erreurs : `-W`"
+    - "Build CI : obligatoire avant merge"
+    - "Publication auto : GitHub Actions"
+
+# ------------------------------------------------------------------------------
+# CIBLES DE QUALITÉ
+# ------------------------------------------------------------------------------
+quality_targets:
+  broken_links: 0
+  sphinx_warnings: 0
+  mkdocs_warnings: 0
+  missing_docstrings: 0
+  untranslated_strings: 0
+  outdated_examples: 0
+  images_optimized: 100       # % d'images < 500 KB
+  build_time_seconds: 60      # Build Sphinx complet
+  coverage_api: 100           # % de l'API documentée
+
+# ------------------------------------------------------------------------------
+# OUTILS DE BUILD
+# ------------------------------------------------------------------------------
+tooling:
+  sphinx:
+    version: ">=8.1,<9.0"
+    config: "source/conf.py"
+    entry: "source/index.rst"
+    theme: "sphinx_rtd_theme"
+    extensions:
+      - "myst_parser"
+      - "sphinx.ext.autodoc"
+      - "sphinx.ext.autosummary"
+      - "sphinx.ext.napoleon"
+      - "sphinx.ext.viewcode"
+      - "sphinx.ext.intersphinx"
+      - "sphinx_autodoc_typehints"
+      - "sphinx_copybutton"
+      - "sphinx_design"
+      - "sphinxcontrib.mermaid"
+    output: "_build/html"
+
+  mkdocs:
+    version: ">=1.6,<2.0"
+    config: "../mkdocs.yml"
+    theme: "material"
+    plugins:
+      - "search"
+      - "mkdocstrings"
+    output: "../site"
+
+  linkcheck:
+    command: "make docs-linkcheck"
+    tool: "sphinx-build -b linkcheck"
+
+# ------------------------------------------------------------------------------
+# PUBLICATION
+# ------------------------------------------------------------------------------
+publication:
+  auto_deploy: true
+  provider: "GitHub Pages"
+
+  urls:
+    production: "https://docs.nexus-quantum.dev/nexusdl"
+    development: "https://dev.docs.nexus-quantum.dev"
+    latest: "https://docs.nexus-quantum.dev/nexusdl/latest/"
+    versioned_pattern: "https://docs.nexus-quantum.dev/nexusdl/v{version}/"
+
+  triggers:
+    - branch: "main"
+      target: "production"
+    - branch: "develop"
+      target: "development"
+    - tag: "v*"
+      target: "versioned"
+
+  workflows:
+    - ".github/workflows/docs.yml"
+    - ".github/workflows/docs-deploy.yml"
+
+# ------------------------------------------------------------------------------
+# STRUCTURE DÉTAILLÉE (vue d'ensemble)
+# ------------------------------------------------------------------------------
+structure_overview:
+  installation:
+    path: "source/installation/"
+    purpose: "Guides d'installation par OS"
+    files:
+      - "windows.md"
+      - "linux.md"
+      - "macos.md"
+      - "docker.md"
+
+  usage:
+    path: "source/usage/"
+    purpose: "Guides d'utilisation des interfaces"
+    files:
+      - "cli.md"
+      - "web.md"
+      - "gui.md"
+      - "configuration.md"
+      - "formats.md"
+
+  development:
+    path: "source/development/"
+    purpose: "Guides développeur"
+    files:
+      - "architecture.md"
+      - "adding_sites.md"
+      - "adding_parsers.md"
+      - "plugins.md"
+      - "contributing.md"
+
+  api:
+    path: "source/api/"
+    purpose: "Référence API technique"
+    files:
+      - "rest.md"
+      - "websocket.md"
+      - "python.md"
+
+  adr:
+    path: "source/adr/"
+    purpose: "Architecture Decision Records"
+    files:
+      - "001-hexagonal.md"
+      - "002-pydantic-v2.md"
+      - "003-uv.md"
+      - "004-textual.md"
+      - "005-fastapi-nextjs.md"
+      - "006-mixins.md"
+
+# ------------------------------------------------------------------------------
+# LIENS UTILES
+# ------------------------------------------------------------------------------
+links:
+  documentation: "source/index.rst"
+  api_reference: "API.md"
+  changelog_dev: "CHANGELOG_DEV.md"
+  contributing: "../CONTRIBUTING.md"
+  security: "../SECURITY.md"
+  code_of_conduct: "../CODE_OF_CONDUCT.md"
+  license: "../LICENSE"
+  public_docs: "https://docs.nexus-quantum.dev/nexusdl"
+  dev_docs: "https://dev.docs.nexus-quantum.dev"
+
+# ------------------------------------------------------------------------------
+# RESPONSABLES (CODEOWNERS)
+# ------------------------------------------------------------------------------
+ownership:
+  main:
+    - github: "NEXUS-QUANTUM"
+      email: "nexus.quantum@protonmail.com"
+      role: "maintainer"
+
+  reviewers:
+    - github: "NEXUS-QUANTUM"
+
+  protection:
+    require_pr: true
+    require_reviews: 1
+    require_ci_pass: true   # Build docs doit passer
+
+# ------------------------------------------------------------------------------
+# COMMANDES UTILES
+# ------------------------------------------------------------------------------
+commands:
+  build_sphinx: "make docs"
+  build_mkdocs: "make docs-mkdocs"
+  serve_local: "make docs-serve"
+  linkcheck: "make docs-linkcheck"
+  clean: "make docs-clean"
+  open_browser: "make docs-open"
+  validate_manifests: "make validate-manifests"
+  generate_manifests: "make generate-manifests"
+
+# ------------------------------------------------------------------------------
+# MÉTADONNÉES DE GÉNÉRATION
+# ------------------------------------------------------------------------------
+generation:
+  template: "templates/nexus.dl.j2"
+  regenerate_command: "python scripts/generate_nexus_manifests.py --path docs"
+  validate_command: "python scripts/generate_nexus_manifests.py --validate --path docs"
+  schema: "src/nexusdl/data/nexus_schema.json"
+
+# ------------------------------------------------------------------------------
+# MÉTRIQUES
+# ------------------------------------------------------------------------------
+metrics:
+  files_count: 4          # Fichiers Markdown racine (README, API, CHANGELOG_DEV, nexus.dl)
+  subdirectories: 1       # source/
+  total_words_estimate: 50000
+  languages: ["fr", "en"]
+
+# ------------------------------------------------------------------------------
+# HISTORIQUE DU MANIFESTE
+# ------------------------------------------------------------------------------
+history:
+  - version: "1.0.0"
+    date: "2026-01-15"
+    author: "NEXUS-QUANTUM"
+    changes:
+      - "Création initiale du manifeste docs/"
+      - "Description des fichiers racine (README, API, CHANGELOG_DEV)"
+      - "Description du sous-dossier source/"
+      - "Définition des règles de rédaction et de build"
+      - "Ajout des cibles de qualité et outils"
+      - "Documentation des commandes de build"
