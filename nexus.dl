@@ -1,0 +1,71 @@
+# ==============================================================================
+#  nexus.dl — Manifeste de dossier
+# ==============================================================================
+#  Décrit la fonction, le contenu et les règles du dossier courant.
+#  À maintenir à jour à chaque ajout/suppression de fichier.
+# ==============================================================================
+
+manifest:
+  schema_version: "1.0.0"
+  generated_at: "{{ GENERATED_AT }}"
+  auto_generated: false
+
+folder:
+  path: "{{ RELATIVE_PATH }}"
+  name: "{{ FOLDER_NAME }}"
+  purpose: |
+    {{ DESCRIPTION_MULTILIGNE }}
+  layer: "{{ LAYER }}"           # core | parsers | interfaces | plugins | root | tooling
+  depth: {{ DEPTH }}
+  parent: "{{ PARENT_PATH }}"
+  children: {{ CHILDREN_LIST }}
+
+# ------------------------------------------------------------------------------
+# CONTENU DU DOSSIER
+# ------------------------------------------------------------------------------
+contents:
+  files:
+    # Exemple :
+    # - name: "example.py"
+    #   purpose: "Description courte de la fonction du fichier"
+    #   required: true
+    #   generated: false
+    {{ FILES_LIST }}
+
+  directories:
+    {{ DIRECTORIES_LIST }}
+
+# ------------------------------------------------------------------------------
+# DÉPENDANCES AUTORISÉES / INTERDITES
+# ------------------------------------------------------------------------------
+dependencies:
+  allowed: {{ ALLOWED_DEPS }}
+  forbidden: {{ FORBIDDEN_DEPS }}
+
+# ------------------------------------------------------------------------------
+# RÈGLES SPÉCIFIQUES
+# ------------------------------------------------------------------------------
+rules:
+  {{ RULES_LIST }}
+
+# ------------------------------------------------------------------------------
+# RESPONSABLE
+# ------------------------------------------------------------------------------
+ownership:
+  main:
+    - github: "NEXUS-QUANTUM"
+      role: "maintainer"
+
+# ------------------------------------------------------------------------------
+# MÉTADONNÉES DE GÉNÉRATION
+# ------------------------------------------------------------------------------
+generation:
+  template: "templates/nexus.dl.j2"
+  regenerate_command: "python scripts/generate_nexus_manifests.py --path {{ RELATIVE_PATH }}"
+
+history:
+  - version: "1.0.0"
+    date: "{{ DATE }}"
+    author: "NEXUS-QUANTUM"
+    changes:
+      - "Création initiale"
