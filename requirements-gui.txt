@@ -1,0 +1,36 @@
+# ==============================================================================
+#  NexusDL — requirements-gui.txt (Interface Desktop)
+# ==============================================================================
+#  Dépendances pour l'interface graphique desktop (CustomTkinter).
+#
+#  Généré depuis pyproject.toml via :
+#      uv pip compile pyproject.toml --extra gui -o requirements-gui.txt
+# ==============================================================================
+
+# --- Core ---
+-r requirements.txt
+
+# --- Framework GUI ---
+customtkinter==5.2.2
+tkinter==0.1.0 ; python_version < "3.13"
+darkdetect==0.8.0
+packaging==24.2
+
+# --- Dépendances indirectes ---
+pillow==11.1.0
+typing-extensions==4.12.2
+
+# --- Windows spécifique ---
+pywinstyles==1.8 ; sys_platform == "win32"
+pywin32==308 ; sys_platform == "win32"
+pywin32-ctypes==0.2.3 ; sys_platform == "win32"
+
+# --- macOS spécifique ---
+pyobjc-core==10.3.1 ; sys_platform == "darwin"
+pyobjc-framework-Cocoa==10.3.1 ; sys_platform == "darwin"
+
+# --- Linux spécifique (dépendances système optionnelles) ---
+# Note : sous Linux, tkinter est fourni par le système :
+#   Debian/Ubuntu : apt install python3-tk
+#   Fedora        : dnf install python3-tkinter
+#   Arch          : pacman -S tk
