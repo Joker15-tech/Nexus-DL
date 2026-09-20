@@ -1,6 +1,4 @@
-Voici le fichier **`docs/API.md`** complet, production-ready, pour NexusDL. Il documente **l'API REST (FastAPI)** et **l'API Python** (utilisation comme bibliothèque).
 
-```markdown
 # 🔌 NexusDL — API Reference
 
 <div align="center">
