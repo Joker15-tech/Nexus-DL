@@ -1,0 +1,1518 @@
+/* ==============================================================================
+ *  NexusDL — custom.css
+ * ==============================================================================
+ *  Feuille de style personnalisée pour la documentation Sphinx.
+ *  Surcharge et étend le thème "sphinx_rtd_theme".
+ *
+ *  Organisation :
+ *    1. Variables & thème (couleurs, typographie)
+ *    2. Base & typographie
+ *    3. Header & navigation
+ *    4. Sidebar
+ *    5. Contenu principal
+ *    6. Blocs de code
+ *    7. Encadrés (admonitions)
+ *    8. Tableaux
+ *    9. Composants custom (badges, cards, grids)
+ *   10. Diagrammes Mermaid
+ *   11. Mode sombre
+ *   12. Responsive
+ *   13. Impression
+ *   14. Utilitaires
+ *
+ *  Compatible : sphinx_rtd_theme >= 3.0
+ *  Licence : GPL-3.0-or-later
+ *  Copyright (C) 2026 NEXUS-QUANTUM
+ * ========================================================================== */
+
+
+/* ==============================================================================
+ *  1. VARIABLES & THÈME
+ * ============================================================================== */
+
+:root {
+    /* --- Couleurs NexusDL --- */
+    --nx-primary: #7c3aed;           /* Violet quantum principal */
+    --nx-primary-dark: #5b21b6;      /* Violet foncé */
+    --nx-primary-light: #a78bfa;     /* Violet clair */
+    --nx-primary-lighter: #ede9fe;   /* Très clair */
+
+    --nx-secondary: #06b6d4;         /* Cyan accent */
+    --nx-secondary-dark: #0891b2;    /* Cyan foncé */
+    --nx-secondary-light: #67e8f9;   /* Cyan clair */
+
+    --nx-accent: #ec4899;            /* Rose accent */
+    --nx-accent-dark: #be185d;       /* Rose foncé */
+
+    /* --- Couleurs sémantiques --- */
+    --nx-success: #10b981;
+    --nx-success-bg: #d1fae5;
+    --nx-info: #3b82f6;
+    --nx-info-bg: #dbeafe;
+    --nx-warning: #f59e0b;
+    --nx-warning-bg: #fef3c7;
+    --nx-danger: #ef4444;
+    --nx-danger-bg: #fee2e2;
+    --nx-critical: #dc2626;
+    --nx-critical-bg: #fecaca;
+    --nx-note: #8b5cf6;
+    --nx-note-bg: #ede9fe;
+    --nx-tip: #14b8a6;
+    --nx-tip-bg: #ccfbf1;
+    --nx-seealso: #6366f1;
+    --nx-seealso-bg: #e0e7ff;
+
+    /* --- Neutres --- */
+    --nx-bg: #ffffff;
+    --nx-bg-alt: #f8f9fa;
+    --nx-bg-code: #f6f8fa;
+    --nx-text: #1f2937;
+    --nx-text-muted: #6b7280;
+    --nx-text-light: #9ca3af;
+    --nx-border: #e5e7eb;
+    --nx-border-dark: #d1d5db;
+
+    /* --- Typographie --- */
+    --nx-font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI",
+        "Roboto", "Helvetica Neue", Arial, sans-serif;
+    --nx-font-mono: "JetBrains Mono", "Fira Code", "SF Mono", Menlo,
+        Consolas, "Liberation Mono", monospace;
+    --nx-font-size-base: 16px;
+    --nx-line-height: 1.65;
+
+    /* --- Espacements --- */
+    --nx-space-xs: 0.25rem;
+    --nx-space-sm: 0.5rem;
+    --nx-space-md: 1rem;
+    --nx-space-lg: 1.5rem;
+    --nx-space-xl: 2rem;
+    --nx-space-2xl: 3rem;
+
+    /* --- Rayons --- */
+    --nx-radius-sm: 4px;
+    --nx-radius: 6px;
+    --nx-radius-lg: 10px;
+    --nx-radius-xl: 16px;
+
+    /* --- Ombres --- */
+    --nx-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+    --nx-shadow: 0 1px 3px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.06);
+    --nx-shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1), 0 2px 4px rgba(0, 0, 0, 0.06);
+    --nx-shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1), 0 4px 6px rgba(0, 0, 0, 0.05);
+    --nx-shadow-glow: 0 0 20px rgba(124, 58, 237, 0.3);
+
+    /* --- Transitions --- */
+    --nx-transition-fast: 0.15s ease;
+    --nx-transition: 0.25s ease;
+    --nx-transition-slow: 0.4s ease;
+}
+
+/* Surcharge des variables du thème RTD */
+:root {
+    --sidebar-width: 320px;
+    --content-max-width: 900px;
+}
+
+/* ==============================================================================
+ *  2. BASE & TYPOGRAPHIE
+ * ========================================================================== */
+
+html {
+    font-size: var(--nx-font-size-base);
+    scroll-behavior: smooth;
+}
+
+body {
+    font-family: var(--nx-font-sans);
+    color: var(--nx-text);
+    line-height: var(--nx-line-height);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+}
+
+/* --- Titres --- */
+h1, h2, h3, h4, h5, h6 {
+    font-family: var(--nx-font-sans);
+    font-weight: 700;
+    color: var(--nx-text);
+    letter-spacing: -0.01em;
+    margin-top: var(--nx-space-xl);
+    margin-bottom: var(--nx-space-md);
+}
+
+h1 {
+    font-size: 2.25rem;
+    line-height: 1.2;
+    border-bottom: 2px solid var(--nx-primary);
+    padding-bottom: var(--nx-space-md);
+    margin-top: 0;
+}
+
+h2 {
+    font-size: 1.75rem;
+    line-height: 1.3;
+    border-bottom: 1px solid var(--nx-border);
+    padding-bottom: var(--nx-space-sm);
+    margin-top: var(--nx-space-2xl);
+}
+
+h3 {
+    font-size: 1.375rem;
+    color: var(--nx-primary-dark);
+}
+
+h4 {
+    font-size: 1.125rem;
+    color: var(--nx-primary-dark);
+}
+
+h5 {
+    font-size: 1rem;
+    color: var(--nx-primary-dark);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+h6 {
+    font-size: 0.875rem;
+    color: var(--nx-text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+/* --- Paragraphes --- */
+p {
+    margin-bottom: var(--nx-space-md);
+    line-height: var(--nx-line-height);
+}
+
+/* --- Liens --- */
+a {
+    color: var(--nx-primary);
+    text-decoration: none;
+    transition: color var(--nx-transition-fast);
+    border-bottom: 1px solid transparent;
+}
+
+a:hover {
+    color: var(--nx-primary-dark);
+    border-bottom-color: var(--nx-primary-dark);
+}
+
+a:focus {
+    outline: 2px solid var(--nx-primary-light);
+    outline-offset: 2px;
+    border-radius: var(--nx-radius-sm);
+}
+
+a:visited {
+    color: var(--nx-primary-dark);
+}
+
+/* Liens externes : ajouter une icône */
+a.external::after,
+a[href^="http"]:not([href*="nexus-quantum"]):not([href*="localhost"])::after {
+    content: " ↗";
+    font-size: 0.85em;
+    color: var(--nx-text-light);
+    margin-left: 2px;
+}
+
+/* --- Listes --- */
+ul, ol {
+    margin-bottom: var(--nx-space-md);
+    padding-left: var(--nx-space-xl);
+}
+
+li {
+    margin-bottom: var(--nx-space-xs);
+}
+
+ul ul, ul ol, ol ul, ol ol {
+    margin-bottom: 0;
+}
+
+/* --- Citations --- */
+blockquote {
+    border-left: 4px solid var(--nx-primary-light);
+    background-color: var(--nx-primary-lighter);
+    padding: var(--nx-space-md) var(--nx-space-lg);
+    margin: var(--nx-space-lg) 0;
+    border-radius: 0 var(--nx-radius) var(--nx-radius) 0;
+    color: var(--nx-text);
+    font-style: italic;
+}
+
+blockquote p:last-child {
+    margin-bottom: 0;
+}
+
+/* --- Séparateurs --- */
+hr {
+    border: 0;
+    height: 1px;
+    background: linear-gradient(
+        90deg,
+        transparent,
+        var(--nx-border),
+        transparent
+    );
+    margin: var(--nx-space-2xl) 0;
+}
+
+/* --- Sélection --- */
+::selection {
+    background-color: var(--nx-primary-light);
+    color: white;
+}
+
+::-moz-selection {
+    background-color: var(--nx-primary-light);
+    color: white;
+}
+
+/* --- Scrollbar (WebKit) --- */
+::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+}
+
+::-webkit-scrollbar-track {
+    background: var(--nx-bg-alt);
+    border-radius: var(--nx-radius);
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--nx-border-dark);
+    border-radius: var(--nx-radius);
+    transition: background var(--nx-transition);
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: var(--nx-primary-light);
+}
+
+/* --- Icônes d'ancre de titre --- */
+.headerlink {
+    color: var(--nx-text-light);
+    opacity: 0;
+    transition: opacity var(--nx-transition), color var(--nx-transition);
+    padding-left: var(--nx-space-sm);
+    font-size: 0.8em;
+}
+
+h1:hover .headerlink,
+h2:hover .headerlink,
+h3:hover .headerlink,
+h4:hover .headerlink,
+h5:hover .headerlink,
+h6:hover .headerlink {
+    opacity: 1;
+}
+
+.headerlink:hover {
+    color: var(--nx-primary);
+}
+
+
+/* ==============================================================================
+ *  3. HEADER & NAVIGATION
+ * ========================================================================== */
+
+/* --- Barre de navigation supérieure --- */
+.wy-nav-top {
+    background: linear-gradient(
+        135deg,
+        var(--nx-primary) 0%,
+        var(--nx-primary-dark) 100%
+    );
+    box-shadow: var(--nx-shadow);
+}
+
+.wy-nav-top a {
+    color: white;
+    font-weight: 600;
+}
+
+.wy-nav-top i {
+    color: white;
+}
+
+/* --- Barre latérale principale --- */
+.wy-side-nav-search {
+    background: linear-gradient(
+        135deg,
+        var(--nx-primary) 0%,
+        var(--nx-primary-dark) 100%
+    );
+    padding: var(--nx-space-lg) var(--nx-space-md);
+}
+
+.wy-side-nav-search input[type="text"] {
+    border-radius: var(--nx-radius);
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    background-color: rgba(255, 255, 255, 0.95);
+    padding: 8px 12px;
+    font-size: 0.9rem;
+    transition: border-color var(--nx-transition), box-shadow var(--nx-transition);
+}
+
+.wy-side-nav-search input[type="text"]:focus {
+    border-color: var(--nx-secondary-light);
+    box-shadow: 0 0 0 3px rgba(103, 232, 249, 0.3);
+    outline: none;
+}
+
+.wy-side-nav-search > a {
+    color: white;
+    font-weight: 700;
+    font-size: 1.25rem;
+}
+
+.wy-side-nav-search > a:hover {
+    color: var(--nx-secondary-light);
+}
+
+.wy-side-nav-search .version {
+    color: rgba(255, 255, 255, 0.85);
+    font-size: 0.85rem;
+    display: inline-block;
+    margin-top: var(--nx-space-xs);
+    padding: 2px 8px;
+    background-color: rgba(0, 0, 0, 0.2);
+    border-radius: var(--nx-radius-sm);
+}
+
+/* --- Fil d'Ariane (breadcrumb) --- */
+.wy-breadcrumbs {
+    background-color: var(--nx-bg-alt);
+    padding: var(--nx-space-sm) var(--nx-space-md);
+    border-radius: var(--nx-radius);
+    margin-bottom: var(--nx-space-lg);
+    font-size: 0.9rem;
+}
+
+.wy-breadcrumbs li {
+    display: inline;
+}
+
+.wy-breadcrumbs li + li::before {
+    content: " › ";
+    color: var(--nx-text-light);
+    margin: 0 var(--nx-space-xs);
+}
+
+.wy-breadcrumbs a {
+    color: var(--nx-text-muted);
+}
+
+.wy-breadcrumbs a:hover {
+    color: var(--nx-primary);
+}
+
+
+/* ==============================================================================
+ *  4. SIDEBAR
+ * ========================================================================== */
+
+/* --- Menu latéral --- */
+.wy-menu-vertical {
+    padding-top: var(--nx-space-md);
+}
+
+.wy-menu-vertical header,
+.wy-menu-vertical p.caption {
+    color: var(--nx-primary-dark);
+    font-weight: 700;
+    text-transform: uppercase;
+    font-size: 0.75rem;
+    letter-spacing: 0.08em;
+    padding: var(--nx-space-md) var(--nx-space-md) var(--nx-space-sm);
+    background-color: transparent;
+    border-bottom: 2px solid var(--nx-primary-lighter);
+    margin-bottom: var(--nx-space-sm);
+}
+
+.wy-menu-vertical a {
+    color: var(--nx-text);
+    padding: var(--nx-space-sm) var(--nx-space-md);
+    border-left: 3px solid transparent;
+    transition: all var(--nx-transition-fast);
+    font-size: 0.9rem;
+    border-radius: 0 var(--nx-radius) var(--nx-radius) 0;
+    margin: 2px 0;
+}
+
+.wy-menu-vertical a:hover {
+    background-color: var(--nx-primary-lighter);
+    border-left-color: var(--nx-primary);
+    color: var(--nx-primary-dark);
+    padding-left: calc(var(--nx-space-md) + 4px);
+}
+
+.wy-menu-vertical a.current {
+    background-color: var(--nx-primary-lighter);
+    border-left-color: var(--nx-primary);
+    color: var(--nx-primary-dark);
+    font-weight: 600;
+}
+
+.wy-menu-vertical li.current > a {
+    background-color: var(--nx-primary-lighter);
+    border-left-color: var(--nx-primary);
+    color: var(--nx-primary-dark);
+    font-weight: 600;
+}
+
+.wy-menu-vertical li.current > a:hover {
+    background-color: var(--nx-primary-lighter);
+    color: var(--nx-primary-dark);
+}
+
+.wy-menu-vertical li.toctree-l2 a {
+    padding-left: calc(var(--nx-space-md) + var(--nx-space-md));
+    font-size: 0.85rem;
+}
+
+.wy-menu-vertical li.toctree-l3 a {
+    padding-left: calc(var(--nx-space-md) + var(--nx-space-md) + var(--nx-space-md));
+    font-size: 0.8rem;
+    color: var(--nx-text-muted);
+}
+
+/* --- Bouton d'effondrement --- */
+.wy-menu-vertical .current > .expand-icon,
+.wy-menu-vertical .current > span.toctree-expand {
+    color: var(--nx-primary);
+}
+
+
+/* ==============================================================================
+ *  5. CONTENU PRINCIPAL
+ * ========================================================================== */
+
+/* --- Zone de contenu --- */
+.wy-nav-content {
+    background-color: var(--nx-bg);
+    max-width: var(--content-max-width);
+    margin: 0 auto;
+    padding: var(--nx-space-2xl) var(--nx-space-xl);
+}
+
+.wy-nav-content-wrap {
+    background-color: var(--nx-bg);
+}
+
+/* --- Pied de page du document --- */
+.rst-footer-buttons {
+    margin-top: var(--nx-space-2xl);
+    padding-top: var(--nx-space-lg);
+    border-top: 1px solid var(--nx-border);
+    display: flex;
+    justify-content: space-between;
+    gap: var(--nx-space-md);
+}
+
+.btn {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--nx-space-sm);
+    padding: 10px 20px;
+    border-radius: var(--nx-radius);
+    font-weight: 600;
+    font-size: 0.9rem;
+    text-decoration: none;
+    transition: all var(--nx-transition);
+    border: 1px solid transparent;
+    cursor: pointer;
+}
+
+.btn-neutral {
+    background-color: var(--nx-bg-alt);
+    color: var(--nx-text);
+    border-color: var(--nx-border);
+}
+
+.btn-neutral:hover {
+    background-color: var(--nx-primary-lighter);
+    color: var(--nx-primary-dark);
+    border-color: var(--nx-primary-light);
+    transform: translateY(-1px);
+    box-shadow: var(--nx-shadow);
+}
+
+/* --- Navigation précédent/suivant --- */
+.rst-content .section > .rst-footer-buttons a.btn {
+    min-width: 120px;
+    justify-content: center;
+}
+
+/* --- "Retour en haut" --- */
+.back-to-top {
+    position: fixed;
+    bottom: var(--nx-space-lg);
+    right: var(--nx-space-lg);
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background-color: var(--nx-primary);
+    color: white;
+    border: none;
+    cursor: pointer;
+    box-shadow: var(--nx-shadow-lg);
+    transition: all var(--nx-transition);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+    opacity: 0;
+    pointer-events: none;
+    z-index: 1000;
+}
+
+.back-to-top.visible {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.back-to-top:hover {
+    background-color: var(--nx-primary-dark);
+    transform: translateY(-2px);
+    box-shadow: var(--nx-shadow-lg), var(--nx-shadow-glow);
+}
+
+/* ==============================================================================
+ *  6. BLOCS DE CODE
+ * ========================================================================== */
+
+/* --- Code inline --- */
+code,
+.rst-content code.literal,
+.rst-content tt.literal {
+    font-family: var(--nx-font-mono);
+    font-size: 0.875em;
+    padding: 2px 6px;
+    background-color: var(--nx-bg-code);
+    color: var(--nx-accent-dark);
+    border: 1px solid var(--nx-border);
+    border-radius: var(--nx-radius-sm);
+    word-break: break-word;
+}
+
+/* --- Références (roles) --- */
+.rst-content .xref,
+.rst-content .doc,
+.rst-content .ref {
+    font-family: var(--nx-font-mono);
+    font-size: 0.9em;
+    padding: 1px 6px;
+    background-color: var(--nx-primary-lighter);
+    color: var(--nx-primary-dark);
+    border-radius: var(--nx-radius-sm);
+    border-bottom: 1px dashed var(--nx-primary-light);
+    text-decoration: none;
+}
+
+.rst-content .xref:hover,
+.rst-content .doc:hover,
+.rst-content .ref:hover {
+    background-color: var(--nx-primary-light);
+    color: white;
+    border-bottom-color: transparent;
+}
+
+/* --- Blocs de code (pre) --- */
+div[class^="highlight"],
+div[class*=" highlight"] {
+    background-color: #1e1e2e;
+    border-radius: var(--nx-radius);
+    margin: var(--nx-space-lg) 0;
+    overflow: hidden;
+    box-shadow: var(--nx-shadow-md);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+div[class^="highlight"] pre,
+div[class*=" highlight"] pre {
+    background-color: #1e1e2e;
+    color: #cdd6f4;
+    font-family: var(--nx-font-mono);
+    font-size: 0.875rem;
+    line-height: 1.6;
+    padding: var(--nx-space-lg);
+    margin: 0;
+    overflow-x: auto;
+    border: none;
+}
+
+/* --- Coloration syntaxique (Pygments — thème Catppuccin Mocha) --- */
+.highlight .k,   /* keyword */
+.highlight .kd,  /* keyword declaration */
+.highlight .kn,  /* keyword namespace */
+.highlight .kp,  /* keyword pseudo */
+.highlight .kr,  /* keyword reserved */
+.highlight .kt    { color: #cba6f7; font-weight: 600; }  /* Mauve */
+
+.highlight .n,   /* name */
+.highlight .nn    { color: #cdd6f4; }                    /* Text */
+
+.highlight .na    { color: #89b4fa; }                    /* Name.Attribute */
+.highlight .nb    { color: #89dceb; }                    /* Name.Builtin */
+.highlight .nc    { color: #f9e2af; font-weight: 600; }  /* Name.Class */
+.highlight .nd    { color: #f9e2af; }                    /* Name.Decorator */
+.highlight .nf    { color: #89b4fa; }                    /* Name.Function */
+.highlight .ni    { color: #f5c2e7; }                    /* Name.Entity */
+.highlight .nl    { color: #89b4fa; }                    /* Name.Label */
+.highlight .no    { color: #fab387; }                    /* Name.Constant */
+.highlight .nt    { color: #94e2d5; }                    /* Name.Tag */
+.highlight .nv    { color: #cdd6f4; }                    /* Name.Variable */
+.highlight .nx    { color: #cdd6f4; }                    /* Name.Other */
+.highlight .py    { color: #cdd6f4; }                    /* Name.Property */
+
+.highlight .s,   /* string */
+.highlight .s1,
+.highlight .s2,
+.highlight .sb,
+.highlight .sc,
+.highlight .sd,
+.highlight .se,
+.highlight .sh,
+.highlight .si,
+.highlight .sx,
+.highlight .sr,
+.highlight .ss    { color: #a6e3a1; }                    /* Green */
+
+.highlight .m,   /* number */
+.highlight .mf,
+.highlight .mh,
+.highlight .mi,
+.highlight .mo,
+.highlight .mb  { color: #fab387; }                       /* Peach */
+
+.highlight .c,   /* comment */
+.highlight .c1,
+.highlight .cm,
+.highlight .cs,
+.highlight .cd,
+.highlight .ch  { color: #6c7086; font-style: italic; } /* Overlay0 */
+
+.highlight .o,   /* operator */
+.highlight .ow  { color: #89dceb; }                       /* Sky */
+.highlight .p   { color: #bac2de; }                       /* Punctuation */
+
+.highlight .err  { color: #f38ba8; background-color: rgba(243, 139, 168, 0.1); }
+
+/* --- Numéros de ligne --- */
+.highlight .linenos,
+.highlight .lineno {
+    color: #6c7086;
+    background-color: #181825;
+    padding: 0 var(--nx-space-md);
+    border-right: 1px solid rgba(255, 255, 255, 0.05);
+    user-select: none;
+    font-size: 0.8em;
+}
+
+/* --- Barre de titre du bloc de code (langage) --- */
+.highlight::before {
+    content: attr(data-language);
+    position: absolute;
+    top: 0;
+    right: 0;
+    padding: 4px 12px;
+    background-color: rgba(255, 255, 255, 0.05);
+    color: #6c7086;
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    border-radius: 0 var(--nx-radius) 0 var(--nx-radius);
+}
+
+/* --- Bouton "Copier" (sphinx-copybutton) --- */
+button.copybtn {
+    background-color: rgba(255, 255, 255, 0.05);
+    color: #cdd6f4;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: var(--nx-radius-sm);
+    padding: 4px 8px;
+    transition: all var(--nx-transition);
+    top: 8px;
+    right: 8px;
+}
+
+button.copybtn:hover {
+    background-color: var(--nx-primary);
+    color: white;
+    border-color: var(--nx-primary);
+}
+
+button.copybtn.success {
+    background-color: var(--nx-success);
+    color: white;
+    border-color: var(--nx-success);
+}
+
+
+/* ==============================================================================
+ *  7. ENCADRÉS (ADMONITIONS)
+ * ========================================================================== */
+
+.rst-content .admonition {
+    padding: var(--nx-space-md) var(--nx-space-lg);
+    margin: var(--nx-space-lg) 0;
+    border-radius: var(--nx-radius);
+    border-left: 4px solid;
+    background-color: var(--nx-bg-alt);
+    box-shadow: var(--nx-shadow-sm);
+    position: relative;
+}
+
+.rst-content .admonition p:last-child {
+    margin-bottom: 0;
+}
+
+.rst-content .admonition-title {
+    font-weight: 700;
+    font-size: 1rem;
+    margin-bottom: var(--nx-space-sm);
+    display: flex;
+    align-items: center;
+    gap: var(--nx-space-sm);
+    padding: 0;
+    background: none;
+    border: none;
+    color: inherit;
+}
+
+.rst-content .admonition-title::before {
+    font-size: 1.2em;
+    line-height: 1;
+}
+
+/* --- Note --- */
+.rst-content .admonition.note {
+    border-left-color: var(--nx-note);
+    background-color: var(--nx-note-bg);
+}
+.rst-content .admonition.note .admonition-title { color: var(--nx-note); }
+.rst-content .admonition.note .admonition-title::before { content: "📘"; }
+
+/* --- Tip --- */
+.rst-content .admonition.tip {
+    border-left-color: var(--nx-tip);
+    background-color: var(--nx-tip-bg);
+}
+.rst-content .admonition.tip .admonition-title { color: var(--nx-tip); }
+.rst-content .admonition.tip .admonition-title::before { content: "💡"; }
+
+/* --- Important --- */
+.rst-content .admonition.important {
+    border-left-color: var(--nx-info);
+    background-color: var(--nx-info-bg);
+}
+.rst-content .admonition.important .admonition-title { color: var(--nx-info); }
+.rst-content .admonition.important .admonition-title::before { content: "❗"; }
+
+/* --- Warning --- */
+.rst-content .admonition.warning {
+    border-left-color: var(--nx-warning);
+    background-color: var(--nx-warning-bg);
+}
+.rst-content .admonition.warning .admonition-title { color: var(--nx-warning); }
+.rst-content .admonition.warning .admonition-title::before { content: "⚠️"; }
+
+/* --- Danger --- */
+.rst-content .admonition.danger {
+    border-left-color: var(--nx-danger);
+    background-color: var(--nx-danger-bg);
+}
+.rst-content .admonition.danger .admonition-title { color: var(--nx-danger); }
+.rst-content .admonition.danger .admonition-title::before { content: "🔥"; }
+
+/* --- Error --- */
+.rst-content .admonition.error {
+    border-left-color: var(--nx-critical);
+    background-color: var(--nx-critical-bg);
+}
+.rst-content .admonition.error .admonition-title { color: var(--nx-critical); }
+.rst-content .admonition.error .admonition-title::before { content: "❌"; }
+
+/* --- See Also --- */
+.rst-content .admonition.seealso {
+    border-left-color: var(--nx-seealso);
+    background-color: var(--nx-seealso-bg);
+}
+.rst-content .admonition.seealso .admonition-title { color: var(--nx-seealso); }
+.rst-content .admonition.seealso .admonition-title::before { content: "🔗"; }
+
+/* --- Hint --- */
+.rst-content .admonition.hint {
+    border-left-color: var(--nx-secondary);
+    background-color: rgba(6, 182, 212, 0.1);
+}
+.rst-content .admonition.hint .admonition-title { color: var(--nx-secondary-dark); }
+.rst-content .admonition.hint .admonition-title::before { content: "🎯"; }
+
+/* --- Caution --- */
+.rst-content .admonition.caution {
+    border-left-color: var(--nx-warning);
+    background-color: var(--nx-warning-bg);
+}
+.rst-content .admonition.caution .admonition-title { color: var(--nx-warning); }
+.rst-content .admonition.caution .admonition-title::before { content: "⚠️"; }
+
+/* --- Version ajoutée/modifiée/dépréciée --- */
+.rst-content .versionadded,
+.rst-content .versionchanged,
+.rst-content .deprecated {
+    background-color: var(--nx-bg-alt);
+    border-left: 3px solid var(--nx-primary-light);
+    padding: var(--nx-space-sm) var(--nx-space-md);
+    margin: var(--nx-space-md) 0;
+    border-radius: var(--nx-radius-sm);
+    font-size: 0.9em;
+    color: var(--nx-text-muted);
+}
+
+.rst-content .versionadded::before {
+    content: "✨ Nouveau dans ";
+    font-weight: 600;
+    color: var(--nx-success);
+}
+
+.rst-content .versionchanged::before {
+    content: "🔄 Modifié dans ";
+    font-weight: 600;
+    color: var(--nx-info);
+}
+
+.rst-content .deprecated::before {
+    content: "⚠️ Déprécié depuis ";
+    font-weight: 600;
+    color: var(--nx-warning);
+}
+
+
+/* ==============================================================================
+ *  8. TABLEAUX
+ * ========================================================================== */
+
+.rst-content table.docutils,
+.rst-content table.field-list {
+    border-collapse: collapse;
+    width: 100%;
+    margin: var(--nx-space-lg) 0;
+    border-radius: var(--nx-radius);
+    overflow: hidden;
+    box-shadow: var(--nx-shadow-sm);
+    font-size: 0.9rem;
+}
+
+.rst-content table.docutils thead th {
+    background: linear-gradient(
+        135deg,
+        var(--nx-primary) 0%,
+        var(--nx-primary-dark) 100%
+    );
+    color: white;
+    font-weight: 600;
+    padding: var(--nx-space-md);
+    text-align: left;
+    border: none;
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+}
+
+.rst-content table.docutils tbody td {
+    padding: var(--nx-space-sm) var(--nx-space-md);
+    border-bottom: 1px solid var(--nx-border);
+    vertical-align: top;
+}
+
+.rst-content table.docutils tbody tr:nth-child(even) {
+    background-color: var(--nx-bg-alt);
+}
+
+.rst-content table.docutils tbody tr:hover {
+    background-color: var(--nx-primary-lighter);
+    transition: background-color var(--nx-transition-fast);
+}
+
+.rst-content table.docutils tbody tr:last-child td {
+    border-bottom: none;
+}
+
+/* Alignement des colonnes */
+.rst-content table.docutils td.text-center,
+.rst-content table.docutils th.text-center {
+    text-align: center;
+}
+
+.rst-content table.docutils td.text-right,
+.rst-content table.docutils th.text-right {
+    text-align: right;
+}
+
+/* --- Tableaux responsives --- */
+.rst-content table.docutils {
+    display: block;
+    overflow-x: auto;
+    white-space: nowrap;
+}
+
+@media (min-width: 768px) {
+    .rst-content table.docutils {
+        display: table;
+        white-space: normal;
+    }
+}
+
+
+/* ==============================================================================
+ *  9. COMPOSANTS CUSTOM
+ * ========================================================================== */
+
+/* --- Grille de cartes (sphinx-design) --- */
+.sd-card {
+    border: 1px solid var(--nx-border);
+    border-radius: var(--nx-radius-lg);
+    padding: var(--nx-space-lg);
+    transition: all var(--nx-transition);
+    background-color: var(--nx-bg);
+    box-shadow: var(--nx-shadow-sm);
+}
+
+.sd-card:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--nx-shadow-lg);
+    border-color: var(--nx-primary-light);
+}
+
+.sd-card-title {
+    color: var(--nx-primary-dark);
+    font-weight: 700;
+    font-size: 1.1rem;
+    margin-bottom: var(--nx-space-sm);
+}
+
+.sd-card-text {
+    color: var(--nx-text-muted);
+    font-size: 0.9rem;
+    line-height: 1.5;
+}
+
+.sd-card-footer {
+    margin-top: var(--nx-space-md);
+    padding-top: var(--nx-space-md);
+    border-top: 1px solid var(--nx-border);
+    font-size: 0.85rem;
+}
+
+/* --- Grille --- */
+.sd-grid {
+    display: grid;
+    gap: var(--nx-space-lg);
+    margin: var(--nx-space-xl) 0;
+}
+
+.sd-grid.cols-2 { grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); }
+.sd-grid.cols-3 { grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
+.sd-grid.cols-4 { grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
+
+/* --- Badges --- */
+.nx-badge {
+    display: inline-block;
+    padding: 2px 10px;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    vertical-align: middle;
+    margin-right: var(--nx-space-xs);
+}
+
+.nx-badge-new      { background-color: var(--nx-success-bg);  color: var(--nx-success); }
+.nx-badge-beta     { background-color: var(--nx-info-bg);     color: var(--nx-info); }
+.nx-badge-alpha    { background-color: var(--nx-warning-bg);  color: var(--nx-warning); }
+.nx-badge-deprecated { background-color: var(--nx-danger-bg); color: var(--nx-danger); }
+.nx-badge-stable   { background-color: var(--nx-success-bg);  color: var(--nx-success); }
+.nx-badge-adult    { background-color: var(--nx-critical-bg); color: var(--nx-critical); }
+.nx-badge-site     { background-color: var(--nx-primary-lighter); color: var(--nx-primary-dark); }
+
+/* --- Boutons custom --- */
+.nx-button {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--nx-space-sm);
+    padding: 10px 20px;
+    background-color: var(--nx-primary);
+    color: white !important;
+    border-radius: var(--nx-radius);
+    font-weight: 600;
+    text-decoration: none !important;
+    transition: all var(--nx-transition);
+    border: 2px solid var(--nx-primary);
+    margin: var(--nx-space-xs);
+}
+
+.nx-button:hover {
+    background-color: var(--nx-primary-dark);
+    border-color: var(--nx-primary-dark);
+    transform: translateY(-2px);
+    box-shadow: var(--nx-shadow-md);
+}
+
+.nx-button-secondary {
+    background-color: transparent;
+    color: var(--nx-primary) !important;
+}
+
+.nx-button-secondary:hover {
+    background-color: var(--nx-primary);
+    color: white !important;
+}
+
+/* --- Icônes de plateforme --- */
+.nx-platform {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 12px;
+    background-color: var(--nx-bg-alt);
+    border: 1px solid var(--nx-border);
+    border-radius: var(--nx-radius);
+    font-size: 0.85rem;
+    font-weight: 500;
+    margin: 2px;
+}
+
+.nx-platform::before {
+    font-size: 1.1em;
+}
+
+.nx-platform-windows::before  { content: "🪟"; }
+.nx-platform-linux::before    { content: "🐧"; }
+.nx-platform-macos::before    { content: "🍎"; }
+.nx-platform-docker::before   { content: "🐳"; }
+.nx-platform-python::before   { content: "🐍"; }
+.nx-platform-node::before     { content: "⬢"; }
+
+/* --- Encadré "Astuce pro" --- */
+.nx-pro-tip {
+    background: linear-gradient(
+        135deg,
+        var(--nx-primary-lighter) 0%,
+        rgba(6, 182, 212, 0.1) 100%
+    );
+    border: 1px solid var(--nx-primary-light);
+    border-radius: var(--nx-radius-lg);
+    padding: var(--nx-space-lg);
+    margin: var(--nx-space-lg) 0;
+    position: relative;
+}
+
+.nx-pro-tip::before {
+    content: "⚡ ASTUCE PRO";
+    position: absolute;
+    top: -10px;
+    left: var(--nx-space-lg);
+    background-color: var(--nx-primary);
+    color: white;
+    padding: 3px 12px;
+    border-radius: var(--nx-radius-sm);
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+}
+
+/* --- Séparateur stylisé --- */
+.nx-divider {
+    display: flex;
+    align-items: center;
+    gap: var(--nx-space-md);
+    margin: var(--nx-space-2xl) 0;
+    color: var(--nx-text-light);
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+}
+
+.nx-divider::before,
+.nx-divider::after {
+    content: "";
+    flex: 1;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--nx-border), transparent);
+}
+
+/* --- Encadré de comparaison --- */
+.nx-comparison {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0;
+    border: 1px solid var(--nx-border);
+    border-radius: var(--nx-radius);
+    overflow: hidden;
+    margin: var(--nx-space-lg) 0;
+}
+
+.nx-comparison > div {
+    padding: var(--nx-space-md);
+}
+
+.nx-comparison-good {
+    background-color: var(--nx-success-bg);
+    border-right: 1px solid var(--nx-border);
+}
+
+.nx-comparison-bad {
+    background-color: var(--nx-danger-bg);
+}
+
+@media (max-width: 600px) {
+    .nx-comparison {
+        grid-template-columns: 1fr;
+    }
+    .nx-comparison-good {
+        border-right: none;
+        border-bottom: 1px solid var(--nx-border);
+    }
+}
+
+
+/* ==============================================================================
+ * 10. DIAGRAMMES MERMAID
+ * ========================================================================== */
+
+.mermaid {
+    background-color: var(--nx-bg-alt);
+    padding: var(--nx-space-lg);
+    border-radius: var(--nx-radius);
+    margin: var(--nx-space-lg) 0;
+    text-align: center;
+    border: 1px solid var(--nx-border);
+    overflow-x: auto;
+}
+
+/* ==============================================================================
+ * 11. MODE SOMBRE
+ * ========================================================================== */
+
+/* Respect de la préférence système */
+@media (prefers-color-scheme: dark) {
+    :root {
+        --nx-bg: #0f172a;
+        --nx-bg-alt: #1e293b;
+        --nx-bg-code: #1e293b;
+        --nx-text: #e2e8f0;
+        --nx-text-muted: #94a3b8;
+        --nx-text-light: #64748b;
+        --nx-border: #334155;
+        --nx-border-dark: #475569;
+        --nx-primary-lighter: rgba(124, 58, 237, 0.15);
+    }
+
+    body {
+        background-color: var(--nx-bg);
+        color: var(--nx-text);
+    }
+
+    .wy-nav-content,
+    .wy-nav-content-wrap {
+        background-color: var(--nx-bg);
+    }
+
+    .wy-nav-side {
+        background-color: var(--nx-bg-alt);
+    }
+
+    .wy-menu-vertical a {
+        color: var(--nx-text);
+    }
+
+    .wy-menu-vertical a:hover {
+        background-color: rgba(124, 58, 237, 0.2);
+        color: var(--nx-primary-light);
+    }
+
+    .rst-content .admonition.note        { background-color: rgba(139, 92, 246, 0.1); }
+    .rst-content .admonition.tip         { background-color: rgba(20, 184, 166, 0.1); }
+    .rst-content .admonition.important   { background-color: rgba(59, 130, 246, 0.1); }
+    .rst-content .admonition.warning,
+    .rst-content .admonition.caution     { background-color: rgba(245, 158, 11, 0.1); }
+    .rst-content .admonition.danger      { background-color: rgba(239, 68, 68, 0.1); }
+    .rst-content .admonition.error       { background-color: rgba(220, 38, 38, 0.15); }
+    .rst-content .admonition.seealso     { background-color: rgba(99, 102, 241, 0.1); }
+    .rst-content .admonition.hint        { background-color: rgba(6, 182, 212, 0.1); }
+
+    code,
+    .rst-content code.literal {
+        background-color: var(--nx-bg-code);
+        border-color: var(--nx-border);
+    }
+
+    .rst-content table.docutils tbody tr:nth-child(even) {
+        background-color: rgba(255, 255, 255, 0.02);
+    }
+
+    .rst-content table.docutils tbody tr:hover {
+        background-color: rgba(124, 58, 237, 0.1);
+    }
+}
+
+
+/* ==============================================================================
+ * 12. RESPONSIVE
+ * ========================================================================== */
+
+/* --- Tablettes --- */
+@media (max-width: 992px) {
+    :root {
+        --sidebar-width: 280px;
+    }
+
+    .wy-nav-content {
+        padding: var(--nx-space-xl) var(--nx-space-md);
+    }
+}
+
+/* --- Mobiles --- */
+@media (max-width: 768px) {
+    :root {
+        --nx-font-size-base: 15px;
+    }
+
+    h1 { font-size: 1.75rem; }
+    h2 { font-size: 1.5rem; }
+    h3 { font-size: 1.25rem; }
+    h4 { font-size: 1.1rem; }
+
+    .wy-nav-content {
+        padding: var(--nx-space-lg) var(--nx-space-md);
+    }
+
+    .rst-content table.docutils {
+        font-size: 0.8rem;
+    }
+
+    .rst-content table.docutils thead th,
+    .rst-content table.docutils tbody td {
+        padding: var(--nx-space-xs) var(--nx-space-sm);
+    }
+
+    div[class^="highlight"] pre {
+        font-size: 0.8rem;
+        padding: var(--nx-space-md);
+    }
+
+    .rst-footer-buttons {
+        flex-direction: column;
+    }
+
+    .btn {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .back-to-top {
+        bottom: var(--nx-space-md);
+        right: var(--nx-space-md);
+        width: 40px;
+        height: 40px;
+    }
+}
+
+/* --- Petits mobiles --- */
+@media (max-width: 480px) {
+    h1 { font-size: 1.5rem; }
+    h2 { font-size: 1.25rem; }
+
+    .sd-grid.cols-2,
+    .sd-grid.cols-3,
+    .sd-grid.cols-4 {
+        grid-template-columns: 1fr;
+    }
+}
+
+
+/* ==============================================================================
+ * 13. IMPRESSION
+ * ========================================================================== */
+
+@media print {
+    /* Masquer les éléments non pertinents */
+    .wy-nav-side,
+    .wy-nav-top,
+    .rst-footer-buttons,
+    .back-to-top,
+    button.copybtn,
+    .headerlink,
+    .wy-breadcrumbs {
+        display: none !important;
+    }
+
+    /* Ajuster le contenu */
+    .wy-nav-content {
+        max-width: 100%;
+        padding: 0;
+        margin: 0;
+    }
+
+    body {
+        font-size: 11pt;
+        color: black;
+        background: white;
+    }
+
+    a {
+        color: black;
+        text-decoration: underline;
+    }
+
+    /* Afficher l'URL après les liens */
+    a[href^="http"]:not([href*="nexus-quantum"])::after {
+        content: " (" attr(href) ")";
+        font-size: 0.85em;
+        color: #666;
+    }
+
+    /* Éviter les coupures dans les blocs de code */
+    div[class^="highlight"],
+    pre,
+    table,
+    .admonition {
+        page-break-inside: avoid;
+    }
+
+    h1, h2, h3 {
+        page-break-after: avoid;
+    }
+
+    /* Forcer les couleurs pour les blocs de code */
+    div[class^="highlight"] {
+        border: 1px solid #ccc;
+        background: #f5f5f5 !important;
+    }
+
+    div[class^="highlight"] pre {
+        background: #f5f5f5 !important;
+        color: black !important;
+    }
+
+    /* Encadrés : simplifier pour l'impression */
+    .rst-content .admonition {
+        border: 1px solid #ccc;
+        background: white !important;
+        box-shadow: none;
+    }
+}
+
+
+/* ==============================================================================
+ * 14. UTILITAIRES
+ * ========================================================================== */
+
+/* --- Masquer --- */
+.nx-hidden { display: none !important; }
+
+/* --- Centrer --- */
+.nx-center { text-align: center; }
+.nx-center-block {
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+/* --- Marges --- */
+.nx-mt-0 { margin-top: 0 !important; }
+.nx-mt-sm { margin-top: var(--nx-space-sm) !important; }
+.nx-mt-md { margin-top: var(--nx-space-md) !important; }
+.nx-mt-lg { margin-top: var(--nx-space-lg) !important; }
+.nx-mt-xl { margin-top: var(--nx-space-xl) !important; }
+
+.nx-mb-0 { margin-bottom: 0 !important; }
+.nx-mb-sm { margin-bottom: var(--nx-space-sm) !important; }
+.nx-mb-md { margin-bottom: var(--nx-space-md) !important; }
+.nx-mb-lg { margin-bottom: var(--nx-space-lg) !important; }
+.nx-mb-xl { margin-bottom: var(--nx-space-xl) !important; }
+
+/* --- Texte --- */
+.nx-text-muted  { color: var(--nx-text-muted); }
+.nx-text-light  { color: var(--nx-text-light); }
+.nx-text-primary { color: var(--nx-primary); }
+.nx-text-accent  { color: var(--nx-accent); }
+.nx-text-success { color: var(--nx-success); }
+.nx-text-warning { color: var(--nx-warning); }
+.nx-text-danger  { color: var(--nx-danger); }
+
+.nx-text-sm { font-size: 0.85rem; }
+.nx-text-lg { font-size: 1.15rem; }
+.nx-text-xl { font-size: 1.35rem; }
+
+.nx-font-bold   { font-weight: 700; }
+.nx-font-mono   { font-family: var(--nx-font-mono); }
+.nx-uppercase   { text-transform: uppercase; letter-spacing: 0.05em; }
+
+/* --- Flex --- */
+.nx-flex           { display: flex; }
+.nx-flex-col       { display: flex; flex-direction: column; }
+.nx-flex-center    { display: flex; align-items: center; justify-content: center; }
+.nx-flex-between   { display: flex; justify-content: space-between; align-items: center; }
+.nx-flex-wrap      { flex-wrap: wrap; }
+.nx-gap-sm         { gap: var(--nx-space-sm); }
+.nx-gap-md         { gap: var(--nx-space-md); }
+.nx-gap-lg         { gap: var(--nx-space-lg); }
+
+/* --- Grille --- */
+.nx-grid-2 {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: var(--nx-space-lg);
+}
+
+.nx-grid-3 {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: var(--nx-space-md);
+}
+
+/* --- Effets --- */
+.nx-shadow     { box-shadow: var(--nx-shadow); }
+.nx-shadow-md  { box-shadow: var(--nx-shadow-md); }
+.nx-shadow-lg  { box-shadow: var(--nx-shadow-lg); }
+.nx-rounded    { border-radius: var(--nx-radius); }
+.nx-rounded-lg { border-radius: var(--nx-radius-lg); }
+
+/* --- Accessibilité --- */
+.nx-sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
+/* ==============================================================================
+ *  FIN DU FICHIER
+ * ==============================================================================
+ *  Notes :
+ *    - Ce fichier est chargé via `html_css_files` dans conf.py
+ *    - Il surcharge le thème "sphinx_rtd_theme"
+ *    - Compatible avec les thèmes clair et sombre
+ *    - Toutes les couleurs sont personnalisables via les variables CSS
+ *
+ *  Pour ajouter un composant :
+ *    1. Ajouter dans la section appropriée
+ *    2. Utiliser les variables CSS existantes
+ *    3. Préfixer avec `.nx-` pour éviter les conflits
+ *    4. Tester en mode clair ET sombre
+ *
+ * ========================================================================== */
