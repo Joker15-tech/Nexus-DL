@@ -1,0 +1,400 @@
+{
+    "$schema": "https://json.schemastore.org/web-manifest-combined.json",
+
+    "name": "NexusDL — Universal Manga Downloader",
+    "short_name": "NexusDL",
+    "description": "Téléchargeur universel de mangas, webtoons, comics et doujinshis. 60+ sources, 3 interfaces, multi-format, open-source.",
+
+    "id": "/?source=pwa",
+    "start_url": "/?source=pwa",
+    "scope": "/",
+    "display": "standalone",
+    "display_override": [
+        "window-controls-overlay",
+        "standalone",
+        "minimal-ui",
+        "browser"
+    ],
+    "orientation": "any",
+
+    "theme_color": "#0a0e27",
+    "background_color": "#050514",
+
+    "lang": "fr",
+    "dir": "ltr",
+
+    "categories": [
+        "entertainment",
+        "utilities",
+        "productivity",
+        "books",
+        "multimedia"
+    ],
+
+    "iarc_rating_id": "",
+
+    "prefer_related_applications": false,
+
+    "related_applications": [
+        {
+            "platform": "web",
+            "url": "https://docs.nexus-quantum.dev/nexusdl",
+            "id": "nexusdl-web"
+        }
+    ],
+
+    "icons": [
+        {
+            "src": "/icons/icon-72x72.png",
+            "sizes": "72x72",
+            "type": "image/png",
+            "purpose": "any"
+        },
+        {
+            "src": "/icons/icon-96x96.png",
+            "sizes": "96x96",
+            "type": "image/png",
+            "purpose": "any"
+        },
+        {
+            "src": "/icons/icon-128x128.png",
+            "sizes": "128x128",
+            "type": "image/png",
+            "purpose": "any"
+        },
+        {
+            "src": "/icons/icon-144x144.png",
+            "sizes": "144x144",
+            "type": "image/png",
+            "purpose": "any"
+        },
+        {
+            "src": "/icons/icon-152x152.png",
+            "sizes": "152x152",
+            "type": "image/png",
+            "purpose": "any"
+        },
+        {
+            "src": "/icons/icon-192x192.png",
+            "sizes": "192x192",
+            "type": "image/png",
+            "purpose": "any"
+        },
+        {
+            "src": "/icons/icon-384x384.png",
+            "sizes": "384x384",
+            "type": "image/png",
+            "purpose": "any"
+        },
+        {
+            "src": "/icons/icon-512x512.png",
+            "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "any"
+        },
+        {
+            "src": "/icons/icon-maskable-192x192.png",
+            "sizes": "192x192",
+            "type": "image/png",
+            "purpose": "maskable"
+        },
+        {
+            "src": "/icons/icon-maskable-512x512.png",
+            "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "maskable"
+        },
+        {
+            "src": "/icons/icon-monochrome-512x512.png",
+            "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "monochrome"
+        },
+        {
+            "src": "/icons/nexusdl.svg",
+            "sizes": "any",
+            "type": "image/svg+xml",
+            "purpose": "any"
+        }
+    ],
+
+    "screenshots": [
+        {
+            "src": "/screenshots/desktop-home.png",
+            "sizes": "1920x1080",
+            "type": "image/png",
+            "form_factor": "wide",
+            "label": "Page d'accueil NexusDL sur desktop"
+        },
+        {
+            "src": "/screenshots/desktop-library.png",
+            "sizes": "1920x1080",
+            "type": "image/png",
+            "form_factor": "wide",
+            "label": "Bibliothèque locale sur desktop"
+        },
+        {
+            "src": "/screenshots/desktop-search.png",
+            "sizes": "1920x1080",
+            "type": "image/png",
+            "form_factor": "wide",
+            "label": "Recherche multi-sites sur desktop"
+        },
+        {
+            "src": "/screenshots/mobile-home.png",
+            "sizes": "1080x1920",
+            "type": "image/png",
+            "form_factor": "narrow",
+            "label": "Page d'accueil NexusDL sur mobile"
+        },
+        {
+            "src": "/screenshots/mobile-downloads.png",
+            "sizes": "1080x1920",
+            "type": "image/png",
+            "form_factor": "narrow",
+            "label": "Téléchargements en cours sur mobile"
+        }
+    ],
+
+    "shortcuts": [
+        {
+            "name": "Rechercher un manga",
+            "short_name": "Rechercher",
+            "description": "Rechercher un manga sur tous les sites supportés",
+            "url": "/search?source=pwa-shortcut",
+            "icons": [
+                {
+                    "src": "/icons/shortcut-search-96x96.png",
+                    "sizes": "96x96",
+                    "type": "image/png"
+                }
+            ]
+        },
+        {
+            "name": "Ma bibliothèque",
+            "short_name": "Bibliothèque",
+            "description": "Accéder à votre bibliothèque locale",
+            "url": "/library?source=pwa-shortcut",
+            "icons": [
+                {
+                    "src": "/icons/shortcut-library-96x96.png",
+                    "sizes": "96x96",
+                    "type": "image/png"
+                }
+            ]
+        },
+        {
+            "name": "Téléchargements en cours",
+            "short_name": "Téléchargements",
+            "description": "Voir les téléchargements en cours",
+            "url": "/downloads?source=pwa-shortcut",
+            "icons": [
+                {
+                    "src": "/icons/shortcut-downloads-96x96.png",
+                    "sizes": "96x96",
+                    "type": "image/png"
+                }
+            ]
+        },
+        {
+            "name": "Paramètres",
+            "short_name": "Paramètres",
+            "description": "Configurer NexusDL",
+            "url": "/settings?source=pwa-shortcut",
+            "icons": [
+                {
+                    "src": "/icons/shortcut-settings-96x96.png",
+                    "sizes": "96x96",
+                    "type": "image/png"
+                }
+            ]
+        }
+    ],
+
+    "protocol_handlers": [
+        {
+            "protocol": "web+nexusdl",
+            "url": "/open?url=%s"
+        },
+        {
+            "protocol": "web+manga",
+            "url": "/open?url=%s"
+        }
+    ],
+
+    "share_target": {
+        "action": "/share",
+        "method": "POST",
+        "enctype": "multipart/form-data",
+        "params": {
+            "title": "title",
+            "text": "text",
+            "url": "url",
+            "files": [
+                {
+                    "name": "files",
+                    "accept": [
+                        "application/x-cbz",
+                        "application/x-cbr",
+                        "application/zip",
+                        "application/pdf",
+                        "image/*"
+                    ]
+                }
+            ]
+        }
+    },
+
+    "launch_handler": {
+        "client_mode": "auto"
+    },
+
+    "handle_links": "preferred",
+
+    "edge_side_panel": {
+        "preferred_width": 480
+    },
+
+    "scope_extensions": [
+        {
+            "origin": "https://nexus-quantum.dev"
+        },
+        {
+            "origin": "https://docs.nexus-quantum.dev"
+        }
+    ],
+
+    "file_handlers": [
+        {
+            "action": "/open",
+            "accept": {
+                "application/x-cbz": [".cbz"],
+                "application/x-cbr": [".cbr"],
+                "application/x-cb7": [".cb7"],
+                "application/x-cbt": [".cbt"],
+                "application/pdf": [".pdf"]
+            },
+            "icons": [
+                {
+                    "src": "/icons/file-cbz-96x96.png",
+                    "sizes": "96x96",
+                    "type": "image/png"
+                }
+            ],
+            "launch_type": "single-client"
+        }
+    ],
+
+    "note_taking": {
+        "new_note_url": "/notes/new"
+    },
+
+    "display_mode_overrides": [
+        {
+            "display_mode": "window-controls-overlay",
+            "min_width": 1024
+        }
+    ],
+
+    "widgets": [
+        {
+            "name": "Téléchargements NexusDL",
+            "short_name": "Téléchargements",
+            "description": "Voir l'état des téléchargements en cours",
+            "tag": "nexusdl-downloads",
+            "template": "/widgets/downloads",
+            "ms_ac_template": "/widgets/downloads.json",
+            "data": "/widgets/downloads-data.json",
+            "type": "application/json",
+            "screenshots": [
+                {
+                    "src": "/screenshots/widget-downloads.png",
+                    "sizes": "600x400",
+                    "type": "image/png",
+                    "label": "Widget téléchargements"
+                }
+            ],
+            "icons": [
+                {
+                    "src": "/icons/widget-downloads.png",
+                    "sizes": "512x512",
+                    "type": "image/png"
+                }
+            ],
+            "auth": false,
+            "update": 900
+        }
+    ],
+
+    "custom_metadata": {
+        "author": "NEXUS-QUANTUM",
+        "author_email": "nexus.quantum@protonmail.com",
+        "homepage": "https://nexus-quantum.dev",
+        "repository": "https://github.com/NEXUS-QUANTUM/nexusdl",
+        "documentation": "https://docs.nexus-quantum.dev/nexusdl",
+        "discord": "https://discord.gg/NEXUS-QUANTUM",
+        "twitter": "https://x.com/NEXUS-QUANTUM",
+        "license": "GPL-3.0-or-later",
+        "version": "1.0.0",
+        "git_commit": "development",
+        "build_date": "2026-01-15T00:00:00Z"
+    },
+
+    "theme_colors": {
+        "primary": "#00f0ff",
+        "secondary": "#ff00e5",
+        "tertiary": "#8b00ff",
+        "background": "#050514",
+        "surface": "#0a0e27",
+        "error": "#ff0040",
+        "success": "#00ff88",
+        "warning": "#ff6b00",
+        "info": "#00f0ff"
+    },
+
+    "features": {
+        "offline_support": true,
+        "background_sync": true,
+        "push_notifications": true,
+        "file_handling": true,
+        "share_target": true,
+        "shortcuts": true,
+        "protocol_handlers": true,
+        "widgets": true,
+        "window_controls_overlay": true
+    },
+
+    "permissions": [
+        "notifications",
+        "background-sync",
+        "clipboard-write"
+    ],
+
+    "prefer_related_applications": false,
+
+    "fingerprints": [],
+
+    "serviceworker": {
+        "src": "/service-worker.js",
+        "scope": "/",
+        "type": "classic",
+        "update_via_cache": "imports"
+    },
+
+    "gcm_sender_id": "",
+    "gcm_user_visible_only": true,
+
+    "background_sync": {
+        "enabled": true,
+        "sync_tag": "nexusdl-sync",
+        "min_interval_seconds": 900
+    },
+
+    "shortcuts_icons": [
+        {
+            "src": "/icons/shortcut-default-192x192.png",
+            "sizes": "192x192",
+            "type": "image/png"
+        }
+    ]
+}
