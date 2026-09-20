@@ -1,0 +1,820 @@
+# ==============================================================================
+#  NexusDL — pyproject.toml
+#  Configuration moderne PEP 621 (compatible pip, uv, poetry, hatch, pdm)
+# ==============================================================================
+#  Copyright (C) 2026 NEXUS-QUANTUM
+#  SPDX-License-Identifier: GPL-3.0-or-later
+# ==============================================================================
+
+[build-system]
+requires = ["hatchling>=1.25", "hatch-vcs>=0.4"]
+build-backend = "hatchling.build"
+
+
+# ==============================================================================
+#  MÉTADONNÉES DU PROJET (PEP 621)
+# ==============================================================================
+
+[project]
+name = "nexusdl"
+description = "🚀 Universal Manga & Webtoon Downloader — 60+ sources, 3 interfaces, multi-format."
+readme = "README.md"
+requires-python = ">=3.12"
+license = { text = "GPL-3.0-or-later" }
+authors = [
+    { name = "NEXUS-QUANTUM", email = "nexus.quantum@protonmail.com" },
+]
+maintainers = [
+    { name = "NEXUS-QUANTUM", email = "nexus.quantum@protonmail.com" },
+]
+keywords = [
+    "manga", "webtoon", "comic", "downloader", "scraper",
+    "manhwa", "doujinshi", "cbz", "cbr", "tachiyomi",
+    "mangadex", "nhentai", "asurascans", "komga", "kavita",
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Environment :: Console",
+    "Environment :: Web Environment",
+    "Environment :: X11 Applications",
+    "Environment :: Win32 (MS Windows)",
+    "Environment :: MacOS X",
+    "Intended Audience :: End Users/Desktop",
+    "License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)",
+    "Natural Language :: English",
+    "Natural Language :: French",
+    "Natural Language :: Spanish",
+    "Natural Language :: German",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Programming Language :: Python :: Implementation :: CPython",
+    "Topic :: Internet :: WWW/HTTP",
+    "Topic :: Multimedia :: Graphics",
+    "Topic :: Terminals",
+    "Typing :: Typed",
+]
+dynamic = ["version"]
+
+# ------------------------------------------------------------------------------
+# Dépendances core (obligatoires)
+# ------------------------------------------------------------------------------
+dependencies = [
+    # === Validation & config ===
+    "pydantic>=2.9,<3.0",
+    "pydantic-settings>=2.6,<3.0",
+
+    # === HTTP & networking ===
+    "httpx[http2]>=0.27,<1.0",
+    "aiohttp>=3.10,<4.0",
+    "aiofiles>=24.1,<25.0",
+    "tenacity>=9.0,<10.0",
+
+    # === Parsing HTML/XML ===
+    "selectolax>=0.3.21",
+    "beautifulsoup4>=4.12,<5.0",
+    "lxml>=5.3,<6.0",
+    "cssselect>=1.2,<2.0",
+
+    # === JSON & YAML ===
+    "orjson>=3.10,<4.0",
+    "pyyaml>=6.0.2,<7.0",
+    "tomli-w>=1.1,<2.0",
+
+    # === Base de données ===
+    "aiosqlite>=0.20,<1.0",
+    "sqlite-utils>=3.37,<4.0",
+
+    # === Logging ===
+    "loguru>=0.7.2,<1.0",
+
+    # === CLI / TUI ===
+    "typer>=0.15,<1.0",
+    "rich>=13.9,<14.0",
+    "textual>=0.85,<1.0",
+
+    # === Playwright (sites JS/Cloudflare) ===
+    "playwright>=1.48,<2.0",
+
+    # === Images ===
+    "pillow>=11.0,<12.0",
+    "img2pdf>=0.5.1,<1.0",
+
+    # === Utilitaires ===
+    "platformdirs>=4.3,<5.0",
+    "python-slugify>=8.0,<9.0",
+    "unidecode>=1.3.8,<2.0",
+    "humanize>=4.11,<5.0",
+    "packaging>=24.2,<25.0",
+    "typing-extensions>=4.12,<5.0",
+
+    # === Sécurité ===
+    "cryptography>=44.0,<45.0",
+]
+
+# ------------------------------------------------------------------------------
+# Entry points (console scripts)
+# ------------------------------------------------------------------------------
+[project.scripts]
+nexusdl = "nexusdl.interfaces.cli.cli_entry:main"
+nexus = "nexusdl.interfaces.cli.cli_entry:main"
+
+[project.gui-scripts]
+nexusdl-gui = "nexusdl.interfaces.gui.app:main"
+
+
+# ==============================================================================
+#  DÉPENDANCES OPTIONNELLES (extras)
+# ==============================================================================
+
+[project.optional-dependencies]
+
+# --- Interface Web (backend FastAPI) ---
+web = [
+    "fastapi>=0.115,<1.0",
+    "uvicorn[standard]>=0.32,<1.0",
+    "python-multipart>=0.0.17,<1.0",
+    "python-jose[cryptography]>=3.3,<4.0",
+    "passlib[bcrypt]>=1.7.4,<2.0",
+    "slowapi>=0.1.9,<1.0",
+    "websockets>=13.1,<14.0",
+    "jinja2>=3.1.4,<4.0",
+]
+
+# --- Interface Desktop (CustomTkinter) ---
+gui = [
+    "customtkinter>=5.2.2,<6.0",
+    "darkdetect>=0.8.0,<1.0",
+    "pywinstyles>=1.6; sys_platform == 'win32'",
+]
+
+# --- Support PDF avancé ---
+pdf = [
+    "pypdf>=5.1,<6.0",
+    "reportlab>=4.2,<5.0",
+]
+
+# --- Support CBR (RAR) ---
+cbr = [
+    "rarfile>=4.2,<5.0",
+]
+
+# --- Support conversion AVIF/HEIC ---
+convert = [
+    "pillow-avif-plugin>=1.4; python_version < '3.13'",
+    "pillow-heif>=0.21,<1.0",
+]
+
+# --- Support Cloudflare alternatif ---
+flaresolverr = [
+    "aiodns>=3.2,<4.0",
+    "brotli>=1.1.0,<2.0",
+]
+
+# --- Support proxy SOCKS5 ---
+socks = [
+    "httpx-socks[asyncio]>=0.9,<1.0",
+]
+
+# --- Notifications ---
+notify = [
+    "apprise>=1.9,<2.0",
+]
+
+# --- Synchronisation cloud ---
+sync = [
+    "webdavclient3>=3.14.6,<4.0",
+    "boto3>=1.35,<2.0",
+]
+
+# --- Développement complet ---
+dev = [
+    # Tests
+    "pytest>=8.3,<9.0",
+    "pytest-asyncio>=0.24,<1.0",
+    "pytest-cov>=6.0,<7.0",
+    "pytest-xdist>=3.6,<4.0",
+    "pytest-mock>=3.14,<4.0",
+    "pytest-timeout>=2.3,<3.0",
+    "pytest-httpx>=0.35,<1.0",
+    "respx>=0.22,<1.0",
+    "hypothesis>=6.122,<7.0",
+    "faker>=33.0,<34.0",
+    "freezegun>=1.5,<2.0",
+
+    # Lint & format
+    "ruff>=0.8.4,<1.0",
+    "mypy>=1.13,<2.0",
+    "types-aiofiles>=24.1",
+    "types-pyyaml>=6.0.12",
+    "types-requests>=2.32",
+    "types-pillow>=10.2",
+
+    # Sécurité
+    "bandit[toml]>=1.8,<2.0",
+    "pip-audit>=2.7,<3.0",
+    "safety>=3.2,<4.0",
+
+    # Build & release
+    "build>=1.2,<2.0",
+    "twine>=6.0,<7.0",
+    "hatch>=1.14,<2.0",
+    "bump-my-version>=0.29,<1.0",
+
+    # Git hooks
+    "pre-commit>=4.0,<5.0",
+
+    # Environnement
+    "tox>=4.23,<5.0",
+    "tox-uv>=1.15,<2.0",
+    "uv>=0.5.13",
+
+    # Profiling
+    "py-spy>=0.4,<1.0",
+    "memray>=1.15; sys_platform != 'win32'",
+
+    # Utilitaires dev
+    "rich-cli>=1.8,<2.0",
+    "ipython>=8.30,<9.0",
+    "ipdb>=0.13.13,<1.0",
+]
+
+# --- Documentation (Sphinx) ---
+docs = [
+    "sphinx>=8.1,<9.0",
+    "sphinx-rtd-theme>=3.0,<4.0",
+    "sphinx-autodoc-typehints>=3.0,<4.0",
+    "sphinx-copybutton>=0.5.2,<1.0",
+    "sphinx-design>=0.6.1,<1.0",
+    "sphinxcontrib-mermaid>=1.0,<2.0",
+    "myst-parser>=4.0,<5.0",
+    "mkdocs>=1.6,<2.0",
+    "mkdocs-material>=9.5,<10.0",
+    "mkdocstrings[python]>=0.27,<1.0",
+]
+
+# --- Frontend Web (build) ---
+frontend = [
+    "nodeenv>=1.9,<2.0",
+]
+
+# --- Tout installer (sauf dev) ---
+all = [
+    "nexusdl[web,gui,pdf,cbr,convert,flaresolverr,socks,notify,sync]",
+]
+
+# --- Installation complète (tout) ---
+full = [
+    "nexusdl[web,gui,pdf,cbr,convert,flaresolverr,socks,notify,sync,dev,docs]",
+]
+
+
+# ==============================================================================
+#  URLs DU PROJET
+# ==============================================================================
+
+[project.urls]
+Homepage = "https://nexus-quantum.dev"
+Repository = "https://github.com/NEXUS-QUANTUM/nexusdl"
+"Bug Tracker" = "https://github.com/NEXUS-QUANTUM/nexusdl/issues"
+Documentation = "https://docs.nexus-quantum.dev/nexusdl"
+Changelog = "https://github.com/NEXUS-QUANTUM/nexusdl/blob/main/CHANGELOG.md"
+Discussions = "https://github.com/NEXUS-QUANTUM/nexusdl/discussions"
+Sponsor = "https://github.com/sponsors/NEXUS-QUANTUM"
+"Release Notes" = "https://github.com/NEXUS-QUANTUM/nexusdl/releases"
+Discord = "https://discord.gg/NEXUS-QUANTUM"
+Twitter = "https://x.com/NEXUS-QUANTUM"
+
+
+# ==============================================================================
+#  CONFIGURATION HATCH (build backend)
+# ==============================================================================
+
+[tool.hatch.version]
+source = "vcs"
+
+[tool.hatch.build.hooks.vcs]
+version-file = "src/nexusdl/version.py"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/nexusdl"]
+
+[tool.hatch.build.targets.wheel.force-include]
+"src/nexusdl/data" = "nexusdl/data"
+"src/nexusdl/py.typed" = "nexusdl/py.typed"
+
+[tool.hatch.build.targets.sdist]
+include = [
+    "/src",
+    "/docs",
+    "/scripts",
+    "/config",
+    "/docker",
+    "/assets",
+    "/README.md",
+    "/LICENSE",
+    "/CHANGELOG.md",
+    "/CONTRIBUTING.md",
+    "/CODE_OF_CONDUCT.md",
+    "/SECURITY.md",
+    "/pyproject.toml",
+    "/Makefile",
+    "/justfile",
+]
+exclude = [
+    "**/__pycache__",
+    "**/*.pyc",
+    "**/.pytest_cache",
+    "**/.mypy_cache",
+    "**/.ruff_cache",
+    "**/node_modules",
+    "**/.next",
+    "**/dist",
+    "**/build",
+    "**/*.egg-info",
+    ".venv",
+    ".git",
+    ".github",
+    ".idea",
+    ".vscode",
+]
+
+
+# ==============================================================================
+#  CONFIGURATION RUFF (lint + format)
+# ==============================================================================
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+src = ["src", "scripts"]
+exclude = [
+    ".git",
+    ".venv",
+    "venv",
+    "__pycache__",
+    "build",
+    "dist",
+    "node_modules",
+    ".next",
+    ".mypy_cache",
+    ".ruff_cache",
+    ".pytest_cache",
+    "docs/_build",
+    "src/nexusdl/data/translations",
+]
+
+[tool.ruff.lint]
+select = [
+    "E",      # pycodestyle errors
+    "W",      # pycodestyle warnings
+    "F",      # pyflakes
+    "I",      # isort
+    "N",      # pep8-naming
+    "D",      # pydocstyle
+    "UP",     # pyupgrade
+    "YTT",    # flake8-2020
+    "ASYNC",  # flake8-async
+    "S",      # flake8-bandit (sécurité)
+    "BLE",    # flake8-blind-except
+    "B",      # flake8-bugbear
+    "A",      # flake8-builtins
+    "COM",    # flake8-commas
+    "C4",     # flake8-comprehensions
+    "DTZ",    # flake8-datetimez
+    "T10",    # flake8-debugger
+    "EM",     # flake8-errmsg
+    "ISC",    # flake8-implicit-str-concat
+    "LOG",    # flake8-logging
+    "G",      # flake8-logging-format
+    "PIE",    # flake8-pie
+    "T20",    # flake8-print
+    "PT",     # flake8-pytest-style
+    "Q",      # flake8-quotes
+    "RSE",    # flake8-raise
+    "RET",    # flake8-return
+    "SLF",    # flake8-self
+    "SIM",    # flake8-simplify
+    "TID",    # flake8-tidy-imports
+    "TCH",    # flake8-type-checking
+    "ARG",    # flake8-unused-arguments
+    "PTH",    # flake8-use-pathlib
+    "ERA",    # eradicate (code commenté)
+    "PL",     # pylint
+    "TRY",    # tryceratops
+    "FLY",    # flynt
+    "PERF",   # perflint
+    "FURB",   # refurb
+    "RUF",    # ruff-specific
+]
+ignore = [
+    "D100",    # Missing docstring in public module
+    "D104",    # Missing docstring in public package
+    "D107",    # Missing docstring in __init__
+    "D203",    # 1 blank line required before class docstring (conflict D211)
+    "D213",    # Multi-line docstring summary should start at the second line (conflict D212)
+    "E501",    # Line too long (géré par line-length + formatter)
+    "PLR0911", # Too many return statements
+    "PLR0912", # Too many branches
+    "PLR0913", # Too many arguments
+    "PLR0915", # Too many statements
+    "PLR2004", # Magic value used in comparison
+    "TRY003",  # Avoid specifying long messages outside the exception class
+    "TRY300",  # Consider moving this statement to an else block
+    "S404",    # subprocess import (utilisé dans scripts)
+    "S603",    # subprocess call
+    "S607",    # Starting a process with a partial executable path
+]
+
+[tool.ruff.lint.per-file-ignores]
+"scripts/*" = ["T201", "T203", "S", "PLR"]
+"src/nexusdl/interfaces/cli/*" = ["T201"]  # print autorisé en CLI
+"src/nexusdl/parsers/custom/_template.py" = ["D", "ARG"]
+"**/migrations/*" = ["D", "N"]
+"docs/*" = ["ALL"]
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[tool.ruff.lint.isort]
+known-first-party = ["nexusdl"]
+force-single-line = false
+force-sort-within-sections = true
+lines-after-imports = 2
+combine-as-imports = true
+split-on-trailing-comma = true
+
+[tool.ruff.lint.flake8-tidy-imports]
+ban-relative-imports = "parents"
+
+[tool.ruff.lint.flake8-annotations]
+mypy-init-return = true
+allow-star-arg-any = true
+suppress-none-returning = false
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false
+line-ending = "lf"
+docstring-code-format = true
+docstring-code-line-length = 88
+
+
+# ==============================================================================
+#  CONFIGURATION MYPY (typage statique strict)
+# ==============================================================================
+
+[tool.mypy]
+python_version = "3.12"
+files = ["src/nexusdl"]
+strict = true
+warn_unused_configs = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_return_any = true
+warn_unreachable = true
+warn_no_return = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+disallow_untyped_decorators = true
+disallow_any_generics = true
+disallow_subclassing_any = true
+disallow_untyped_calls = true
+no_implicit_optional = true
+no_implicit_reexport = true
+strict_equality = true
+strict_concatenate = true
+extra_checks = true
+show_error_codes = true
+show_error_context = true
+pretty = true
+color_output = true
+error_summary = true
+namespace_packages = true
+explicit_package_bases = true
+mypy_path = "src"
+plugins = ["pydantic.mypy"]
+
+[[tool.mypy.overrides]]
+module = [
+    "playwright.*",
+    "selectolax.*",
+    "rarfile.*",
+    "img2pdf.*",
+    "apprise.*",
+    "webdavclient3.*",
+    "boto3.*",
+    "botocore.*",
+    "customtkinter.*",
+    "darkdetect.*",
+    "pywinstyles.*",
+]
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = "scripts.*"
+disallow_untyped_defs = false
+disallow_untyped_calls = false
+disallow_incomplete_defs = false
+
+[[tool.mypy.overrides]]
+module = "tests.*"
+disallow_untyped_defs = false
+disallow_untyped_calls = false
+
+[tool.pydantic-mypy]
+init_forbid_extra = true
+init_typed = true
+warn_required_dynamic_aliases = true
+warn_untyped_fields = true
+
+
+# ==============================================================================
+#  CONFIGURATION PYTEST
+# ==============================================================================
+
+[tool.pytest.ini_options]
+minversion = "8.3"
+testpaths = ["tests"]
+pythonpath = ["src"]
+python_files = ["test_*.py", "*_test.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = [
+    "--strict-markers",
+    "--strict-config",
+    "--doctest-modules",
+    "--doctest-continue-on-failure",
+    "-ra",
+    "--tb=short",
+    "--color=yes",
+    "-p", "no:cacheprovider",
+]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+timeout = 60
+log_cli = false
+log_cli_level = "INFO"
+filterwarnings = [
+    "error",
+    "ignore::DeprecationWarning:playwright.*",
+    "ignore::PendingDeprecationWarning",
+    "ignore::UserWarning:multiprocessing.*",
+]
+markers = [
+    "unit: Tests unitaires rapides",
+    "integration: Tests d'intégration (réseau mocké)",
+    "e2e: Tests end-to-end (réseau réel)",
+    "slow: Tests lents (>5s)",
+    "network: Tests nécessitant un accès réseau",
+    "adult: Tests sur sites adultes",
+    "cloudflare: Tests avec bypass Cloudflare",
+    "windows: Tests spécifiques Windows",
+    "linux: Tests spécifiques Linux",
+    "macos: Tests spécifiques macOS",
+]
+
+[tool.coverage.run]
+source = ["src/nexusdl"]
+branch = true
+parallel = true
+omit = [
+    "*/tests/*",
+    "*/__main__.py",
+    "*/version.py",
+    "src/nexusdl/parsers/custom/_template.py",
+    "src/nexusdl/interfaces/web/frontend/*",
+]
+
+[tool.coverage.report]
+precision = 2
+show_missing = true
+skip_covered = false
+sort = "Cover"
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "def __str__",
+    "if TYPE_CHECKING:",
+    "if typing.TYPE_CHECKING:",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if __name__ == .__main__.:",
+    "if self.debug:",
+    "if settings.DEBUG:",
+    "@abstractmethod",
+    "@overload",
+    "class .*\\bProtocol\\):",
+    "(\\.\\.\\.)",
+]
+
+[tool.coverage.xml]
+output = "coverage.xml"
+
+[tool.coverage.html]
+directory = "htmlcov"
+
+
+# ==============================================================================
+#  CONFIGURATION BANDIT (sécurité)
+# ==============================================================================
+
+[tool.bandit]
+exclude_dirs = ["tests", "scripts", ".venv", "build", "dist"]
+skips = ["B101", "B404", "B603", "B607"]
+
+[tool.bandit.assert_used]
+skips = ["*_test.py", "*/test_*.py"]
+
+
+# ==============================================================================
+#  CONFIGURATION BUMP-MY-VERSION
+# ==============================================================================
+
+[tool.bumpversion]
+current_version = "1.0.0a0"
+parse = """(?x)
+    (?P<major>0|[1-9]\\d*)
+    \\.
+    (?P<minor>0|[1-9]\\d*)
+    \\.
+    (?P<patch>0|[1-9]\\d*)
+    (?:
+        (?P<release>a|b|rc)
+        (?P<pre_n>0|[1-9]\\d*)
+    )?
+    (?:\\+ (?P<build>.+))?
+"""
+serialize = [
+    "{major}.{minor}.{patch}{release}{pre_n}+{build}",
+    "{major}.{minor}.{patch}{release}{pre_n}",
+    "{major}.{minor}.{patch}",
+]
+tag_name = "v{new_version}"
+tag_message = "Release v{new_version}"
+commit = true
+commit_message = "chore(release): v{new_version}"
+allow_dirty = false
+
+[[tool.bumpversion.files]]
+filename = "src/nexusdl/version.py"
+search = '__version__ = "{current_version}"'
+replace = '__version__ = "{new_version}"'
+
+[[tool.bumpversion.files]]
+filename = "CHANGELOG.md"
+search = "## [Unreleased]"
+replace = "## [Unreleased]\n\n## [{new_version}] - {now:%Y-%m-%d}"
+
+
+# ==============================================================================
+#  CONFIGURATION TOX (tests multi-environnements)
+# ==============================================================================
+
+[tool.tox]
+requires = ["tox>=4.23", "tox-uv>=1.15"]
+env_list = ["py312", "py313", "lint", "type", "security", "docs"]
+
+[tool.tox.env_run_base]
+package = "wheel"
+runner = "uv-venv-lock-runner"
+with_dev = true
+commands = [
+    ["pytest", { replace = "posargs", default = ["tests"], extend = true }],
+]
+
+[tool.tox.env.lint]
+description = "Lint et format check via ruff"
+skip_install = true
+commands = [
+    ["ruff", "check", "src", "scripts", "tests"],
+    ["ruff", "format", "--check", "src", "scripts", "tests"],
+]
+
+[tool.tox.env.type]
+description = "Vérification de typage via mypy"
+commands = [["mypy", "src/nexusdl"]]
+
+[tool.tox.env.security]
+description = "Audit de sécurité (bandit + pip-audit)"
+skip_install = true
+commands = [
+    ["bandit", "-c", "pyproject.toml", "-r", "src/nexusdl"],
+    ["pip-audit", "--skip-editable"],
+]
+
+[tool.tox.env.docs]
+description = "Build de la documentation Sphinx"
+extras = ["docs"]
+commands = [["sphinx-build", "-W", "-b", "html", "docs/source", "docs/_build/html"]]
+
+
+# ==============================================================================
+#  CONFIGURATION UV (gestionnaire moderne)
+# ==============================================================================
+
+[tool.uv]
+package = true
+default-groups = ["dev"]
+conflicts = [
+    [
+        { extra = "cbr" },
+        { extra = "convert" },
+    ],
+]
+
+[tool.uv.pip]
+index-strategy = "unsafe-best-match"
+
+[tool.uv.sources]
+# Décommenter pour utiliser une version locale d'une dépendance
+# httpx = { path = "../httpx", editable = true }
+
+
+# ==============================================================================
+#  CONFIGURATION PYRIGHT (alternative à mypy, optionnel)
+# ==============================================================================
+
+[tool.pyright]
+include = ["src/nexusdl"]
+exclude = [
+    "**/node_modules",
+    "**/__pycache__",
+    "src/nexusdl/interfaces/web/frontend",
+]
+pythonVersion = "3.12"
+typeCheckingMode = "strict"
+reportMissingTypeStubs = false
+reportUnknownMemberType = false
+reportUnknownParameterType = false
+reportUnknownVariableType = false
+reportUnknownArgumentType = false
+reportMissingTypeArgument = true
+reportUnnecessaryTypeIgnoreComment = true
+
+
+# ==============================================================================
+#  CONFIGURATION PYLINT (fallback, optionnel)
+# ==============================================================================
+
+[tool.pylint.main]
+py-version = "3.12"
+jobs = 0
+recursive = true
+ignore = [".git", ".venv", "build", "dist", "node_modules", ".next"]
+
+[tool.pylint.format]
+max-line-length = 100
+
+[tool.pylint."messages control"]
+disable = [
+    "C0114",  # missing-module-docstring
+    "C0115",  # missing-class-docstring
+    "C0116",  # missing-function-docstring
+    "R0903",  # too-few-public-methods
+    "R0913",  # too-many-arguments
+    "R0914",  # too-many-locals
+    "W0212",  # protected-access
+]
+
+
+# ==============================================================================
+#  CONFIGURATION PYPROJECT-DEEPSEARCH (dépendances inutilisées)
+# ==============================================================================
+
+[tool.deptry]
+extend_exclude = ["src/nexusdl/interfaces/web/frontend"]
+ignore_notebooks = true
+known_first_party = ["nexusdl"]
+per_rule_ignores = { "DEP002" = ["playwright", "img2pdf"] }
+
+[tool.deptry.package_module_name_map]
+pillow = "PIL"
+beautifulsoup4 = "bs4"
+python-slugify = "slugify"
+python-jose = "jose"
+passlib = "passlib"
+pyyaml = "yaml"
+pillow-avif-plugin = "pillow_avif"
+pillow-heif = "pillow_heif"
+customtkinter = "customtkinter"
+python-multipart = "multipart"
+
+
+# ==============================================================================
+#  CONFIGURATION PRE-COMMIT (référencé ici pour cohérence)
+# ==============================================================================
+
+# Voir .pre-commit-config.yaml pour la configuration complète.
+# Ce bloc ne fait que déclarer les hooks custom éventuels.
+
+[tool.pre-commit-custom]
+generate-nexus-manifests = "scripts/generate_nexus_manifests.py"
+
+
+# ==============================================================================
+#  FIN DE LA CONFIGURATION
+# ==============================================================================
