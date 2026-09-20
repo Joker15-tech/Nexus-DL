@@ -1,0 +1,62 @@
+# ==============================================================================
+#  NexusDL — requirements-web.txt (Interface Web)
+# ==============================================================================
+#  Dépendances pour l'interface web (backend FastAPI + WebSocket + JWT).
+#
+#  Généré depuis pyproject.toml via :
+#      uv pip compile pyproject.toml --extra web -o requirements-web.txt
+#
+#  Le frontend Next.js nécessite Node.js et pnpm (voir package.json).
+# ==============================================================================
+
+# --- Core ---
+-r requirements.txt
+
+# --- Framework web ---
+fastapi==0.115.6
+starlette==0.41.3
+uvicorn[standard]==0.34.0
+uvloop==0.21.0 ; sys_platform != "win32"
+httptools==0.6.4
+watchfiles==1.0.3
+websockets==14.1
+python-multipart==0.0.20
+
+# --- Authentification & sécurité ---
+python-jose[cryptography]==3.3.0
+ecdsa==0.19.0
+rsa==4.9
+pyasn1==0.6.1
+passlib[bcrypt]==1.7.4
+bcrypt==4.2.1
+
+# --- Rate limiting ---
+slowapi==0.1.9
+limits==3.13.0
+deprecated==1.2.15
+wrapt==1.17.0
+
+# --- Templates (Jinja2 pour certaines pages) ---
+jinja2==3.1.5
+markupsafe==3.0.2
+
+# --- Sessions serveur ---
+itsdangerous==2.2.0
+
+# --- CORS & middlewares ---
+python-cors==1.0.1
+
+# --- Email (notifications optionnelles) ---
+email-validator==2.2.0
+dnspython==2.7.0
+
+# --- Dépendances indirectes FastAPI ---
+pydantic==2.10.4
+pydantic-core==2.27.2
+annotated-types==0.7.0
+typing-extensions==4.12.2
+sniffio==1.3.1
+anyio==4.7.0
+idna==3.10
+h11==0.14.0
+click==8.1.8
