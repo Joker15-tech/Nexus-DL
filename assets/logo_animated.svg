@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg"
+     viewBox="0 0 512 512"
+     width="512"
+     height="512">
+
+  <defs>
+    <linearGradient id="hexGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#00f0ff">
+        <animate attributeName="stop-color"
+                 values="#00f0ff;#ff00e5;#8b00ff;#00f0ff"
+                 dur="4s" repeatCount="indefinite"/>
+      </stop>
+      <stop offset="100%" stop-color="#ff00e5">
+        <animate attributeName="stop-color"
+                 values="#ff00e5;#8b00ff;#00f0ff;#ff00e5"
+                 dur="4s" repeatCount="indefinite"/>
+      </stop>
+    </linearGradient>
+
+    <radialGradient id="bgGrad" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#0a0e27"/>
+      <stop offset="100%" stop-color="#050514"/>
+    </radialGradient>
+
+    <filter id="neonGlow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="6" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+
+    <filter id="strongGlow" x="-100%" y="-100%" width="300%" height="300%">
+      <feGaussianBlur stdDeviation="12" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- Fond -->
+  <circle cx="256" cy="256" r="256" fill="url(#bgGrad)"/>
+
+  <!-- Grille cyber -->
+  <g opacity="0.08" stroke="#00f0ff" stroke-width="1">
+    <line x1="40" y1="0" x2="40" y2="512"/>
+    <line x1="120" y1="0" x2="120" y2="512"/>
+    <line x1="200" y1="0" x2="200" y2="512"/>
+    <line x1="280" y1="0" x2="280" y2="512"/>
+    <line x1="360" y1="0" x2="360" y2="512"/>
+    <line x1="440" y1="0" x2="440" y2="512"/>
+    <line x1="0" y1="40" x2="512" y2="40"/>
+    <line x1="0" y1="120" x2="512" y2="120"/>
+    <line x1="0" y1="200" x2="512" y2="200"/>
+    <line x1="0" y1="280" x2="512" y2="280"/>
+    <line x1="0" y1="360" x2="512" y2="360"/>
+    <line x1="0" y1="440" x2="512" y2="440"/>
+  </g>
+
+  <!-- Glow de l'hexagone -->
+  <g filter="url(#strongGlow)" opacity="0.6">
+    <polygon points="256,80 400,160 400,352 256,432 112,352 112,160"
+             fill="none" stroke="#00f0ff" stroke-width="8">
+      <animate attributeName="opacity" values="0.4;0.8;0.4" dur="3s" repeatCount="indefinite"/>
+    </polygon>
+  </g>
+
+  <!-- Hexagone principal (rotation) -->
+  <g filter="url(#neonGlow)">
+    <polygon points="256,80 400,160 400,352 256,432 112,352 112,160"
+             fill="none" stroke="url(#hexGrad)" stroke-width="10"
+             stroke-linejoin="round">
+      <animateTransform attributeName="transform" type="rotate"
+                        from="0 256 256" to="360 256 256"
+                        dur="20s" repeatCount="indefinite"/>
+    </polygon>
+  </g>
+
+  <!-- Lettre N -->
+  <text x="256" y="330"
+        font-family="Arial Black, sans-serif" font-size="220"
+        font-weight="900" text-anchor="middle"
+        fill="#e6f7ff" filter="url(#neonGlow)">
+    N
+    <animate attributeName="opacity" values="0.9;1;0.9" dur="2s" repeatCount="indefinite"/>
+  </text>
+
+  <!-- Nœuds pulsants -->
+  <g>
+    <circle cx="256" cy="80" r="14" fill="#00f0ff" filter="url(#neonGlow)">
+      <animate attributeName="r" values="12;20;12" dur="2s" begin="0s" repeatCount="indefinite"/>
+      <animate attributeName="opacity" values="0.6;1;0.6" dur="2s" begin="0s" repeatCount="indefinite"/>
+    </circle>
+    <circle cx="400" cy="160" r="14" fill="#00f0ff" filter="url(#neonGlow)">
+      <animate attributeName="r" values="12;20;12" dur="2s" begin="0.33s" repeatCount="indefinite"/>
+      <animate attributeName="opacity" values="0.6;1;0.6" dur="2s" begin="0.33s" repeatCount="indefinite"/>
+    </circle>
+    <circle cx="400" cy="352" r="14" fill="#00f0ff" filter="url(#neonGlow)">
+      <animate attributeName="r" values="12;20;12" dur="2s" begin="0.66s" repeatCount="indefinite"/>
+      <animate attributeName="opacity" values="0.6;1;0.6" dur="2s" begin="0.66s" repeatCount="indefinite"/>
+    </circle>
+    <circle cx="256" cy="432" r="14" fill="#00f0ff" filter="url(#neonGlow)">
+      <animate attributeName="r" values="12;20;12" dur="2s" begin="1s" repeatCount="indefinite"/>
+      <animate attributeName="opacity" values="0.6;1;0.6" dur="2s" begin="1s" repeatCount="indefinite"/>
+    </circle>
+    <circle cx="112" cy="352" r="14" fill="#00f0ff" filter="url(#neonGlow)">
+      <animate attributeName="r" values="12;20;12" dur="2s" begin="1.33s" repeatCount="indefinite"/>
+      <animate attributeName="opacity" values="0.6;1;0.6" dur="2s" begin="1.33s" repeatCount="indefinite"/>
+    </circle>
+    <circle cx="112" cy="160" r="14" fill="#00f0ff" filter="url(#neonGlow)">
+      <animate attributeName="r" values="12;20;12" dur="2s" begin="1.66s" repeatCount="indefinite"/>
+      <animate attributeName="opacity" values="0.6;1;0.6" dur="2s" begin="1.66s" repeatCount="indefinite"/>
+    </circle>
+  </g>
+
+  <!-- Scanline -->
+  <rect x="0" y="0" width="512" height="30"
+        fill="#00f0ff" opacity="0.08">
+    <animate attributeName="y" values="0;482;0" dur="4s" repeatCount="indefinite"/>
+  </rect>
+</svg>
