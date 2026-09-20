@@ -1,0 +1,924 @@
+# ==============================================================================
+#  NexusDL — .gitignore
+# ==============================================================================
+#  Fichiers et dossiers à ne JAMAIS versionner dans Git.
+#
+#  Organisation :
+#    1. Système d'exploitation
+#    2. IDE & éditeurs
+#    3. Python
+#    4. Environnements virtuels
+#    5. Build & packaging
+#    6. Caches d'outils
+#    7. Tests & couverture
+#    8. Sécurité & secrets
+#    9. Node.js & frontend
+#   10. Bases de données locales
+#   11. Logs & données runtime
+#   12. NexusDL spécifique
+#   13. Docker
+#   14. CI/CD
+#   15. Divers
+#
+#  Copyright (C) 2026 NEXUS-QUANTUM
+#  SPDX-License-Identifier: GPL-3.0-or-later
+# ==============================================================================
+
+
+# ==============================================================================
+#  1. SYSTÈME D'EXPLOITATION
+# ==============================================================================
+
+# --- macOS ---
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+.AppleDouble
+.LSOverride
+Icon?
+Network Trash Folder
+Temporary Items
+.apdisk
+
+# --- Windows ---
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+Desktop.ini
+$RECYCLE.BIN/
+*.lnk
+*.stackdump
+*.cab
+*.msi
+*.msix
+*.msm
+*.msp
+
+# --- Linux ---
+*~
+.fuse_hidden*
+.directory
+.Trash-*
+.nfs*
+
+# --- Générique ---
+*.swp
+*.swo
+*.swn
+*.tmp
+*.temp
+*.bak
+*.backup
+*.old
+*.orig
+*.rej
+*~.nib
+
+
+# ==============================================================================
+#  2. IDE & ÉDITEURS
+# ==============================================================================
+
+# --- VS Code ---
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
+!.vscode/launch.json
+!.vscode/tasks.json
+!.vscode/*.code-snippets
+*.code-workspace
+
+# --- JetBrains (PyCharm, IntelliJ, WebStorm) ---
+.idea/
+*.iml
+*.ipr
+*.iws
+.idea_modules/
+out/
+
+# --- Vim / Neovim ---
+.vim/
+*.vim
+.netrwhist
+tags
+!tags.example
+
+# --- Emacs ---
+*~
+\#*\#
+.\#*
+*.elc
+
+# --- Sublime Text ---
+*.sublime-project
+*.sublime-workspace
+.sublime/
+
+# --- Atom ---
+.atom/
+.atom-ci/
+
+# --- Eclipse ---
+.project
+.classpath
+.settings/
+.buildpath
+.target
+.pydevproject
+.python-version.bak
+
+# --- Kate ---
+.kate-swp
+.kate-session
+*.kate-swp
+
+# --- Fleet ---
+.fleet/
+
+# --- Zed ---
+.zed/
+
+
+# ==============================================================================
+#  3. PYTHON
+# ==============================================================================
+
+# --- Bytecode compilé ---
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.pyd
+*.pyo
+
+# --- Distribution / packaging ---
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# --- PyInstaller ---
+*.manifest
+*.spec
+!nexusdl.spec
+
+# --- Installer logs ---
+pip-log.txt
+pip-delete-this-directory.txt
+
+# --- Tests / couverture (voir aussi section 7) ---
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+.pytest_cache/
+cover/
+
+# --- Environnements (voir aussi section 4) ---
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# --- Jupyter Notebook ---
+.ipynb_checkpoints/
+*.ipynb
+!docs/examples/*.ipynb
+
+# --- PyCharm / Pyright / Mypy ---
+.mypy_cache/
+.dmypy.json
+dmypy.json
+.pyre/
+.pytype/
+pyrightconfig.json
+
+# --- Ruff ---
+.ruff_cache/
+
+# --- Cython / mypy ---
+*.c
+*.cpp
+*.pyx
+
+# --- Documentation Sphinx ---
+docs/_build/
+docs/_autosummary/
+docs/_generated/
+docs/source/api/generated/
+
+# --- Build alternatives ---
+.eggs/
+*.egg
+.installed.cfg
+
+
+# ==============================================================================
+#  4. ENVIRONNEMENTS VIRTUELS
+# ==============================================================================
+
+.venv/
+venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+.python-version.bak
+virtualenvs/
+.virtualenvs/
+.pipenv/
+Pipfile.lock
+
+# --- Conda ---
+.conda/
+conda-meta/
+*.conda
+environment.yml.bak
+
+# --- uv (le lock DOIT être versionné) ---
+.uv/
+uv-cache/
+.uv.lock.bak
+
+# --- Poetry (le lock DOIT être versionné) ---
+poetry.lock.bak
+
+# --- PDM ---
+.pdm-build/
+.pdm-python
+pdm.lock.bak
+
+# --- Hatch ---
+.hatch/
+
+
+# ==============================================================================
+#  5. BUILD & PACKAGING
+# ==============================================================================
+
+build/
+dist/
+wheels/
+*.egg-info/
+*.egg
+.eggs/
+sdist/
+var/
+share/python-wheels/
+parts/
+
+# --- PyOxidizer ---
+*.spec.bak
+pyoxidizer.bzl.bak
+
+# --- Briefcase ---
+*.pyc
+_build/
+briefcase/
+
+# --- Nuitka ---
+*.build/
+*.dist/
+*.onefile-build/
+
+# --- cx_Freeze ---
+build/
+dist/
+*.exe
+
+
+# ==============================================================================
+#  6. CACHES D'OUTILS
+# ==============================================================================
+
+# --- Général ---
+.cache/
+.cache-loader/
+*.cache
+
+# --- pip ---
+.pip/
+pip-wheel-metadata/
+
+# --- pytest ---
+.pytest_cache/
+.pytest-cache/
+
+# --- mypy ---
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# --- ruff ---
+.ruff_cache/
+
+# --- pytype ---
+.pytype/
+
+# --- pyre ---
+.pyre/
+
+# --- pyright ---
+pyrightconfig.json.bak
+
+# --- hypothesis ---
+.hypothesis/
+
+# --- tox ---
+.tox/
+.tox-*.txt
+
+# --- nox ---
+.nox/
+
+# --- pre-commit ---
+.pre-commit-cache/
+.pre-commit-config.yaml.bak
+
+# --- commitizen ---
+.cz.toml.bak
+
+# --- bump-my-version ---
+.bumpversion.cfg.bak
+
+# --- towncrier ---
+changelog.d/
+
+# --- uv ---
+.uv/
+
+# --- py-spy ---
+py-spy.txt
+profile.svg
+
+# --- memray ---
+memray-*.bin
+memray-*.html
+*.memray
+
+# --- radon ---
+radon-report.txt
+
+# --- vulture ---
+vulture-whitelist.py.bak
+
+# --- deptry ---
+deptry-report.json
+
+
+# ==============================================================================
+#  7. TESTS & COUVERTURE
+# ==============================================================================
+
+# --- pytest ---
+.pytest_cache/
+.pytest-report/
+junit.xml
+test-results/
+*.pytest.xml
+
+# --- Couverture ---
+.coverage
+.coverage.*
+coverage.xml
+coverage.json
+htmlcov/
+.lcov
+*.lcov
+codecov.yml.bak
+
+# --- Mutmut ---
+.mutmut-cache/
+mutants/
+mutmut-report.txt
+
+# --- Fuzz ---
+.fuzz/
+corpus/
+crashes/
+hang/
+
+# --- Benchmark ---
+.benchmarks/
+*.benchmark.json
+
+
+# ==============================================================================
+#  8. SÉCURITÉ & SECRETS
+# ==============================================================================
+
+# --- Fichiers .env ---
+.env
+.env.*
+!.env.example
+!.env.template
+.env.local
+.env.*.local
+.env.dev
+.env.prod
+.env.staging
+
+# --- Certificats & clés ---
+*.pem
+*.key
+*.crt
+*.cer
+*.der
+*.p12
+*.pfx
+*.jks
+*.keystore
+*.truststore
+*.asc
+*.gpg
+*.pgp
+!docs/examples/*.pem.example
+
+# --- Clés SSH ---
+id_rsa
+id_rsa.pub
+id_ed25519
+id_ed25519.pub
+id_ecdsa
+id_ecdsa.pub
+id_dsa
+id_dsa.pub
+*.ppk
+known_hosts
+authorized_keys
+
+# --- Credentials ---
+credentials.json
+credentials.yaml
+credentials.yml
+secrets.json
+secrets.yaml
+secrets.yml
+secrets.toml
+service-account.json
+service-account*.json
+gcloud-service-account.json
+aws-credentials
+.aws/credentials
+.netrc
+.pgpass
+.my.cnf
+
+# --- Tokens & API keys ---
+*.token
+tokens.json
+api-keys.json
+.npmrc
+.pypirc
+.pypirc.bak
+
+# --- Cookies NexusDL ---
+cookies.txt
+cookies.json
+cookies.sqlite
+*.cookies
+cookies/
+**/cookies/
+.nexusdl/cookies/
+
+# --- Sessions NexusDL ---
+sessions/
+**/sessions/
+*.session
+*.session.json
+
+# --- Détection de secrets ---
+.secrets.baseline.bak
+gitleaks-report.json
+detect-secrets-report.json
+trufflehog-report.json
+
+# --- Snyk ---
+.snyk
+snyk-report.json
+
+# --- Trivy ---
+trivy-report.json
+.trivy/
+
+# --- SAST reports ---
+bandit-report.json
+semgrep-report.json
+codeql-results/
+sast-report.json
+
+
+# ==============================================================================
+#  9. NODE.JS & FRONTEND
+# ==============================================================================
+
+# --- Dépendances ---
+node_modules/
+jspm_packages/
+bower_components/
+.pnpm-store/
+.npm/
+.yarn/
+.yarnrc.yml.bak
+
+# --- Build Next.js ---
+.next/
+out/
+.turbo/
+.swc/
+.vercel/
+.netlify/
+
+# --- Build génériques ---
+dist/
+build/
+.cache/
+.parcel-cache/
+.rollup.cache/
+.vite/
+storybook-static/
+
+# --- Lockfiles (au choix : versionner OU ignorer) ---
+# NexusDL versionne pnpm-lock.yaml, ignore les autres
+package-lock.json
+yarn.lock
+npm-shrinkwrap.json
+
+# --- Cache ---
+.eslintcache
+.stylelintcache
+*.tsbuildinfo
+.vite-inspect/
+
+# --- Coverage frontend ---
+coverage/
+.nyc_output/
+
+# --- Env frontend ---
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+.env*.local
+
+# --- Vercel / Netlify ---
+.vercel/
+.netlify/
+functions/
+edge-functions/
+
+
+# ==============================================================================
+#  10. BASES DE DONNÉES LOCALES
+# ==============================================================================
+
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+*.sqlite
+*.sqlite3
+*.sqlite3-journal
+*.sqlite3-wal
+*.sqlite3-shm
+*.sql
+
+# --- Spécifique NexusDL ---
+data/library.db*
+data/nexusdl.db*
+**/library.db
+**/library.sqlite3
+.nexusdl/library/
+.nexusdl/*.db
+
+# --- Backups BDD ---
+backups/
+*.dump
+*.sql.gz
+*.bak.db
+
+# --- Redis / Cache ---
+dump.rdb
+appendonly.aof
+
+
+# ==============================================================================
+#  11. LOGS & DONNÉES RUNTIME
+# ==============================================================================
+
+# --- Logs génériques ---
+*.log
+*.log.*
+*.log.gz
+*.log.zip
+logs/
+log/
+**/logs/
+**/*.log
+
+# --- Spécifique NexusDL ---
+.nexusdl/logs/
+.nexusdl/cache/
+.nexusdl/tmp/
+.nexusdl/state/
+data/logs/
+logs/nexusdl.log*
+
+# --- Téléchargements (manga/comics) ---
+downloads/
+**/downloads/
+Manga/
+manga/
+Library/
+library/
+*.cbz
+*.cbr
+*.pdf
+*.zip
+*.rar
+*.7z
+!tests/fixtures/**/*.cbz
+!tests/fixtures/**/*.zip
+
+# --- Temp files ---
+tmp/
+temp/
+.tmp/
+.temp/
+*.tmp
+*.temp
+.tmp/
+~$*
+
+# --- Playwright cache ---
+.playwright/
+.playwright-cache/
+.cache/ms-playwright/
+ms-playwright/
+chromium/
+firefox/
+webkit/
+chromium_headless_shell/
+
+# --- Caches NexusDL ---
+.nexusdl/
+**/.nexusdl-cache/
+**/.nexusdl-cookies/
+
+
+# ==============================================================================
+#  12. NEXUSDL SPÉCIFIQUE
+# ==============================================================================
+
+# --- Configuration utilisateur (ne pas versionner !) ---
+config.yaml
+config.yml
+!config/config.example.yaml
+!config/*.example.yaml
+config.local.yaml
+config.local.yml
+.config.yaml
+
+# --- Surcharges locales ---
+sites_overrides.yaml
+sites_overrides.yml
+!config/sites_overrides.example.yaml
+proxy.yaml
+proxy.yml
+!config/proxy.example.yaml
+
+# --- Cookies & sessions utilisateur ---
+cookies/
+cookies.json
+.cookies/
+.nexusdl/cookies/
+
+# --- Bibliothèque locale ---
+library/
+Library/
+Manga/
+manga/
+*.cbz
+*.cbr
+*.pdf
+
+# --- Cache de téléchargement ---
+.cache/nexusdl/
+.nexusdl/cache/
+*.part
+*.partial
+*.crdownload
+*.download
+
+# --- Logs NexusDL ---
+nexusdl.log
+nexusdl-*.log
+.nexusdl/logs/
+
+# --- Base de données NexusDL ---
+nexusdl.db
+nexusdl.sqlite3
+nexusdl.db-*
+data/nexusdl.db*
+data/library.db*
+
+# --- Profils Playwright persistants ---
+.playwright-profiles/
+playwright-profiles/
+.nexusdl/profiles/
+
+# --- Rapports générés ---
+reports/
+nexusdl-report-*.json
+nexusdl-report-*.html
+
+# --- Cache de métadonnées ---
+.metadata-cache/
+metadata-cache/
+**/*.metadata.json
+
+# --- Sessions SiteSession ---
+.nexusdl/sessions/
+sessions/
+*.session.json
+
+
+# ==============================================================================
+#  13. DOCKER
+# ==============================================================================
+
+# --- Docker build ---
+.docker/
+docker-compose.override.yml
+docker-compose.override.yaml
+docker-compose.local.yml
+
+# --- Docker volumes locaux ---
+docker-data/
+docker-volumes/
+.docker-data/
+
+# --- Docker secrets ---
+docker/secrets/
+docker-secrets/
+
+# --- BuildKit ---
+.buildkit-cache/
+
+
+# ==============================================================================
+#  14. CI/CD
+# ==============================================================================
+
+# --- GitHub Actions ---
+.github/workflows/*.local.yml
+.github/workflows/*.bak
+.actrc
+.act/
+
+# --- GitLab CI ---
+.gitlab-ci-local/
+gitlab-ci-local/
+
+# --- CircleCI ---
+.circleci/local/
+
+# --- Travis CI ---
+.travis.yml.bak
+
+# --- SonarQube ---
+.scannerwork/
+sonar-project.properties.bak
+
+# --- CodeClimate ---
+.codeclimate.yml.bak
+
+# --- Reports CI ---
+ci-reports/
+artifacts/
+
+
+# ==============================================================================
+#  15. DIVERS
+# ==============================================================================
+
+# --- Archives ---
+*.tar
+*.tar.gz
+*.tar.bz2
+*.tar.xz
+*.tgz
+*.zip
+!tests/fixtures/**/*.zip
+!docs/**/*.zip
+
+# --- Vidéos (dev only) ---
+*.mp4
+*.webm
+*.mov
+*.avi
+*.mkv
+!docs/**/*.mp4
+
+# --- Screenshots & vidéos de démo ---
+screenshots/
+recordings/
+*.cast
+!assets/screenshots/*.png
+
+# --- Fichiers temporaires d'édition ---
+*.kate-swp
+*.sublime-workspace
+*~
+.*.swp
+.*.swo
+
+# --- Fichiers de lock alternatifs (déjà gérés ailleurs) ---
+# (voir sections 4 et 9)
+
+# --- Patch & diff ---
+*.patch
+*.diff
+!docs/**/*.patch
+
+# --- Backup de configs ---
+*.bak
+*.backup
+*.old
+*.orig
+*.rej
+
+# --- Thumbnails ---
+Thumbs.db
+ehthumbs.db
+*.thumb
+
+# --- Fichiers de benchmark locaux ---
+*.prof
+*.lprof
+flamegraph.html
+profile.svg
+
+# --- Notebooks temporaires ---
+.scratch/
+scratch/
+playground/
+sandbox/
+*.scratch.py
+
+# --- Notes personnelles ---
+NOTES.md
+TODO.md
+SCRATCH.md
+!docs/**/NOTES.md
+
+# --- Fichiers IA/assistants ---
+.aider*
+.cursor/
+.cursorignore
+.continue/
+.claude/
+.cody/
+codeium/
+copilot/
+
+# --- Fichiers de lock de l'IDE ---
+*.lock.ide
+*.ide.lock
+
+
+# ==============================================================================
+#  FIN DU FICHIER
+# ==============================================================================
+#  Notes :
+#  - Pour forcer l'inclusion d'un fichier ignoré : utilisez `git add -f`
+#  - Pour vérifier qu'un fichier est ignoré : `git check-ignore -v <file>`
+#  - Pour lister tous les fichiers ignorés : `git status --ignored`
+#  - Pour nettoyer les fichiers ignorés : `git clean -Xdn` (dry-run)
+# ==============================================================================
