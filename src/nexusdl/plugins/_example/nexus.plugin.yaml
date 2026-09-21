@@ -1,0 +1,317 @@
+# ============================================================================
+#  NexusDL — Manifest de plugin
+#  Fichier : nexus.plugin.yaml
+#  Dossier : src/nexusdl/plugins/_example/
+#
+#  Ce manifest est LA RÉFÉRENCE pour créer un nouveau plugin.
+#  Chaque champ possible est documenté ci-dessous avec :
+#    - son type attendu
+#    - sa sémantique
+#    - un exemple concret
+#
+#  Pour créer votre propre plugin :
+#    1. Copier ce dossier : cp -r _example my_plugin
+#    2. Renommer le dossier et adapter `name`, `description`, `author`
+#    3. Vérifier les `hooks` et `permissions` selon plugin.py
+#    4. Valider : python -m nexusdl plugins validate my_plugin
+#    5. Tester  : pytest tests/plugins/ -k my_plugin
+#
+#  Validation : le fichier est validé par `validators.PluginManifest`
+#  (Pydantic v2). Toute erreur de schéma empêche le chargement du plugin.
+# ============================================================================
+
+# ============================================================================
+#  IDENTITÉ DU PLUGIN
+# ============================================================================
+
+# --- name (REQUIS) ----------------------------------------------------------
+# Identifiant unique du plugin.
+#
+#   Format  : snake_case ou kebab-case, [a-z][a-z0-9_-]{2,50}
+#   Contrainte : commence par une lettre minuscule, 3 à 50 caractères
+#
+# C'est ce nom qui est utilisé partout :
+#   - dans `sys.modules` (nom de module unique préfixé)
+#   - dans les logs (`extra.plugin=<name>`)
+#   - dans les commandes CLI (`nexusdl plugins info <name>`)
+#   - comme clé de registre interne du loader
+#
+# Il doit être UNIQUE parmi tous les plugins installés. Préfixer par
+# un namespace (ex: `myteam_weather`) évite les collisions.
+#
+# Note : le nom du dossier (ici `_example`) est INDÉPENDANT du champ `name`.
+# Le loader utilise `name` du manifest, pas le nom du dossier.
+name: nexusdl_example
+
+# --- version (REQUIS) -------------------------------------------------------
+# Version du plugin — SemVer simplifié.
+#
+#   Format  : MAJOR.MINOR.PATCH, regex ^\d+\.\d+\.\d+(?:[-+].+)?$
+#   Suffixes acceptés : -alpha, -beta.1, -rc.2, +build.42
+#
+# Conventions :
+#   - MAJOR : changement breaking de l'API du plugin (les utilisateurs
+#     doivent adapter leurs configurations).
+#   - MINOR : nouvelle fonctionnalité rétrocompatible (nouveau hook,
+#     nouvelle option).
+#   - PATCH : correction de bug sans changement d'API.
+#
+# Cette valeur est loggée dans les messages de chargement/déchargement
+# et exposée via `context.version` pour le plugin lui-même.
+version: "1.0.0"
+
+# --- api_version (REQUIS) ---------------------------------------------------
+# Version de l'API plugin NexusDL que ce plugin cible.
+#
+#   Format  : MAJOR.MINOR, regex ^\d+\.\d+$
+#   Actuelle : "1.0" (définie dans validators.PLUGIN_API_VERSION)
+#
+# Règle de compatibilité (vérifiée par validators.validate_api_version) :
+#   - MAJOR doit matcher exactement.
+#   - MINOR doit être <= à celui supporté par NexusDL.
+#
+# Exemples :
+#   plugin: "1.0"  API: "1.0"  → ✓ compatible
+#   plugin: "1.0"  API: "1.1"  → ✓ compatible (l'API a ajouté des méthodes)
+#   plugin: "1.7"  API: "1.0"  → ✗ erreur (plugin utilise des features futures)
+#   plugin: "2.0"  API: "1.0"  → ✗ erreur (API majeure incompatible)
+api_version: "1.0"
+
+# --- author (REQUIS) --------------------------------------------------------
+# Informations sur l'auteur / l'équipe qui maintient le plugin.
+#
+# Tous les champs sont optionnels sauf `name`. Les champs `email` et `url`
+# sont recommandés pour faciliter le contact en cas de problème de sécurité.
+author:
+  name: "NexusDL Core Team"
+  email: "plugins@nexusdl.dev"
+  url: "https://github.com/nexusdl/nexusdl"
+
+# --- description (REQUIS) ---------------------------------------------------
+# Description courte du plugin.
+#
+#   Format     : 10 à 500 caractères
+#   Affichage  : CLI (`nexusdl plugins list`), documentation, UI web
+#
+# La description doit être COMPRÉHENSIBLE SANS LE CODE SOURCE. Elle
+# explique ce que fait le plugin, pas comment il le fait.
+#
+# Mauvais exemple : "Hook sur pre_search qui normalise."
+# Bon exemple     : "Normalise les requêtes de recherche (espaces, casse)
+#                    et filtre les résultats sans image de couverture."
+description: >
+  Plugin d'exemple officiel NexusDL. Démontre l'utilisation de tous les
+  hooks disponibles et de tous les accesseurs de l'API plugin (notify,
+  library, http, fs, config). Sert de référence pour créer de nouveaux
+  plugins et de test d'intégration pour le système de plugins lui-même.
+
+# --- homepage (OPTIONNEL) ---------------------------------------------------
+# URL de la page du projet (dépôt Git, documentation, page du site).
+#
+#   Format : URL http(s) valide
+#   Usage  : affiché dans la CLI, cliquable dans l'UI web
+homepage: "https://github.com/nexusdl/nexusdl/tree/main/src/nexusdl/plugins/_example"
+
+# --- license (OPTIONNEL) ----------------------------------------------------
+# Licence du plugin — identifiant SPDX.
+#
+#   Format       : chaîne libre (recommandé : identifiant SPDX)
+#   Exemples     : "MIT", "Apache-2.0", "GPL-3.0-or-later"
+#   Référence    : https://spdx.org/licenses/
+#
+# Un plugin tiers peut avoir une licence différente du core NexusDL
+# (qui est GPL-3.0-or-later). C'est important de la déclarer pour que
+# les utilisateurs sachent à quoi ils s'engagent.
+license: "MIT"
+
+# ============================================================================
+#  CHARGEMENT ET ENTRYPOINT
+# ============================================================================
+
+# --- entrypoint (OPTIONNEL) -------------------------------------------------
+# Chemin d'accès au point d'entrée du plugin.
+#
+#   Format : "module:Classe" ou "module:fonction_factory"
+#   Défaut : "plugin:Plugin"
+#
+# Le module est résolu comme un fichier .py dans le dossier du plugin :
+#   "plugin"       → plugin.py
+#   "sub.plugin"   → sub/plugin.py
+#   "core.handlers" → core/handlers.py
+#
+# La cible peut être :
+#   - une CLASSE : le loader l'instancie. Si son __init__ accepte des
+#     paramètres `api` et/ou `context`, ils sont injectés automatiquement.
+#   - une FONCTION FACTORY : le loader l'appelle avec api= et context=
+#     en kwargs. Utile pour des singletons ou des sous-classes conditionnelles.
+#
+# Ce plugin utilise une classe — c'est le pattern recommandé.
+entrypoint: "plugin:ExamplePlugin"
+
+# --- min_nexusdl_version (OPTIONNEL) ----------------------------------------
+# Version minimale de NexusDL requise par ce plugin.
+#
+#   Format : SemVer (ex: "0.1.0", ">=0.2.0")
+#   Usage  : rejet précoce si un utilisateur installe le plugin sur une
+#            version trop ancienne de NexusDL.
+#
+# Sans effet aujourd'hui (le loader ne compare pas encore), mais utile
+# pour les plugins qui dépendent de fonctionnalités récentes du core.
+min_nexusdl_version: "0.1.0"
+
+# --- python_requires (OPTIONNEL) --------------------------------------------
+# Contrainte sur la version Python (PEP 440).
+#
+#   Format : identique à `pyproject.toml::requires-python`
+#   Exemple : ">=3.12", ">=3.11,<4"
+#
+# Utilisé par la CLI pour avertir l'utilisateur avant un échec d'import.
+python_requires: ">=3.12"
+
+# ============================================================================
+#  HOOKS
+# ============================================================================
+# Liste des hooks que le plugin souhaite recevoir.
+#
+#   Contrainte : chaque valeur doit être dans ALLOWED_HOOKS (voir hooks.py)
+#   Effet      : le loader n'appelle un hook QUE si :
+#                (1) il est déclaré ici
+#                (2) la méthode correspondante existe sur l'instance
+#
+# Un hook déclaré mais non implémenté produit un WARNING au chargement
+# (probable oubli du développeur). Un hook implémenté mais non déclaré
+# n'est JAMAIS appelé (défense en profondeur).
+#
+# Hooks disponibles (12) :
+#   Cycle de vie :
+#     - on_load           : initialisation du plugin
+#     - on_unload         : nettoyage des ressources
+#   Before (cancellables — une exception annule l'opération) :
+#     - pre_search        : normaliser/modifier une requête de recherche
+#     - pre_download      : valider/modifier un téléchargement
+#     - pre_package       : préparer l'empaquetage d'un chapitre
+#   After (observateurs — un échec n'annule pas l'opération) :
+#     - post_search       : filtrer/enrichir les résultats de recherche
+#     - post_download     : observer les statistiques de téléchargement
+#     - post_package      : observer le fichier empaqueté
+#   Événements :
+#     - on_error          : réagir à une erreur remontée
+#     - on_new_chapter    : réagir à un nouveau chapitre détecté
+#     - on_manga_update   : réagir à une modification de la bibliothèque
+#     - on_library_scan   : réagir à la fin d'un scan de bibliothèque
+#
+# NOTE : si vous déclarez `on_error`, vous DEVEZ aussi demander la
+# permission `notifications` (règle de cohérence du validateur).
+hooks:
+  - on_load
+  - on_unload
+  - pre_search
+  - post_search
+  - pre_download
+  - post_download
+  - pre_package
+  - post_package
+  - on_new_chapter
+  - on_manga_update
+  - on_library_scan
+  - on_error
+
+# ============================================================================
+#  PERMISSIONS
+# ============================================================================
+# Liste des permissions demandées par le plugin.
+#
+#   Contrainte : chaque valeur doit être dans ALLOWED_PERMISSIONS
+#   Effet      : chaque accesseur de l'API vérifie que la permission
+#                correspondante est déclarée AVANT d'exécuter l'opération.
+#                Sinon, `PermissionDenied` est levée.
+#
+# Principe du MOINDRE PRIVILÈGE : ne demandez QUE les permissions
+# strictement nécessaires. Un plugin qui demande `write_library` mais
+# ne fait que lire sera rejeté en review communautaire.
+#
+# Permissions disponibles (11) :
+#   Lecture :
+#     - read_library      : lire la bibliothèque (liste, détails)
+#     - filesystem_read   : lire des fichiers dans le sandbox du plugin
+#     - config_read       : lire des clés whitelistées de la config
+#   Écriture :
+#     - write_library     : modifier la bibliothèque (tags, favoris)  ⚠️
+#     - filesystem_write  : écrire dans le sandbox du plugin            ⚠️
+#     - metadata_mutation : modifier les métadonnées de mangas          ⚠️
+#   Réseau :
+#     - network_http      : faire des requêtes HTTP via l'accesseur
+#     - network_raw       : sockets bruts (réservé — non exposé)        ⚠️
+#   Intégration :
+#     - notifications     : envoyer des notifications
+#     - downloads         : recevoir des hooks de téléchargement
+#     - cookies           : accéder aux cookies chiffrés (réservé)      ⚠️
+#
+# ⚠️ = permission sensible : un WARNING est loggé au chargement du plugin.
+#     Le mainteneur du plugin doit pouvoir justifier chaque permission
+#     sensible en review.
+#
+# Ce plugin d'exemple demande TOUTES les permissions courantes pour
+# démontrer chaque accesseur. Un vrai plugin demanderait le minimum.
+permissions:
+  # --- Lecture ---
+  - read_library         # library.get(), library.list_all()
+  - filesystem_read      # fs.exists(), fs.read_json(), fs.read_text()
+  - config_read          # config.get("plugins.example.notify_special_chapters")
+
+  # --- Écriture (⚠️ sensibles) ---
+  - write_library        # library.set_tags(), library.set_favorite()
+  - filesystem_write     # fs.write_json(), fs.write_text(), ensure_sandbox_dirs()
+
+  # --- Réseau ---
+  - network_http         # http.post() vers le service de monitoring
+
+  # --- Intégration ---
+  - notifications        # notify.info/success/warning/error()
+  - downloads            # hooks pre_download / post_download
+
+# ============================================================================
+#  DÉPENDANCES PYTHON
+# ============================================================================
+# Dépendances PyPI requises par le plugin.
+#
+#   Effet : à la validation, chaque dépendance non-optionnelle est
+#           vérifiée par `importlib.util.find_spec`. Si elle est absente,
+#           un WARNING est loggé (le plugin reste chargeable).
+#
+#   Format :
+#     - name         : nom du package PyPI
+#     - version_spec : contrainte PEP 440 (optionnel)
+#     - optional     : true si la dépendance est optionnelle
+#
+# Ce plugin d'exemple n'a AUCUNE dépendance externe : il n'utilise que
+# la stdlib Python et l'API plugin de NexusDL. C'est le cas recommandé —
+# un plugin minimal est plus facile à auditer et à maintenir.
+#
+# Exemples de dépendances courantes pour un plugin réel :
+#   - name: "beautifulsoup4"
+#     version_spec: ">=4.12"
+#   - name: "curl_cffi"
+#     version_spec: ">=0.6,<1"
+#     optional: true
+#   - name: "rich"
+#     version_spec: ">=13.0"
+dependencies: []
+
+# ============================================================================
+#  FIN DU MANIFEST
+# ============================================================================
+# Toutes les clés non reconnues provoquent une erreur de validation
+# (`extra="forbid"` sur le modèle Pydantic). Si vous voulez stocker des
+# métadonnées personnalisées, utilisez un fichier séparé (ex: `extra.yaml`
+# dans votre dossier de plugin) que votre code lit explicitement.
+#
+# Pour valider ce fichier :
+#   python -m nexusdl plugins validate _example
+#   python scripts/validate_sites.py run all
+#
+# Pour en savoir plus :
+#   docs/source/development/plugins.md     (guide complet)
+#   src/nexusdl/plugins/api.py             (API publique)
+#   src/nexusdl/plugins/hooks.py           (payloads des hooks)
+#   src/nexusdl/plugins/validators.py      (schéma du manifest)
