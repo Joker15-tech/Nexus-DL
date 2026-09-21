@@ -1,0 +1,449 @@
+# ============================================================================
+#  NexusDL — Docker Compose (production)
+#  Usage :
+#    docker compose up -d                          # stack principale
+#    docker compose --profile flaresolverr up -d   # + FlareSolverr
+#    docker compose --profile cli run --rm cli ... # commande CLI one-shot
+#    docker compose logs -f web-backend            # suivre un service
+#
+#  Prérequis :
+#    - Fichier .env à la racine (copié de .env.example)
+#    - Dossier config/ (peut être vide — entrypoint crée les configs)
+#    - Certificats TLS dans docker/certs/ OU NEXUSDL_GENERATE_TLS=true
+# ============================================================================
+
+name: nexusdl
+
+# ----------------------------------------------------------------------------
+#  Extensions réutilisables (YAML anchors)
+# ----------------------------------------------------------------------------
+x-common-env: &common-env
+  NEXUSDL_ENV: ${NEXUSDL_ENV:-production}
+  NEXUSDL_CONFIG_DIR: /config
+  NEXUSDL_LIBRARY_DIR: /data
+  NEXUSDL_LOG_DIR: /logs
+  NEXUSDL_CACHE_DIR: /cache
+  NEXUSDL_SECRET_KEY: ${NEXUSDL_SECRET_KEY:-}
+  NEXUSDL_WEB__AUTH__JWT_SECRET: ${NEXUSDL_WEB__AUTH__JWT_SECRET:-}
+  NEXUSDL_WEB__SECURITY__CSRF_SECRET: ${NEXUSDL_WEB__SECURITY__CSRF_SECRET:-}
+  NEXUSDL_WEB__AUTH__DEFAULT_ADMIN_USERNAME: ${NEXUSDL_ADMIN_USERNAME:-admin}
+  NEXUSDL_WEB__AUTH__DEFAULT_ADMIN_PASSWORD: ${NEXUSDL_ADMIN_PASSWORD:-}
+  TZ: ${TZ:-Europe/Paris}
+  PYTHONUNBUFFERED: "1"
+  PYTHONDONTWRITEBYTECODE: "1"
+
+x-common-volumes: &common-volumes
+  - nexusdl-config:/config
+  - nexusdl-data:/data
+  - nexusdl-logs:/logs
+  - nexusdl-cache:/cache
+
+x-common-logging: &common-logging
+  driver: json-file
+  options:
+    max-size: "20m"
+    max-file: "5"
+    labels: "service,environment,version"
+
+x-common-security: &common-security
+  security_opt:
+    - no-new-privileges:true
+  cap_drop:
+    - ALL
+
+x-common-restart: &common-restart
+  restart: unless-stopped
+
+# ============================================================================
+#  SERVICES
+# ============================================================================
+services:
+
+  # --------------------------------------------------------------------------
+  #  Redis — rate limiting partagé, sessions WS, pub/sub multi-worker
+  # --------------------------------------------------------------------------
+  redis:
+    image: redis:7-alpine
+    container_name: nexusdl-redis
+    hostname: redis
+    <<: [*common-restart, *common-logging]
+    command:
+      - redis-server
+      - --save 900 1                  # Snapshot si 1 écriture en 15 min
+      - --save 300 10                 # Snapshot si 10 écritures en 5 min
+      - --appendonly yes
+      - --appendfsync everysec
+      - --maxmemory 256mb
+      - --maxmemory-policy allkeys-lru
+      - --requirepass ${NEXUSDL_REDIS_PASSWORD:-}
+    environment:
+      TZ: ${TZ:-Europe/Paris}
+    volumes:
+      - nexusdl-redis:/data
+    networks:
+      - nexusdl-net
+    ports:
+      # Non publié par défaut (accès interne uniquement).
+      # Décommenter pour debug local :
+      # - "127.0.0.1:6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "--no-auth-warning", "-a", "${NEXUSDL_REDIS_PASSWORD:-}", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 5s
+    deploy:
+      resources:
+        limits:
+          memory: 320M
+        reservations:
+          memory: 64M
+
+  # --------------------------------------------------------------------------
+  #  migrate — one-shot : applique les migrations puis s'arrête
+  #  Empêche la compétition entre web-backend et worker au démarrage.
+  # --------------------------------------------------------------------------
+  migrate:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    image: nexusdl:latest
+    container_name: nexusdl-migrate
+    hostname: migrate
+    <<: [*common-logging, *common-security]
+    environment:
+      <<: *common-env
+      NEXUSDL_ROLE: migrate
+      NEXUSDL_SKIP_DROP_PRIVILEGES: "true"   # doit écrire dans les volumes partagés
+    volumes: *common-volumes
+    networks:
+      - nexusdl-net
+    depends_on:
+      redis:
+        condition: service_healthy
+    command: ["/app/docker/entrypoint.sh"]
+    restart: "no"
+
+  # --------------------------------------------------------------------------
+  #  web-backend — API FastAPI (uvicorn, multi-workers via gunicorn/uvicorn)
+  # --------------------------------------------------------------------------
+  web-backend:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.web
+      args:
+        VERSION: ${NEXUSDL_VERSION:-0.1.0}
+        BUILD_PROFILE: ${NEXUSDL_BUILD_PROFILE:-release}
+    image: nexusdl-web:${NEXUSDL_VERSION:-0.1.0}
+    container_name: nexusdl-web-backend
+    hostname: web-backend
+    <<: [*common-restart, *common-logging, *common-security]
+    environment:
+      <<: *common-env
+      NEXUSDL_ROLE: web
+      NEXUSDL_WEB__HOST: 0.0.0.0
+      NEXUSDL_WEB__PORT: "8000"
+      NEXUSDL_WEB__WORKERS: ${NEXUSDL_WEB_WORKERS:-4}
+      NEXUSDL_WEB__AUTH__JWT_SECRET: ${NEXUSDL_WEB__AUTH__JWT_SECRET:?Le secret JWT est requis en production}
+      NEXUSDL_WEB__AUTH__DEFAULT_ADMIN_PASSWORD: ${NEXUSDL_ADMIN_PASSWORD:?Le mot de passe admin est requis en production}
+      NEXUSDL_REDIS_URL: redis://:${NEXUSDL_REDIS_PASSWORD:-}@redis:6379/0
+      NEXUSDL_WAIT_FOR: redis:6379
+      NEXUSDL_FLARESOLVERR_URL: http://flaresolverr:8191/v1
+    volumes:
+      - nexusdl-config:/config
+      - nexusdl-data:/data
+      - nexusdl-logs:/logs
+      - nexusdl-cache:/cache
+      - ./certs:/etc/nginx/certs:ro   # lecture seule pour les scripts de health
+    networks:
+      - nexusdl-net
+    depends_on:
+      redis:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    expose:
+      - "8000"
+    ports:
+      # Non publié — Nginx fait le reverse proxy.
+      # Décommenter pour debug local (accès direct API) :
+      # - "127.0.0.1:8000:8000"
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - |
+          import sys, urllib.request
+          try:
+              r = urllib.request.urlopen("http://127.0.0.1:8000/api/health", timeout=5)
+              sys.exit(0 if r.status == 200 else 1)
+          except Exception:
+              sys.exit(1)
+      interval: 15s
+      timeout: 6s
+      retries: 3
+      start_period: 30s
+    stop_grace_period: 30s
+    deploy:
+      resources:
+        limits:
+          cpus: "2.0"
+          memory: 1G
+        reservations:
+          cpus: "0.5"
+          memory: 256M
+
+  # --------------------------------------------------------------------------
+  #  worker — téléchargements en arrière-plan
+  #  Peut être scalé : docker compose up -d --scale worker=3
+  # --------------------------------------------------------------------------
+  worker:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    image: nexusdl:${NEXUSDL_VERSION:-0.1.0}
+    container_name: nexusdl-worker
+    hostname: worker
+    <<: [*common-restart, *common-logging, *common-security]
+    environment:
+      <<: *common-env
+      NEXUSDL_ROLE: worker
+      NEXUSDL_REDIS_URL: redis://:${NEXUSDL_REDIS_PASSWORD:-}@redis:6379/0
+      NEXUSDL_WAIT_FOR: redis:6379
+      NEXUSDL_DOWNLOAD__MAX_CONCURRENT_TASKS: ${NEXUSDL_WORKER_TASKS:-3}
+      NEXUSDL_DOWNLOAD__MAX_CONCURRENT_PAGES: ${NEXUSDL_WORKER_PAGES:-8}
+      NEXUSDL_SESSION__PLAYWRIGHT__ENABLED: ${NEXUSDL_PLAYWRIGHT_ENABLED:-true}
+    volumes:
+      - nexusdl-config:/config
+      - nexusdl-data:/data
+      - nexusdl-logs:/logs
+      - nexusdl-cache:/cache
+    networks:
+      - nexusdl-net
+    depends_on:
+      redis:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    # Le worker n'expose pas de port — il consomme une queue Redis.
+    # Scaling : `docker compose up -d --scale worker=N`
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - |
+          # Health: fichier heartbeat touché toutes les 30s par le worker
+          import os, sys, time
+          hb = "/tmp/nexusdl-worker.heartbeat"
+          if not os.path.exists(hb):
+              sys.exit(1)
+          sys.exit(0 if time.time() - os.path.getmtime(hb) < 90 else 1)
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 45s
+    stop_grace_period: 60s      # Laisse finir les pages en cours
+    deploy:
+      replicas: ${NEXUSDL_WORKER_REPLICAS:-1}
+      resources:
+        limits:
+          cpus: "2.0"
+          memory: 2G             # Playwright consomme beaucoup
+        reservations:
+          cpus: "0.5"
+          memory: 512M
+
+  # --------------------------------------------------------------------------
+  #  nginx — reverse proxy TLS + static frontend + WebSocket
+  # --------------------------------------------------------------------------
+  nginx:
+    image: nginx:1.27-alpine
+    container_name: nexusdl-nginx
+    hostname: nginx
+    <<: [*common-restart, *common-logging]
+    environment:
+      TZ: ${TZ:-Europe/Paris}
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./certs:/etc/nginx/certs:ro
+      - nexusdl-web-static:/var/www/nexusdl:ro
+      - nexusdl-logs-nginx:/var/log/nginx
+      - nexusdl-cache-nginx:/var/cache/nginx
+    networks:
+      - nexusdl-net
+    depends_on:
+      web-backend:
+        condition: service_healthy
+    ports:
+      - "${NEXUSDL_HTTP_PORT:-80}:80"
+      - "${NEXUSDL_HTTPS_PORT:-443}:443"
+      # Décommenter pour HTTP/3 (QUIC) — nécessite Nginx compilé avec --with-http_v3_module
+      # - "${NEXUSDL_HTTPS_PORT:-443}:443/udp"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1/nginx-health"]
+      interval: 15s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
+    stop_grace_period: 15s
+    # Nginx a besoin d'écrire dans /var/cache et /var/run — pas de read_only
+    security_opt:
+      - no-new-privileges:true
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 256M
+
+  # --------------------------------------------------------------------------
+  #  flaresolverr — bypass Cloudflare (profil optionnel)
+  #  Activer avec : docker compose --profile flaresolverr up -d
+  # --------------------------------------------------------------------------
+  flaresolverr:
+    image: ghcr.io/flaresolverr/flaresolverr:latest
+    container_name: nexusdl-flaresolverr
+    hostname: flaresolverr
+    profiles: ["flaresolverr"]
+    <<: *common-restart
+    environment:
+      LOG_LEVEL: ${FLARESOLVERR_LOG_LEVEL:-info}
+      LOG_HTML: "false"
+      CAPTCHA_SOLVER: none
+      TZ: ${TZ:-Europe/Paris}
+    networks:
+      - nexusdl-net
+    expose:
+      - "8191"
+    # Non publié — accessible uniquement par web-backend / worker
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8191/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 1G
+
+  # --------------------------------------------------------------------------
+  #  cli — exécution ponctuelle du CLI NexusDL (profil optionnel)
+  #  Usage : docker compose --profile cli run --rm cli <commande>
+  # --------------------------------------------------------------------------
+  cli:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    image: nexusdl:${NEXUSDL_VERSION:-0.1.0}
+    container_name: nexusdl-cli
+    hostname: cli
+    profiles: ["cli"]
+    <<: *common-logging
+    environment:
+      <<: *common-env
+      NEXUSDL_ROLE: cli
+      NEXUSDL_REDIS_URL: redis://:${NEXUSDL_REDIS_PASSWORD:-}@redis:6379/0
+    volumes:
+      - nexusdl-config:/config
+      - nexusdl-data:/data
+      - nexusdl-logs:/logs
+      - nexusdl-cache:/cache
+      - ./exports:/exports                 # dossier pour partage de fichiers
+    networks:
+      - nexusdl-net
+    depends_on:
+      redis:
+        condition: service_healthy
+    # stdin/tty pour le CLI Textual interactif
+    stdin_open: true
+    tty: true
+    entrypoint: ["/app/docker/entrypoint.sh"]
+    command: []                            # à surcharger : `run --rm cli download ...`
+
+  # --------------------------------------------------------------------------
+  #  dev — reload auto, monte le code source (profil optionnel)
+  #  Usage : docker compose --profile dev up
+  # --------------------------------------------------------------------------
+  web-backend-dev:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.web
+    image: nexusdl-web:dev
+    container_name: nexusdl-web-dev
+    hostname: web-backend
+    profiles: ["dev"]
+    <<: *common-logging
+    environment:
+      <<: *common-env
+      NEXUSDL_ENV: development
+      NEXUSDL_ROLE: web
+      NEXUSDL_DEBUG: "1"
+      NEXUSDL_WEB__WORKERS: "1"           # reload = 1 worker obligatoire
+      NEXUSDL_WEB__AUTH__JWT_SECRET: dev-jwt-secret-not-for-production
+      NEXUSDL_WEB__AUTH__DEFAULT_ADMIN_PASSWORD: devpassword
+      NEXUSDL_REDIS_URL: redis://redis:6379/0
+      NEXUSDL_WAIT_FOR: redis:6379
+    volumes:
+      - ../src:/app/src:ro
+      - ../config:/config
+      - nexusdl-data:/data
+      - nexusdl-logs:/logs
+      - nexusdl-cache:/cache
+    networks:
+      - nexusdl-net
+    depends_on:
+      redis:
+        condition: service_healthy
+    ports:
+      - "8000:8000"
+    command: ["/app/docker/entrypoint.sh"]
+
+# ============================================================================
+#  RÉSEAUX
+# ============================================================================
+networks:
+  nexusdl-net:
+    name: nexusdl-net
+    driver: bridge
+    internal: false        # true pour isoler complètement (pas d'accès Internet)
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.30.0.0/24
+
+# ============================================================================
+#  VOLUMES
+# ============================================================================
+volumes:
+  nexusdl-config:
+    name: nexusdl-config
+    driver: local
+  nexusdl-data:
+    name: nexusdl-data
+    driver: local
+    # Pour un bind-mount vers un NAS, commenter ci-dessus et utiliser :
+    # driver_opts:
+    #   type: nfs
+    #   o: addr=nas.local,rw,nfsvers=4
+    #   device: ":/volume1/nexusdl"
+  nexusdl-logs:
+    name: nexusdl-logs
+    driver: local
+  nexusdl-cache:
+    name: nexusdl-cache
+    driver: local
+  nexusdl-redis:
+    name: nexusdl-redis
+    driver: local
+  nexusdl-logs-nginx:
+    name: nexusdl-logs-nginx
+    driver: local
+  nexusdl-cache-nginx:
+    name: nexusdl-cache-nginx
+    driver: local
+  nexusdl-web-static:
+    name: nexusdl-web-static
+    driver: local
