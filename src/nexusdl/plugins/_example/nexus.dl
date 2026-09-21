@@ -1,0 +1,348 @@
+# ============================================================================
+#  nexus.dl — Dossier "src/nexusdl/plugins/_example/"
+#  Documentation locale du sous-dossier. Non chargé à l'exécution.
+#  Format : YAML parsable (utilisé par docs/source/conf.py et la CI).
+# ============================================================================
+
+meta:
+  path: "src/nexusdl/plugins/_example/"
+  parent: "src/nexusdl/plugins/"
+  role: "Plugin d'exemple officiel — référence pour développeurs"
+  owner: "@nexusdl/plugins-team"
+  since: "0.1.0"
+  updated: "2025-01-15"
+  status: stable
+  tracked_in_git: true
+  prefixed_underscore: true
+
+# ----------------------------------------------------------------------------
+#  Rôle du sous-dossier
+# ----------------------------------------------------------------------------
+purpose: |
+  Ce sous-dossier contient le **plugin d'exemple officiel** de NexusDL.
+  C'est un plugin **fonctionnel** (pas un squelette vide) qui implémente
+  tous les hooks disponibles et démontre chaque accesseur de l'API.
+
+  Il a trois fonctions :
+
+    1. **Référence pédagogique** — un développeur qui veut créer un plugin
+       copie ce dossier, adapte le manifest, remplace ``plugin.py`` par sa
+       logique, et soumet.
+    2. **Test d'intégration vivant** — le loader charge ce plugin au
+       démarrage, ce qui exerce l'ensemble de la chaîne : découverte,
+       validation, import, instanciation, injection API, dispatch de hooks.
+       Si le système de plugins casse, ce plugin casse aussi — c'est un
+       canari.
+    3. **Documentation exécutable** — les exemples de la doc
+       (``docs/source/development/plugins.md``) sont extraits de ce
+       fichier. Un exemple qui ne tourne pas est un bug.
+
+  Le préfixe ``_`` signale au loader un dossier "spécial". C'est le SEUL
+  dossier préfixé ``_`` qui est chargé par défaut (les autres, comme
+  ``__pycache__``, ``_private``, sont ignorés). En production, il est
+  recommandé de le désactiver via ``plugins.disabled: [_example]``.
+
+# ----------------------------------------------------------------------------
+#  Contenu du sous-dossier
+# ----------------------------------------------------------------------------
+contents:
+
+  - file: "__init__.py"
+    type: module
+    role: "Marqueur de package Python (vide — sert à rendre le dossier importable)"
+    loaded_at_runtime: false
+    notes: |
+      Nécessaire pour que ``import nexusdl.plugins._example`` fonctionne
+      dans les tests. Ne contient aucun code.
+
+  - file: "nexus.plugin.yaml"
+    type: manifest
+    role: "Manifest exhaustif — référence pour tous les champs disponibles"
+    loaded_at_runtime: true
+    schema: "src/nexusdl/plugins/validators.py::PluginManifest"
+    notes: |
+      Chaque champ du manifest est documenté inline avec :
+        - son type attendu,
+        - sa sémantique,
+        - un exemple concret,
+        - les contraintes de validation.
+      Sert de référence à la communauté pour comprendre le format.
+
+  - file: "plugin.py"
+    type: module
+    role: "Implémentation de référence — tous les hooks + tous les accesseurs"
+    loaded_at_runtime: true
+    class: "ExamplePlugin"
+    entrypoint: "plugin:ExamplePlugin"
+    hooks_implemented: all_12
+    accessors_demonstrated:
+      - notify      # NotificationResult via notify.info/success/error
+      - library     # MangaInfo via library.get/set_tags
+      - http        # HttpResponse via http.post
+      - fs          # FilesystemAccessor via fs.write_json/read_json
+      - config      # ConfigAccessor via config.get
+    notes: |
+      Volontairement complet : chaque méthode fait quelque chose d'utile,
+      documenté, et peut être copiée dans un vrai plugin. Le plugin est
+      inoffensif — aucune écriture hors sandbox, aucune requête sans
+      permission, aucune exception propagée.
+
+  - file: "nexus.dl"
+    type: documentation
+    role: "Ce fichier — documentation locale du sous-dossier"
+    loaded_at_runtime: false
+
+# ----------------------------------------------------------------------------
+#  Manifest — référence complète
+# ----------------------------------------------------------------------------
+manifest_reference:
+
+  required_fields:
+    - name: "Identifiant unique (snake_case, [a-z][a-z0-9_-]{2,50})"
+    - version: "SemVer (X.Y.Z, suffixes -alpha/-beta/-rc acceptés)"
+    - api_version: "Version d'API plugin ciblée (X.Y, actuelle : 1.0)"
+    - author: "Objet {name, email?, url?}"
+    - description: "10-500 caractères, compréhensible sans le code"
+
+  optional_fields:
+    - homepage: "URL du projet (http/https)"
+    - license: "Identifiant SPDX (ex: MIT, Apache-2.0)"
+    - entrypoint: "module:Classe (défaut : plugin:Plugin)"
+    - min_nexusdl_version: "Version minimale de NexusDL"
+    - python_requires: "Contrainte Python (PEP 440, ex: >=3.12)"
+    - hooks: "Liste des hooks souscrits (max 12)"
+    - permissions: "Liste des permissions demandées (max 11)"
+    - dependencies: "Dépendances PyPI (nom, version_spec, optional)"
+
+  hooks_in_manifest: 12   # tous les hooks disponibles
+  permissions_in_manifest: 8  # toutes les permissions courantes sauf cookies/network_raw/metadata_mutation
+
+  coherence_rules:
+    - rule: "on_error ⇒ notifications"
+      enforcement: "model_validator dans PluginManifest"
+      reason: "Un plugin qui signale des erreurs a besoin des notifications."
+    - rule: "downloads ⇒ pre_download|post_download"
+      enforcement: "model_validator dans PluginManifest"
+      reason: "La permission downloads sans hook de téléchargement est morte."
+
+# ----------------------------------------------------------------------------
+#  Fonctionnalités démontrées par plugin.py
+# ----------------------------------------------------------------------------
+demonstrated_features:
+
+  - hook: on_load
+    feature: "Initialisation du plugin (sandbox, cache, notification)"
+    api_used: [fs.ensure_sandbox_dirs, fs.clear_tmp, fs.read_json, notify.info]
+
+  - hook: on_unload
+    feature: "Nettoyage des ressources (sauvegarde cache)"
+    api_used: [fs.write_json]
+
+  - hook: pre_search
+    feature: "Normalisation de query (strip, collapse whitespace)"
+    cancellable: true
+    api_used: [config.get]
+
+  - hook: post_search
+    feature: "Filtrage (sans cover, déduplication URL) + cache"
+    api_used: [fs.exists, fs.read_json, fs.write_json]
+
+  - hook: pre_download
+    feature: "Validation destination absolue, log de démarrage"
+    cancellable: true
+    api_used: []
+
+  - hook: post_download
+    feature: "Résumé de téléchargement + notification"
+    api_used: [notify.success, notify.warning]
+
+  - hook: pre_package
+    feature: "Enrichissement ComicInfo avec tag source"
+    cancellable: true
+    api_used: []
+
+  - hook: post_package
+    feature: "Log du fichier produit (nom, taille)"
+    api_used: []
+
+  - hook: on_new_chapter
+    feature: "Notification (filtrage chapitres spéciaux Bonus/Extra)"
+    api_used: [config.get, notify.success]
+
+  - hook: on_manga_update
+    feature: "Ajout auto de tag 'auto:long' si > 500 chapitres"
+    api_used: [library.get, library.set_tags]
+
+  - hook: on_library_scan
+    feature: "Envoi rapport scan vers endpoint externe"
+    api_used: [http.post]
+
+  - hook: on_error
+    feature: "Notification conditionnelle (types critiques) + log enrichi"
+    api_used: [notify.error]
+
+# ----------------------------------------------------------------------------
+#  Patterns pédagogiques
+# ----------------------------------------------------------------------------
+patterns:
+  - name: "Double cache (mémoire + disque)"
+    description: "Cache rapide en RAM + persistance JSON pour survivre aux restarts"
+    files: ["plugin.py"]
+    methods: ["_load_cache_from_disk", "_save_cache_to_disk"]
+
+  - name: "Mesure de durée entre hooks"
+    description: "Utilise metadata du payload pour tracker start/end sans état d'instance"
+    files: ["plugin.py"]
+    methods: ["pre_download", "post_download"]
+
+  - name: "Validation stricte dans un hook cancellable"
+    description: "Lever une exception annule l'opération (destination relative, query vide)"
+    files: ["plugin.py"]
+    methods: ["pre_search", "pre_download"]
+
+  - name: "Best-effort dans les hooks non-cancellables"
+    description: "Capture toute exception, log, et retourne le payload inchangé"
+    files: ["plugin.py"]
+    methods: ["post_search", "on_library_scan", "on_new_chapter"]
+
+  - name: "Vérification de permission avant opération"
+    description: "has_permission() plutôt que try/except PermissionDenied"
+    files: ["plugin.py"]
+    methods: ["on_manga_update", "on_library_scan", "on_new_chapter"]
+
+  - name: "LRU simple sur le cache mémoire"
+    description: "Évince l'entrée la plus ancienne quand la limite est atteinte"
+    files: ["plugin.py"]
+    methods: ["_store_cached_search"]
+
+  - name: "Regex pour classification (chapitres spéciaux)"
+    description: "Détection Bonus/Extra/Omake/HS avec complément config"
+    files: ["plugin.py"]
+    methods: ["on_new_chapter"]
+
+  - name: "Troncature de payload pour intégration externe"
+    description: "Limite la taille des données envoyées à un service tiers"
+    files: ["plugin.py"]
+    methods: ["on_library_scan", "on_error"]
+
+# ----------------------------------------------------------------------------
+#  Invariants (vérifiés par la CI)
+# ----------------------------------------------------------------------------
+invariants:
+  - id: "manifest-valid"
+    description: "Le manifest passe la validation Pydantic complète"
+    check: "python -m nexusdl plugins validate _example"
+    severity: error
+
+  - id: "hooks-implemented"
+    description: "Tous les hooks déclarés sont implémentés dans plugin.py"
+    check: "tests/plugins/test_example_manifest.py::test_example_plugin_hooks_match_code"
+    severity: error
+
+  - id: "plugin-imports"
+    description: "Le plugin s'importe sans erreur en mode allow_import=True"
+    check: "python -c 'from nexusdl.plugins.validators import validate_plugin; from pathlib import Path; r = validate_plugin(Path(\"src/nexusdl/plugins/_example\"), allow_import=True); assert r.ok'"
+    severity: error
+
+  - id: "no-core-imports"
+    description: "Aucun import nexusdl.core.* dans plugin.py"
+    check: "grep -E '^from nexusdl\\.core' src/nexusdl/plugins/_example/plugin.py && exit 1 || exit 0"
+    severity: error
+
+  - id: "no-external-dependencies"
+    description: "Le manifest ne déclare aucune dépendance externe"
+    check: "python -c 'import yaml; d = yaml.safe_load(open(\"src/nexusdl/plugins/_example/nexus.plugin.yaml\")); assert d.get(\"dependencies\", []) == []'"
+    severity: warning
+
+  - id: "no-secrets"
+    description: "Aucun secret hardcodé dans le plugin"
+    check: "pre-commit run detect-secrets --files src/nexusdl/plugins/_example/*"
+    severity: error
+
+  - id: "doc-consistency"
+    description: "Les hooks listés dans ce nexus.dl correspondent au manifest"
+    check: "scripts/validate_sites.py --check-nexus-dl-consistency"
+    severity: warning
+
+# ----------------------------------------------------------------------------
+#  Conventions
+# ----------------------------------------------------------------------------
+conventions:
+  module:
+    - "from __future__ import annotations en tête"
+    - "Type hints sur toutes les méthodes publiques"
+    - "Docstring Google-style avec Args/Returns/Raises"
+    - "Aucun import nexusdl.core.* — uniquement plugins.api et plugins.hooks"
+    - "Constantes de module en SCREAMING_SNAKE_CASE (CACHE_TTL_SECONDS, etc.)"
+  class:
+    - "Nom : ExamplePlugin (référence) → MyPlugin pour un vrai plugin"
+    - "ClassVar VERSION pour la version (utile en debug)"
+    - "Constructeur accepte api et/ou context (injectés par le loader)"
+    - "Attributs privés préfixés _ (convention Python)"
+  hooks:
+    - "Implémentation async pour tous les hooks (sauf justification)"
+    - "Retourner le payload (muté ou copié) pour les hooks before/after"
+    - "Retourner None pour les hooks d'observation (event/lifecycle)"
+    - "Capturer les exceptions dans les hooks non-cancellables"
+  manifest:
+    - "Versions TOUJOURS entre guillemets (éviter les float YAML)"
+    - "description en bloc plié (>) pour les textes multi-lignes"
+    - "dependencies: [] explicite plutôt qu'omis"
+    - "Cohérence stricte avec plugin.py (hooks, permissions)"
+  tests:
+    - "Fixture PluginAPI avec backends fake (pas les vrais)"
+    - "Test que tous les hooks du manifest sont implémentés"
+    - "Test que le manifest valide (validate_plugin)"
+    - "Test d'idempotence (on_load appelé deux fois)"
+
+# ----------------------------------------------------------------------------
+#  Points d'attention
+# ----------------------------------------------------------------------------
+notes:
+  - "Le préfixe `_` du dossier `_example` signale au loader un dossier 'spécial'."
+  - "C'est le SEUL dossier `_*` chargé par défaut. Les autres (`__pycache__`,"
+  - "`_private`) sont ignorés silencieusement."
+  - "En production, désactiver via `plugins.disabled: [nexusdl_example]` — utiliser"
+  - "le `name` du manifest, PAS le nom du dossier."
+  - "Ce plugin est fonctionnel, pas un stub vide. Il fait vraiment des choses"
+  - "(notification, cache disque, filtrage) — un développeur peut copier et adapter."
+  - "Toute modification de plugin.py doit vérifier que le manifest reste cohérent"
+  - "(hooks déclarés ⇔ méthodes implémentées, permissions ⇔ accesseurs utilisés)."
+  - "Le manifest demande 8 permissions et 12 hooks — c'est EXHAUSTIF. Un vrai plugin"
+  - "demande le minimum (principe du moindre privilège)."
+  - "Aucune dépendance externe : le plugin ne s'appuie que sur la stdlib + l'API."
+  - "Ce plugin sert de test d'intégration vivant : le loader le charge au boot,"
+  - "ce qui exerce toute la chaîne (validation, import, injection, dispatch)."
+  - "Si le système de plugins casse, ce plugin casse en premier — c'est un canari."
+  - "Le format exact du manifest est défini par `validators.PluginManifest`."
+  - "Le format exact des payloads de hooks est défini par `hooks.py`."
+
+# ----------------------------------------------------------------------------
+#  Outils associés
+# ----------------------------------------------------------------------------
+tooling:
+  validate: "python -m nexusdl plugins validate _example"
+  copy_for_new:
+    - "cp -r src/nexusdl/plugins/_example plugins/my_plugin"
+    - "# Éditer plugins/my_plugin/nexus.plugin.yaml (name, description, author...)"
+    - "# Éditer plugins/my_plugin/plugin.py (adapter les hooks à votre logique)"
+    - "python -m nexusdl plugins validate my_plugin"
+  test:
+    - "pytest tests/plugins/test_example.py -v"
+    - "pytest tests/plugins/test_example_manifest.py -v"
+  inspect:
+    - "python -m nexusdl plugins info nexusdl_example"
+    - "python -m nexusdl plugins hooks nexusdl_example"
+
+# ----------------------------------------------------------------------------
+#  Références
+# ----------------------------------------------------------------------------
+see_also:
+  - "src/nexusdl/plugins/nexus.dl              # documentation du dossier parent"
+  - "src/nexusdl/plugins/api.py                # surface publique de l'API"
+  - "src/nexusdl/plugins/hooks.py              # payloads de tous les hooks"
+  - "src/nexusdl/plugins/loader.py             # cycle de vie du plugin"
+  - "src/nexusdl/plugins/validators.py         # schéma du manifest"
+  - "docs/source/development/plugins.md        # guide complet pour développeurs"
+  - "docs/source/api/python.md                 # référence API Python"
+  - "config/config.example.yaml                # section `plugins:`"
