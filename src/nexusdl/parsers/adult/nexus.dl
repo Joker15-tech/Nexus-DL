@@ -1,0 +1,533 @@
+# ============================================================================
+#  nexus.dl — Dossier "src/nexusdl/parsers/adult/"
+#  Documentation locale du dossier. Non chargé à l'exécution.
+#  Format : YAML parsable (utilisé par docs/source/conf.py et la CI).
+# ============================================================================
+
+meta:
+  path: "src/nexusdl/parsers/adult/"
+  parent: "src/nexusdl/parsers/"
+  role: "Parsers pour sites adultes (18+) — hentai, doujinshi, ecchi"
+  owner: "@nexusdl/parsers-team"
+  since: "0.1.0"
+  updated: "2025-01-15"
+  status: stable
+  tracked_in_git: true
+  adult_only: true
+
+# ----------------------------------------------------------------------------
+#  Rôle du dossier
+# ----------------------------------------------------------------------------
+purpose: |
+  Ce dossier contient les **parsers pour sites adultes** (18+) :
+  hentai, doujinshi, mangas ecchi traduits. Chaque parser est autonome
+  et hérite directement de ``BaseParser`` — aucun mixin partagé, toute
+  la logique de scraping est contenue dans chaque fichier.
+
+  Ce choix d'autonomie (plutôt que des mixins Madara partagés) est
+  délibéré : les sites adultes ont chacun leurs particularités (CDN
+  dédiés, API JSON non documentées, protection Cloudflare agressive,
+  domaines instables). Factoriser dans un mixin créerait un couplage
+  fragile entre des sites qui n'ont en commun que le thème WordPress.
+
+  **Activation** : ces parsers ne sont **jamais** chargés par défaut.
+  Ils nécessitent une activation explicite via ``registry.include_adult:
+  true`` dans ``config.yaml`` ou ``--include-adult`` en CLI. Sans cette
+  activation, le ``SiteRegistry`` les ignore silencieusement — un
+  utilisateur qui cherche ``--site nhentai`` sans avoir activé le mode
+  adulte obtient un ``KeyError: site not found``.
+
+  **Philosophie** : NexusDL est un outil technique open-source. Comme
+  Tachiyomi/Mihon, Suwayomi, Hakuneko, il supporte le contenu adulte
+  sans jugement. L'utilisateur est un adulte responsable qui respecte
+  les lois de son pays. Le code ne contourne **pas** les paywalls, ne
+  stocke **pas** de contenu protégé, et ne fait **pas** de promotion.
+
+# ----------------------------------------------------------------------------
+#  Contenu du dossier
+# ----------------------------------------------------------------------------
+contents:
+
+  # === Module marqueur =====================================================
+  - file: "__init__.py"
+    type: module
+    role: "Marqueur de package + exports des parsers adultes"
+    exports:
+      - "HentaiZoneParser"
+      - "NHentaiParser"
+      - "PururinParser"
+      - "ScanHentaiParser"
+      - "XMangaNetParser"
+      - "XMangaOrgParser"
+    notes: |
+      Expose une surface minimale. Les parsers ne sont pas instanciés
+      au chargement du package — ils sont importés paresseusement par
+      le ``SiteRegistry`` selon la config.
+
+  # === Parsers hentai / doujinshi ==========================================
+  - file: "nhentai.py"
+    type: parser
+    role: "Parser nhentai (API JSON non officielle)"
+    class: "NHentaiParser"
+    site_id: "nhentai"
+    language: "en"
+    base_url: "https://nhentai.net"
+    mirrors: ["nhentai.net", "nhentai.to"]
+    cloudflare_strategy: "playwright"
+    content_type: "doujinshi hentai (galerie = livre unique)"
+    api_json: true
+    cdn:
+      images: "https://i.nhentai.net"
+      thumbs: "https://t.nhentai.net"
+    special_features:
+      - "API JSON non officielle (/api/gallery/{id}, /api/v2/galleries/search)"
+      - "IDs numériques (5-6 chiffres) au lieu de slugs"
+      - "Construction des URLs d'images depuis media_id + type (j/p/w/g)"
+      - "Tags à 7 catégories (tag, artist, language, category, parody, group, character)"
+      - "Titre à 3 niveaux (english > pretty > japanese)"
+      - "Fallback HTML si l'API échoue"
+    legal_notes: |
+      nhentai fait l'objet de poursuites judiciaires (PCR Distributing,
+      US, août 2024). Domaine bloqué en Ukraine (décembre 2024).
+      Parser fourni à titre technique.
+    status: stable
+    test_file: "tests/parsers/adult/test_nhentai.py"
+
+  - file: "pururin.py"
+    type: parser
+    role: "Parser Pururin (Vue.js + Laravel, API JSON)"
+    class: "PururinParser"
+    site_id: "pururin"
+    language: "en"
+    base_url: "https://pururin.to"
+    mirrors: ["pururin.to", "pururin.net"]
+    cloudflare_strategy: "playwright"
+    content_type: "doujinshi hentai (livre = chapitre unique)"
+    api_json: true
+    cdn:
+      images: "https://cdn.pururin.to"
+    special_features:
+      - "API JSON interne (/api/search, /api/book/{id})"
+      - "Stack Vue.js + Laravel (pas WordPress)"
+      - "IDs numériques"
+      - "Cache de livres en mémoire (_book_cache)"
+      - "Extraction robuste des tags (liste/dict/string)"
+    legal_notes: |
+      Pururin a été saisi (seized) en décembre 2024 — les domaines
+      pururin.io et pururin.com pointaient vers ns1.seizedservers.com.
+      Le domaine pururin.to fonctionne mais son statut est incertain.
+    status: stable
+    test_file: "tests/parsers/adult/test_pururin.py"
+
+  # === Parsers Madara FR ===================================================
+  - file: "hentaizone.py"
+    type: parser
+    role: "Parser HentaiZone (thème WordPress Madara)"
+    class: "HentaiZoneParser"
+    site_id: "hentaizone"
+    language: "fr"
+    base_url: "https://hentaizone.com"
+    mirrors: ["hentaizone.com", "hentaizone.fr"]
+    cloudflare_strategy: "playwright"
+    content_type: "hentai et ecchi traduits (catalogue mixte)"
+    api_json: false
+    special_features:
+      - "Détection triple : [Sponsor], [Membre], [À venir]"
+      - "Referer strict pour le CDN d'images (anti-hotlink)"
+      - "Filtrage des régies publicitaires adultes (exoclick, juicyads, trafficjunky)"
+      - "Catalogue mixte hentai + ecchi traduits"
+    status: stable
+    test_file: "tests/parsers/adult/test_hentaizone.py"
+
+  - file: "scan_hentai.py"
+    type: parser
+    role: "Parser Scan-Hentai (thème WordPress Madara)"
+    class: "ScanHentaiParser"
+    site_id: "scan_hentai"
+    language: "fr"
+    base_url: "https://scan-hentai.net"
+    mirrors: ["scan-hentai.net", "scan-hentai.fr"]
+    cloudflare_strategy: "playwright"
+    content_type: "scantrad hentai FR"
+    api_json: false
+    special_features:
+      - "Domaine très instable (3 migrations en 2 ans)"
+      - "Cloudflare Turnstile (plus lent que le challenge standard)"
+      - "Détection [Premium] et [À venir]"
+      - "Health check enrichi (distingue domaine actif / redirigé / suspendu)"
+      - "Réécriture des marqueurs historiques (scan.hentai.menu, x-manga.net)"
+    legal_notes: |
+      Le domaine .fr a été suspendu en septembre 2025 (issue keiyoushi
+      #5227). Le .net est le domaine actuel. Vérifier manuellement
+      avant chaque release.
+    status: stable
+    test_file: "tests/parsers/adult/test_scan_hentai.py"
+
+  - file: "x_manga_net.py"
+    type: parser
+    role: "Parser X-Manga sur le domaine historique .net"
+    class: "XMangaNetParser"
+    site_id: "x_manga_net"
+    language: "fr"
+    base_url: "https://x-manga.net"
+    mirrors: ["x-manga.net", "x-manga.org"]
+    cloudflare_strategy: "playwright"
+    content_type: "scans hentai FR"
+    api_json: false
+    special_features:
+      - "Domaine historique de X-Manga (avant migration vers .org)"
+      - "Mêmes sélecteurs que le .org (thème Madara identique)"
+      - "Détection [Premium] et [À venir]"
+      - "Réécriture des marqueurs (scan.hentai.menu, x-manga.org → .net)"
+      - "Rotation manuelle de miroirs (.net ↔ .org)"
+    status: stable
+    test_file: "tests/parsers/adult/test_x_manga_net.py"
+
+  - file: "x_manga_org.py"
+    type: parser
+    role: "Parser X-Manga sur le domaine principal actuel .org"
+    class: "XMangaOrgParser"
+    site_id: "x_manga_org"
+    language: "fr"
+    base_url: "https://x-manga.org"
+    mirrors: ["x-manga.org", "x-manga.net"]
+    cloudflare_strategy: "playwright"
+    content_type: "scans hentai FR"
+    api_json: false
+    special_features:
+      - "Domaine principal actuel de X-Manga"
+      - "Mêmes sélecteurs que le .net (thème Madara identique)"
+      - "Détection [Premium] et [À venir]"
+      - "Réécriture des marqueurs (scan.hentai.menu, x-manga.net → .org)"
+      - "Rotation manuelle de miroirs (.org ↔ .net)"
+    status: stable
+    test_file: "tests/parsers/adult/test_x_manga_org.py"
+
+  # === Documentation du dossier ============================================
+  - file: "nexus.dl"
+    type: documentation
+    role: "Ce fichier — documentation locale du dossier"
+    loaded_at_runtime: false
+
+# ----------------------------------------------------------------------------
+#  Parsers par catégorie
+# ----------------------------------------------------------------------------
+by_category:
+
+  api_json:
+    description: "Sites avec API JSON interne (parsing rapide, structuré)"
+    parsers:
+      - nhentai
+      - pururin
+    advantages:
+      - "Réponses structurées, pas de parsing HTML fragile"
+      - "URLs d'images fournies directement"
+      - "Métadonnées complètes (tags, artistes, langues)"
+    disadvantages:
+      - "API non documentée — peut changer sans préavis"
+      - "Nécessite souvent un cookie cf_clearance valide"
+      - "Fallback HTML obligatoire pour la robustesse"
+
+  madara_fr:
+    description: "Sites français basés sur le thème WordPress Madara"
+    parsers:
+      - hentaizone
+      - scan_hentai
+      - x_manga_net
+      - x_manga_org
+    advantages:
+      - "Thème WordPress standard → sélecteurs CSS communs"
+      - "Pagination et structure URL uniformes"
+    disadvantages:
+      - "Cloudflare souvent agressif"
+      - "Domaines très instables (migrations fréquentes)"
+      - "Parfois chapitres sponsor/membre à détecter"
+
+  multi_domain:
+    description: "Sites accessibles via plusieurs domaines interchangeables"
+    parsers:
+      - x_manga_net / x_manga_org  # Même catalogue, deux domaines
+    notes: |
+      X-Manga existe en .net et .org avec un contenu identique.
+      Deux parsers séparés permettent de router selon l'URL saisie.
+      Un utilisateur peut utiliser l'un ou l'autre indifféremment.
+
+# ----------------------------------------------------------------------------
+#  Particularités techniques communes
+# ----------------------------------------------------------------------------
+common_patterns:
+
+  - name: "Cloudflare bypass via Playwright"
+    description: "Détection de challenge + bascule Playwright + rotation de miroir"
+    applies_to: [hentaizone, scan_hentai, x_manga_net, x_manga_org, nhentai, pururin]
+    implementation: "Méthode _fetch_html dans chaque parser"
+    markers:
+      - "Just a moment"
+      - "cf-chl-"
+      - "Checking your browser"
+      - "cf_chl_"
+      - "__cf_bm"
+      - "turnstile"
+      - "challenge-platform"
+    backoff: "0.5 * 2^(attempt-1) secondes"
+
+  - name: "Rotation manuelle de miroirs"
+    description: "Bascule .net ↔ .org ou .com ↔ .fr selon le parser"
+    applies_to: [hentaizone, scan_hentai, x_manga_net, x_manga_org, nhentai, pururin]
+    implementation: "rotate_mirror() — cycle circulaire, appelé en dernier recours"
+    notes: |
+      Jamais automatique sur une erreur transitoire. C'est l'appelant
+      (worker) qui décide de la politique de bascule.
+
+  - name: "Écriture atomique des pages"
+    description: "Fichier temporaire .part puis rename atomique"
+    applies_to: [tous]
+    implementation: "_download_page_once dans chaque parser"
+    steps:
+      - "Écrit dans {dest}.part"
+      - "Valide taille, MIME, checksum"
+      - "Rename atomique via Path.replace()"
+      - "Nettoie .part en cas d'échec"
+
+  - name: "Validation d'images"
+    description: "Taille, MIME, checksum avant acceptation"
+    applies_to: [tous]
+    constants:
+      MIN_IMAGE_BYTES: 1024              # 1 KiB (rejette placeholders)
+      MAX_IMAGE_BYTES: 33554432          # 32 MiB (anti-DoS)
+      ALLOWED_MIME_TYPES: ["image/jpeg", "image/png", "image/webp", "image/gif", "image/avif"]
+      ALLOWED_IMAGE_EXTS: [".jpg", ".jpeg", ".png", ".webp", ".gif", ".avif"]
+    tolerance: "application/octet-stream accepté si taille OK (CDN mal configurés)"
+
+  - name: "Détection premium / sponsor / membre"
+    description: "Marqueurs dans les titres de chapitres"
+    applies_to: [hentaizone, scan_hentai, x_manga_net, x_manga_org]
+    markers:
+      sponsor: "\\b(sponsor|sponsorisé|premium|anticipé|early-access|💎)\\b"
+      member: "\\b(membre|members?|subscriber|vip|🔒)\\b"
+      premium: "\\b(premium|vip|payant|locked|🔒|💎|⭐)\\b"
+      future: "\\b(soon|bientôt|à venir|upcoming|TBA)\\b"
+    behavior: "Préfixe le titre : [Sponsor] / [Membre] / [Premium] / [À venir]"
+    priority: "sponsor > membre > premium > future"
+
+  - name: "Filtrage des trackers"
+    description: "Exclusion des URLs de tracking / publicité"
+    applies_to: [tous]
+    tracking_domains:
+      general:
+        - "google-analytics.com"
+        - "googletagmanager.com"
+        - "doubleclick.net"
+        - "facebook.com/tr"
+        - "analytics."
+        - "pixel."
+      adult_specific:
+        - "exoclick.com"
+        - "juicyads.com"
+        - "trafficjunky.net"
+
+  - name: "Gestion des blobs JS"
+    description: "Détection des URLs blob: non téléchargeables"
+    applies_to: [hentaizone, scan_hentai, x_manga_net, x_manga_org]
+    behavior: "Filtre les blobs + warning + suggestion d'utiliser Playwright"
+    pattern: "^blob:"
+
+  - name: "Cache de galeries / livres"
+    description: "Évite les requêtes API redondantes"
+    applies_to: [nhentai, pururin]
+    implementation: "_gallery_cache / _book_cache — dict en mémoire"
+    cleared_at: "close()"
+    max_entries: "non limité (les sites adultes ont rarement >100 requêtes par session)"
+
+# ----------------------------------------------------------------------------
+#  Conventions
+# ----------------------------------------------------------------------------
+conventions:
+  structure:
+    - "Un parser = un fichier = une classe = un site_id"
+    - "Héritage direct de BaseParser (pas de mixin partagé)"
+    - "Toutes les méthodes async"
+    - "Contexte async (__aenter__/__aexit__) supporté"
+  class_vars:
+    - "site_id: str (snake_case, unique)"
+    - "language: str (fr, en, ja...)"
+    - "adult: bool = True (obligatoire dans ce dossier)"
+    - "base_url: str (domaine canonique)"
+    - "mirror_domains: tuple[str, ...] (fallbacks)"
+    - "selectors: dict[str, str] (CSS par clé sémantique)"
+    - "cloudflare_strategy: str (playwright | flaresolverr)"
+    - "content_rating: ContentRating (PORNOGRAPHIC par défaut)"
+  methods:
+    - "search(query, page) -> list[SearchResult]"
+    - "get_manga(url_or_id) -> Manga"
+    - "get_chapters(manga) -> list[Chapter]"
+    - "get_pages(chapter) -> list[Page]"
+    - "download_page(page, dest, overwrite, max_retries) -> Path"
+    - "health_check() -> bool"
+    - "normalize_url(url) -> str"
+    - "describe() -> dict[str, Any]"
+  errors:
+    - "ParserError : query vide, page invalide, ID non extractible"
+    - "MangaNotFoundError : 404 sur get_manga"
+    - "SiteUnreachableError : tous les miroirs et toutes les stratégies échouent"
+    - "ChapterDownloadError : aucune page, validation taille/MIME échouée"
+  logs:
+    - "logger.bind(site=site_id) dans chaque méthode"
+    - "Niveau DEBUG pour les étapes, INFO pour les résultats, WARNING pour les anomalies"
+    - "Trace pour les URLs ignorées (tracking, blob)"
+
+# ----------------------------------------------------------------------------
+#  Invariants de sécurité
+# ----------------------------------------------------------------------------
+security_invariants:
+
+  - id: "adult-opt-in"
+    description: "Les parsers adultes ne sont chargés que si registry.include_adult=true"
+    enforcement: "SiteRegistry filtre les parsers avec adult=True"
+    severity: error
+
+  - id: "no-paywall-bypass"
+    description: "Aucun parser ne débloque les chapitres sponsor/membre/premium"
+    enforcement: |
+      Les chapitres restreints sont MARQUÉS ([Sponsor], [Membre], [Premium])
+      mais jamais débloqués. Le parser retourne les pages accessibles
+      publiquement, ou lève si aucune page n'est disponible.
+    severity: error
+
+  - id: "no-content-storage"
+    description: "Aucun parser ne stocke de contenu protégé"
+    enforcement: |
+      Le parser récupère des URLs et des métadonnées uniquement.
+      Le téléchargement effectif est fait par l'utilisateur via le
+      DownloadManager, sous sa responsabilité.
+    severity: error
+
+  - id: "no-credentials-in-code"
+    description: "Aucun credential, cookie, ou token en dur dans le code"
+    enforcement: "pre-commit run detect-secrets --files src/nexusdl/parsers/adult/*.py"
+    severity: error
+
+  - id: "strict-referer-cdn"
+    description: "Les CDN qui exigent un Referer strict le reçoivent correctement"
+    enforcement: "Tests unitaires vérifient l'en-tête Referer sur download_page"
+    applies_to: [hentaizone]
+    severity: warning
+
+  - id: "atomic-write"
+    description: "Toutes les écritures de fichiers sont atomiques (.part + rename)"
+    enforcement: "Tests vérifient l'absence de .part après succès et après échec"
+    severity: error
+
+  - id: "validate-image-bounds"
+    description: "Chaque image téléchargée est validée (taille min/max, MIME)"
+    enforcement: "MIN_IMAGE_BYTES, MAX_IMAGE_BYTES, ALLOWED_MIME_TYPES"
+    severity: error
+
+# ----------------------------------------------------------------------------
+#  Statut juridique et éthique
+# ----------------------------------------------------------------------------
+legal_and_ethics:
+
+  disclaimer: |
+    NexusDL est un outil technique open-source, comparable à Tachiyomi/
+    Mihon, Suwayomi, Hakuneko. Il supporte le contenu adulte sans jugement
+    moral, comme il supporte le contenu tout public.
+
+    L'utilisateur est un adulte responsable qui :
+      - respecte les lois de son pays,
+      - respecte les conditions d'utilisation des sites,
+      - assume la responsabilité légale de ses téléchargements.
+
+    NexusDL ne fait PAS :
+      - de promotion du contenu adulte,
+      - de contournement de paywall,
+      - de stockage de contenu protégé,
+      - de revente ou redistribution.
+
+  site_specific_notes:
+    nhentai: |
+      Poursuites judiciaires en cours (PCR Distributing, US, août 2024).
+      Bloqué en Ukraine (décembre 2024). Parser fourni à titre technique.
+    pururin: |
+      Site saisi (seized) en décembre 2024. Le domaine actuel pururin.to
+      fonctionne mais son statut légal est incertain.
+    scan_hentai: |
+      Le domaine .fr a été suspendu en septembre 2025. Le .net est le
+      domaine actuel. Vérifier avant chaque release.
+    x_manga: |
+      Site stable depuis plusieurs années. Domaine principal .org.
+      Domaine historique .net toujours actif en miroir.
+    hentaizone: |
+      Site stable. Domaine principal .com. Catalogue mixte hentai + ecchi.
+
+# ----------------------------------------------------------------------------
+#  Points d'attention
+# ----------------------------------------------------------------------------
+notes:
+  - "Ce dossier est SÉPARÉ des autres parsers (fr/, en/, kr/) pour plusieurs raisons :"
+  - "  (1) opt-in explicite via registry.include_adult"
+  - "  (2) statut juridique particulier — l'utilisateur doit être conscient"
+  - "  (3) logique spécifique (détection premium/sponsor, CDN strict)"
+  - "Chaque parser est AUTONOME — aucune dépendance à un mixin partagé."
+  - "Les parsers Madara (hentaizone, scan_hentai, x_manga_*) partagent la même"
+  - "logique métier mais sont volontairement dupliqués pour rester indépendants."
+  - "Les parsers API JSON (nhentai, pururin) ont un fallback HTML obligatoire."
+  - "Tous les parsers ont un health_check redirection-aware."
+  - "Le statut des sites change souvent (saisies, suspensions, migrations de domaine)."
+  - "Vérifier régulièrement les trackers communautaires (keiyoushi, Mihon)."
+  - "Aucun parser ne contourne un paywall — les chapitres restreints sont marqués."
+  - "Les cookies cf_clearance sont stockés par CookieManager (chiffrés AES-GCM)."
+  - "Ne jamais committer de cookies ou credentials dans le code."
+  - "Tous les parsers respectent le contrat BaseParser (async-first, typing strict)."
+
+# ----------------------------------------------------------------------------
+#  Outils associés
+# ----------------------------------------------------------------------------
+tooling:
+  validate:
+    - "python scripts/validate_sites.py run parsers"
+    - "python -m nexusdl plugins validate <parser_name>"
+  test:
+    - "pytest tests/parsers/adult/ -v"
+    - "pytest tests/parsers/adult/test_nhentai.py -v"
+  fetch_cookies:
+    - "python scripts/fetch_cookies.py interactive nhentai"
+    - "python scripts/fetch_cookies.py interactive hentaizone"
+    - "python scripts/fetch_cookies.py import nhentai --browser firefox"
+  inspect:
+    - "python -m nexusdl sites list --include-adult"
+    - "python -m nexusdl sites info nhentai"
+
+# ----------------------------------------------------------------------------
+#  Activation / désactivation
+# ----------------------------------------------------------------------------
+activation:
+
+  config_yaml: |
+    # config/config.yaml
+    registry:
+      include_adult: true       # Active le chargement des parsers adultes
+      adult_confirmation_shown: true  # Consentement explicite (affiché une fois)
+
+  cli_flag: |
+    # CLI directe
+    nexusdl search "query" --include-adult
+    nexusdl download --site nhentai --include-adult <url>
+
+  disabled_by_default: true
+  opt_in_required: true
+  confirmation_required_on_first_use: true
+
+# ----------------------------------------------------------------------------
+#  Références
+# ----------------------------------------------------------------------------
+see_also:
+  - "src/nexusdl/parsers/nexus.dl          # Documentation du dossier parent"
+  - "src/nexusdl/parsers/base.py           # ABC commune à tous les parsers"
+  - "src/nexusdl/parsers/fr/nexus.dl       # Parsers FR tout public"
+  - "src/nexusdl/parsers/en/nexus.dl       # Parsers EN tout public"
+  - "src/nexusdl/parsers/kr/nexus.dl       # Parsers KR (manhwa)"
+  - "src/nexusdl/core/registry/sites.yaml  # Enregistrement des sites"
+  - "config/config.example.yaml            # Section registry.include_adult"
+  - "docs/source/development/adding_parsers.md"
+  - "docs/source/usage/configuration.md"
