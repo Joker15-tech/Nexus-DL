@@ -1,0 +1,479 @@
+# ============================================================================
+#  nexus.dl — Dossier "src/nexusdl/parsers/mixins/"
+#  Documentation locale du dossier. Non chargé à l'exécution.
+#  Format : YAML parsable (utilisé par docs/source/conf.py et la CI).
+# ============================================================================
+
+meta:
+  path: "src/nexusdl/parsers/mixins/"
+  parent: "src/nexusdl/parsers/"
+  role: "Mixins réutilisables pour les parsers de sites à thème standardisé"
+  owner: "@nexusdl/parsers-team"
+  since: "0.1.0"
+  updated: "2025-01-15"
+  status: stable
+  tracked_in_git: true
+
+# ----------------------------------------------------------------------------
+#  Rôle du dossier
+# ----------------------------------------------------------------------------
+purpose: |
+  Ce dossier contient les **mixins** qui factorisent la logique commune
+  de parsing pour les familles de sites partageant un thème ou une
+  structure HTML standardisée.
+
+  Un **mixin** est une classe Python destinée à être composée par
+  héritage multiple avec ``BaseParser`` :
+
+      class FooParser(MadaraMixin, BaseParser):
+          site_id = "foo"
+          base_url = "https://foo.example"
+
+  Le mixin fournit les 4 méthodes abstraites de ``BaseParser``
+  (``search``, ``get_manga``, ``get_chapters``, ``get_pages``) avec des
+  implémentations par défaut **robustes**, que les sous-classes peuvent
+  surcharger partiellement (sélecteurs CSS, chemins URL) ou complètement.
+
+  **Ordre critique** : le mixin doit être listé **en premier** dans
+  l'héritage. ``class Foo(MadaraMixin, BaseParser)`` et **non**
+  ``class Foo(BaseParser, MadaraMixin)``. Sinon, la MRO donne priorité
+  aux méthodes abstraites de ``BaseParser`` → ``NotImplementedError``.
+
+  **Avantage des mixins** : un site Madara peut être supporté en
+  ~30 lignes (identité + sélecteurs spécifiques). Sans mixin, chaque
+  parser ferait ~400 lignes de duplication.
+
+  **Inconvénient** : si le thème source change significativement sur un
+  site, la surcharge du mixin devient lourde. À ce moment, il vaut
+  mieux écrire un parser autonome (comme les parsers adultes).
+
+# ----------------------------------------------------------------------------
+#  Contenu du dossier
+# ----------------------------------------------------------------------------
+contents:
+
+  # === Module marqueur =====================================================
+  - file: "__init__.py"
+    type: module
+    role: "Marqueur de package + réexport des mixins publics"
+    exports:
+      - "ApiBasedMixin"
+      - "CloudflareMixin"
+      - "FoolSlideMixin"
+      - "JsRenderedMixin"
+      - "MadaraMixin"
+      - "MangaThemesiaMixin"
+    notes: |
+      Expose les 6 mixins via des imports directs (pas d'import paresseux
+      ici — chaque mixin n'importe que des modules stdlib et
+      ``nexusdl.parsers.base``, coût d'import négligeable).
+
+  # === Mixins HTML classiques ==============================================
+  - file: "wordpress_madara.py"
+    type: mixin
+    role: "Sites WordPress Madara (MangaBooth)"
+    class: "MadaraMixin"
+    sites_count: "~80% des sites de scantrad"
+    theming: "WordPress + thème Madara"
+    html_structure:
+      search: "GET /?s=<query>&post_type=wp-manga&page=N"
+      manga: "GET /manga/<slug>/"
+      chapter: "GET /manga/<slug>/<chapter-slug>/"
+      images: "div.reading-content img"
+      lazy_loading: "data-src, data-lazy-src, data-original"
+    special_features:
+      - "Détection premium / futur (regex extensibles)"
+      - "Filtrage trackers et blobs"
+      - "Extraction statut + année depuis div.summary-content"
+      - "Lazy init (pas d'__init__ obligatoire)"
+      - "Sélecteurs fusionnables via {**default_selectors, ...}"
+    used_by_examples:
+      - "sushiscan (fr)"
+      - "mangas_origines (fr)"
+      - "phenix_scans (fr)"
+      - "anime_scans (fr)"
+      - "raijin_scans (fr)"
+    test_file: "tests/parsers/mixins/test_wordpress_madara.py"
+
+  - file: "mangathemesia.py"
+    type: mixin
+    role: "Sites MangaThemesia (Asura, Flame, etc.)"
+    class: "MangaThemesiaMixin"
+    sites_count: "~15% des sites de scantrad"
+    theming: "WordPress + thème MangaThemesia"
+    html_structure:
+      search: "GET /?s=<query>"
+      series: "GET /series/<slug>/"
+      chapter: "GET /series/<slug>/<chapter-slug>/"
+      images: "div#readerarea img"
+      ajax_pages: "souvent /wp-admin/admin-ajax.php avec action=..."
+    special_features:
+      - "Support AJAX pour la liste des pages (endpoint configurable)"
+      - "Détection des patterns d'URL pour les chapitres"
+      - "Extraction du titre alternatif (JP/romanized)"
+    used_by_examples:
+      - "asurascans (en)"
+      - "flamescans (en)"
+      - "luminousscans (en)"
+      - "void_scans (en)"
+    test_file: "tests/parsers/mixins/test_mangathemesia.py"
+
+  - file: "foolslide.py"
+    type: mixin
+    role: "Sites FoolSlide (Scan-Manga, etc.)"
+    class: "FoolSlideMixin"
+    sites_count: "~5% des sites de scantrad"
+    theming: "FoolSlide (framework de lecteur)"
+    html_structure:
+      directory: "GET /directory/"
+      series: "GET /read/<series_slug>/"
+      chapter: "GET /read/<series_slug>/<lang>/<chapter_slug>/"
+      pages: "GET /read/<series_slug>/<lang>/<chapter_slug>/page/<N>"
+    special_features:
+      - "Pagination des pages (une page HTML par image)"
+      - "Détection de la langue dans l'URL"
+      - "Gestion des offsets pour les pages longues"
+    used_by_examples:
+      - "scan_manga (fr)"
+      - "blossom_scans (fr)"
+    test_file: "tests/parsers/mixins/test_foolslide.py"
+
+  # === Mixins API ===========================================================
+  - file: "api_based.py"
+    type: mixin
+    role: "Sites avec API REST JSON (MangaDex, Comick, etc.)"
+    class: "ApiBasedMixin"
+    sites_count: "~3 sites majeurs"
+    theming: "API REST (pas HTML)"
+    html_structure:
+      search: "GET /api/search?q=<query>"
+      manga: "GET /api/manga/<id>"
+      chapters: "GET /api/manga/<id>/chapters"
+      pages: "GET /api/chapter/<id>/pages"
+    special_features:
+      - "Mapping configurable des endpoints via placeholders"
+      - "Parsing JSON avec schémas souples (clés variables)"
+      - "Support de l'authentification (API key via env var)"
+      - "Rate limiting respecté via les headers de l'API"
+    used_by_examples:
+      - "mangadex (en)"
+      - "comick (en)"
+    test_file: "tests/parsers/mixins/test_api_based.py"
+
+  # === Mixins JS/Cloudflare ================================================
+  - file: "js_rendered.py"
+    type: mixin
+    role: "Sites nécessitant l'exécution JS pour le rendu"
+    class: "JsRenderedMixin"
+    sites_count: "~10 sites modernes"
+    theming: "SPA (Vue.js, React, Svelte)"
+    special_features:
+      - "Utilisation obligatoire du PlaywrightPool"
+      - "Attente des sélecteurs critiques (wait_selector)"
+      - "Interception des requêtes réseau pour les images"
+      - "Gestion des timeouts longs pour les SPA"
+    interactions_with:
+      - "cloudflare"
+    notes: |
+      Ce mixin est conçu pour être **combiné** avec ``CloudflareMixin``
+      quand le site est à la fois JS-rendered ET protégé par CF.
+      Ordre : ``class Foo(CloudflareMixin, JsRenderedMixin, BaseParser)``.
+    test_file: "tests/parsers/mixins/test_js_rendered.py"
+
+  - file: "cloudflare.py"
+    type: mixin
+    role: "Bypass Cloudflare (challenge JS + Turnstile)"
+    class: "CloudflareMixin"
+    sites_count: "~40% des sites de scantrad"
+    theming: "Transverse (tous types de sites)"
+    special_features:
+      - "Détection des marqueurs CF (Just a moment, cf-chl-, turnstile)"
+      - "Bascule automatique HTTP → Playwright"
+      - "Stratégie FlareSolverr en fallback"
+      - "Gestion du cookie cf_clearance via CookieManager"
+      - "Retry avec backoff exponentiel"
+    combinable_with:
+      - "wordpress_madara"
+      - "mangathemesia"
+      - "foolslide"
+      - "js_rendered"
+    notes: |
+      Ce mixin est **transverse** — il peut être composé avec n'importe
+      quel autre mixin qui fait du fetch HTTP. Il fournit ``_fetch_html``
+      avec la logique Cloudflare, que les autres mixins utilisent.
+    test_file: "tests/parsers/mixins/test_cloudflare.py"
+
+  # === Documentation du dossier ============================================
+  - file: "nexus.dl"
+    type: documentation
+    role: "Ce fichier — documentation locale du dossier"
+    loaded_at_runtime: false
+
+# ----------------------------------------------------------------------------
+#  Matrice de composition
+# ----------------------------------------------------------------------------
+composition_matrix:
+  # Comment composer les mixins pour différents cas d'usage.
+
+  simple_madara:
+    description: "Site Madara basique, pas de Cloudflare"
+    class_signature: "class Foo(MadaraMixin, BaseParser)"
+    example_sites: ["sushiscan (rare)", "quelques sites FR mineurs"]
+    notes: "Le cas le plus simple — pas de Playwright requis."
+
+  madara_with_cloudflare:
+    description: "Site Madara protégé par Cloudflare"
+    class_signature: "class Foo(CloudflareMixin, MadaraMixin, BaseParser)"
+    example_sites: ["hentaizone", "x-manga", "scan_hentai"]
+    notes: |
+      CloudflareMixin **en premier** pour que son ``_fetch_html`` prime
+      sur celui de MadaraMixin. Ordre critique.
+
+  mangathemesia_with_ajax:
+    description: "Site MangaThemesia utilisant AJAX pour les pages"
+    class_signature: "class Foo(MangaThemesiaMixin, BaseParser)"
+    example_sites: ["asurascans", "flamescans"]
+    notes: |
+      Le mixin gère nativement le pattern AJAX via
+      ``uses_ajax_pages = True`` et ``ajax_pages_endpoint``.
+
+  js_rendered_with_cloudflare:
+    description: "SPA moderne protégée par Cloudflare"
+    class_signature: "class Foo(CloudflareMixin, JsRenderedMixin, BaseParser)"
+    example_sites: ["certains sites récents"]
+    notes: |
+      Ordre : Cloudflare en premier (fetch_html avec bypass CF),
+      puis JsRendered (attente des sélecteurs SPA).
+
+  api_only:
+    description: "Site avec API JSON, pas de HTML"
+    class_signature: "class Foo(ApiBasedMixin, BaseParser)"
+    example_sites: ["mangadex", "comick"]
+    notes: |
+      Aucun besoin de CloudflareMixin si l'API n'est pas protégée.
+      MangaDex a sa propre gestion du rate limit (headers).
+
+  custom_with_mixin_helpers:
+    description: "Parser autonome qui réutilise quelques helpers d'un mixin"
+    class_signature: "class Foo(BaseParser)  # + import de helpers"
+    example_sites: ["cas exotiques"]
+    notes: |
+      Un parser autonome peut importer les helpers de ``MadaraMixin``
+      (``default_selectors``, ``_clean_text``, etc.) sans hériter du
+      mixin complet. Utile pour les sites qui ne rentrent pas dans les
+      cases mais partagent 80% de la logique Madara.
+
+# ----------------------------------------------------------------------------
+#  Contrat des mixins
+# ----------------------------------------------------------------------------
+mixin_contract:
+  # Ce qu'un mixin DOIT fournir.
+  provides:
+    - "search(query, page) -> list[SearchResult]"
+    - "get_manga(url_or_id) -> Manga"
+    - "get_chapters(manga) -> list[Chapter]"
+    - "get_pages(chapter) -> list[Page]"
+    - "_fetch_html(url, params) -> str  (si le mixin gère le fetch)"
+    - "_normalize_url(url) -> str  (helpers)"
+    - "_is_404_page(html) -> bool  (helpers)"
+    - "_parse_search_html(html) -> list[SearchResult]"
+    - "_parse_manga_html(html, url) -> Manga"
+    - "_parse_chapters_html(html) -> list[Chapter]"
+    - "_parse_pages_html(html) -> list[Page]"
+
+  # Ce qu'un mixin attend de la sous-classe.
+  expects:
+    - "self.site_id : ClassVar[str]  (obligatoire)"
+    - "self.language : ClassVar[str]  (obligatoire)"
+    - "self.adult : ClassVar[bool]  (défaut False)"
+    - "self.base_url : ClassVar[str]  (obligatoire)"
+    - "self._session : HttpSession  (via BaseParser.__init__)"
+    - "self._playwright_pool : PlaywrightPool | None  (via BaseParser.__init__)"
+
+  # Ce qu'un mixin NE FAIT PAS.
+  does_not:
+    - "Rotation de miroirs (chaque parser gère la sienne)"
+    - "Validation d'images (déléguée à BaseParser.download_page)"
+    - "Gestion des cookies (déléguée à HttpSession + CookieManager)"
+    - "Retry réseau bas niveau (délégué à HttpSession)"
+    - "Cache persistant (délégué au DownloadManager)"
+
+  # Règles d'or.
+  rules:
+    - "Le mixin doit être listé EN PREMIER dans l'héritage"
+    - "Les ClassVar de la sous-classe écrasent celles du mixin"
+    - "Les méthodes publiques du mixin sont overridables individuellement"
+    - "Les helpers `_xxx` ne sont pas destinés à être appelés par l'utilisateur"
+
+# ----------------------------------------------------------------------------
+#  Conventions
+# ----------------------------------------------------------------------------
+conventions:
+  structure:
+    - "Un mixin = un fichier = une classe publique"
+    - "Aucun __init__ imposé (lazy init via _ensure_initialized)"
+    - "Les ClassVar de configuration sont documentées avec leurs défauts"
+    - "Les méthodes publiques implémentent BaseParser, les helpers sont préfixés _"
+  class_vars:
+    - "default_selectors : dict[str, str] (Madara, MangaThemesia)"
+    - "search_path : str (template avec {query})"
+    - "manga_path_template : str (avec {slug})"
+    - "chapter_path_template : str (avec {slug}, {chapter_slug})"
+    - "cloudflare_strategy : 'playwright' | 'flaresolverr' | 'none'"
+    - "premium_patterns, future_patterns : list[str] (regex extensibles)"
+  methods:
+    - "Méthodes publiques : signature identique à BaseParser"
+    - "Méthodes internes : préfixées _ et overridables"
+    - "Lazy init : _ensure_initialized() en tête de chaque méthode publique"
+  errors:
+    - "Les exceptions utilisées sont celles du core (ParserError, etc.)"
+    - "Les erreurs de parsing internes sont loggées en DEBUG et ignorées"
+    - "Les erreurs critiques (404, site down) sont levées"
+  logging:
+    - "logger.bind(site=self.site_id) dans chaque méthode"
+    - "DEBUG pour les étapes, INFO pour les résultats"
+    - "WARNING pour les anomalies (blobs, tracking, CF)"
+
+# ----------------------------------------------------------------------------
+#  Invariants (vérifiés par la CI)
+# ----------------------------------------------------------------------------
+invariants:
+
+  - id: "mixins-importable"
+    description: "Chaque mixin est importable sans erreur"
+    check: |
+      python -c "
+      from nexusdl.parsers.mixins import (
+          ApiBasedMixin, CloudflareMixin, FoolSlideMixin,
+          JsRenderedMixin, MadaraMixin, MangaThemesiaMixin,
+      )
+      "
+    severity: error
+
+  - id: "mixins-no-baseparser-inherit"
+    description: "Les mixins n'héritent PAS de BaseParser (composition seule)"
+    check: |
+      python -c "
+      from nexusdl.parsers.base import BaseParser
+      from nexusdl.parsers.mixins import MadaraMixin, MangaThemesiaMixin, FoolSlideMixin
+      for m in (MadaraMixin, MangaThemesiaMixin, FoolSlideMixin):
+          assert not issubclass(m, BaseParser), f'{m.__name__} ne doit pas hériter de BaseParser'
+      "
+    severity: error
+
+  - id: "mixins-composable"
+    description: "Chaque mixin peut être composé avec BaseParser dans le bon ordre"
+    check: |
+      python -c "
+      from nexusdl.parsers.base import BaseParser
+      from nexusdl.parsers.mixins import MadaraMixin, MangaThemesiaMixin
+
+      class TestMadara(MadaraMixin, BaseParser):
+          site_id = 'test'
+          language = 'en'
+          base_url = 'https://test.example'
+      assert hasattr(TestMadara, 'search')
+      "
+    severity: error
+
+  - id: "madara-default-selectors-complete"
+    description: "MadaraMixin.default_selectors contient toutes les clés requises"
+    check: |
+      python -c "
+      from nexusdl.parsers.mixins import MadaraMixin
+      required = {
+          'search_item', 'search_title', 'search_cover', 'search_link',
+          'manga_title', 'manga_description', 'manga_cover',
+          'chapter_item', 'page_image',
+      }
+      missing = required - set(MadaraMixin.default_selectors.keys())
+      assert not missing, f'Sélecteurs manquants : {missing}'
+      "
+    severity: error
+
+  - id: "mixin-no-side-effects"
+    description: "L'import des mixins ne provoque aucune I/O disque"
+    check: "python -c 'import nexusdl.parsers.mixins'"
+    severity: error
+
+  - id: "no-user-parsers"
+    description: "Aucun fichier parser utilisateur dans ce dossier"
+    check: "find src/nexusdl/parsers/mixins -name '*.py' ! -name '_*' ! -name '__init__.py' ! -name 'wordpress_madara.py' ! -name 'mangathemesia.py' ! -name 'foolslide.py' ! -name 'api_based.py' ! -name 'js_rendered.py' ! -name 'cloudflare.py' | grep -q . && exit 1 || exit 0"
+    severity: error
+
+  - id: "no-secrets"
+    description: "Aucun secret hardcodé dans les mixins"
+    check: "pre-commit run detect-secrets --files src/nexusdl/parsers/mixins/*.py"
+    severity: error
+
+# ----------------------------------------------------------------------------
+#  Points d'attention
+# ----------------------------------------------------------------------------
+notes:
+  - "L'ORDRE d'héritage est CRITIQUE : `class Foo(MadaraMixin, BaseParser)`."
+  - "Inverser l'ordre provoque des NotImplementedError au premier appel."
+  - "Les mixins ne sont PAS instanciables seuls — ils sont toujours composés."
+  - "Les mixins ne définissent pas `__init__` — utiliser la lazy init."
+  - "CloudflareMixin est TRANSVERSE — il fournit `_fetch_html` et se compose"
+  - "avec les autres mixins (CloudflareMixin EN PREMIER)."
+  - "Un parser peut hériter de PLUSIEURS mixins (composition) mais au plus"
+  - "un seul mixin de rendu (Madara OR MangaThemesia OR FoolSlide OR API)."
+  - "Certains parsers autonomes (adult/, custom/) n'utilisent PAS les mixins —"
+  - "c'est un choix délibéré pour l'indépendance, au prix de la duplication."
+  - "Un futur refactor pourrait migrer les parsers autonomes vers les mixins,"
+  - "mais ce n'est pas obligatoire — les deux styles coexistent."
+  - "Les sélecteurs Madara couvrent 95% des sites — les 5% restants nécessitent"
+  - "une surcharge locale de `selectors`."
+  - "Les patterns `premium_patterns` sont EXTENSIBLES : les sous-classes peuvent"
+  - "faire `premium_patterns = [*defaults, r'\\bsponsor\\b']`."
+  - "Aucun mixin ne gère la rotation de miroirs — chaque parser décide."
+  - "Aucun mixin ne gère la validation d'images — délégué à BaseParser."
+
+# ----------------------------------------------------------------------------
+#  Outils associés
+# ----------------------------------------------------------------------------
+tooling:
+  validate:
+    - "python scripts/validate_sites.py run parsers"
+    - "python -m nexusdl sites validate <parser_name>"
+  test:
+    - "pytest tests/parsers/mixins/ -v"
+    - "pytest tests/parsers/mixins/test_wordpress_madara.py -v"
+  inspect:
+    - "python -c 'from nexusdl.parsers.mixins import MadaraMixin; print(MadaraMixin.default_selectors)'"
+    - "python -m nexusdl sites info <parser_name>  # affiche la config effective"
+  scaffold:
+    - "python scripts/generate_parser.py new --template madara --site-id my_site"
+    - "python scripts/generate_parser.py new --template mangathemesia --site-id my_site"
+
+# ----------------------------------------------------------------------------
+#  Statistiques des sites supportés
+# ----------------------------------------------------------------------------
+coverage_stats:
+  # Estimation de la répartition des sites par mixin, sur l'ensemble
+  # des parsers officiels de NexusDL.
+  total_sites: "~60"
+  by_mixin:
+    wordpress_madara: "~48 sites (80%)"
+    mangathemesia: "~9 sites (15%)"
+    foolslide: "~3 sites (5%)"
+    api_based: "~3 sites (5%)"
+    js_rendered: "~5 sites (8%)"
+    cloudflare: "~25 sites (40%)"  # transverse, peut se composer
+  note: |
+    Les pourcentages peuvent se chevaucher (un site peut être à la fois
+    Madara + Cloudflare). Le mixin Cloudflare est transverse.
+
+# ----------------------------------------------------------------------------
+#  Références
+# ----------------------------------------------------------------------------
+see_also:
+  - "src/nexusdl/parsers/nexus.dl              # Documentation du dossier parent"
+  - "src/nexusdl/parsers/base.py               # ABC commune à tous les parsers"
+  - "src/nexusdl/parsers/mixins/wordpress_madara.py  # Implémentation détaillée"
+  - "src/nexusdl/parsers/fr/                    # Parsers FR utilisant les mixins"
+  - "src/nexusdl/parsers/en/                    # Parsers EN utilisant les mixins"
+  - "src/nexusdl/parsers/adult/                 # Parsers adultes (autonomes)"
+  - "src/nexusdl/parsers/custom/                # Parsers utilisateur (autonomes)"
+  - "docs/source/development/adding_parsers.md  # Guide complet"
+  - "docs/source/development/architecture.md    # Vue d'ensemble de l'architecture"
