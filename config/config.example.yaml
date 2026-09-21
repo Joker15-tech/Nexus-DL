@@ -1,0 +1,494 @@
+# ============================================================================
+#  NexusDL — Configuration principale
+#  Copier ce fichier en config/config.yaml et adapter.
+#  Toutes les valeurs peuvent être surchargées par variables d'environnement
+#  préfixées NEXUSDL_ (ex: NEXUSDL_DOWNLOAD__MAX_CONCURRENT_TASKS=5).
+# ============================================================================
+
+# ----------------------------------------------------------------------------
+#  Métadonnées / versionnage du schéma
+# ----------------------------------------------------------------------------
+config_version: 1
+profile: default                 # default | minimal | power-user | server | headless
+
+# ----------------------------------------------------------------------------
+#  Application
+# ----------------------------------------------------------------------------
+app:
+  name: NexusDL
+  instance_id: null              # UUID auto-généré au premier lancement si null
+  locale: fr_FR                  # BCP-47 — utilisée par i18n et formats
+  language: fr                   # Langue UI : fr | en | es | de
+  timezone: Europe/Paris         # TZ IANA
+  check_updates: true
+  update_channel: stable         # stable | beta | nightly
+  telemetry: false               # Jamais activé par défaut — RGPD
+  first_run_completed: false
+
+# ----------------------------------------------------------------------------
+#  Chemins (XDG par défaut via platformdirs)
+#  Laisser null pour utiliser les chemins par défaut de l'OS.
+# ----------------------------------------------------------------------------
+paths:
+  base_dir: null                 # ex: ~/.local/share/nexusdl (Linux)
+  downloads_dir: null            # ex: ~/Manga/NexusDL
+  library_dir: null              # ex: ~/.local/share/nexusdl/library
+  cache_dir: null                # ex: ~/.cache/nexusdl
+  config_dir: null               # ex: ~/.config/nexusdl
+  logs_dir: null                 # ex: ~/.local/state/nexusdl/logs
+  temp_dir: null                 # null = tempfile.gettempdir()
+  cookies_file: null             # null = {config_dir}/cookies.enc
+  database_file: null            # null = {library_dir}/library.db
+  plugins_dir: null              # null = {config_dir}/plugins
+  max_cache_size_mb: 2048        # Purge LRU au-delà
+  cleanup_temp_on_start: true
+  cleanup_temp_on_exit: true
+
+# ----------------------------------------------------------------------------
+#  Logging (Loguru)
+# ----------------------------------------------------------------------------
+logging:
+  level: INFO                    # TRACE | DEBUG | INFO | WARNING | ERROR | CRITICAL
+  format: text                   # text | json
+  colorize: auto                 # auto | true | false
+  backtrace: true
+  diagnose: false                # true uniquement en dev (fuite de secrets)
+  enqueue: true                  # thread-safe
+  rotation: "20 MB"
+  retention: "14 days"
+  compression: zip               # null | gz | bz2 | xz | zip
+  separate_error_log: true
+  error_log_path: null           # null = {logs_dir}/errors.log
+  per_module_levels:             # Ajustements fins par module
+    nexusdl.core.session: DEBUG
+    nexusdl.parsers: INFO
+    nexusdl.interfaces.web: INFO
+    httpx: WARNING
+    asyncio: WARNING
+  redact_secrets: true           # Masque cookies, tokens, proxies dans les logs
+  sentry_dsn: null               # Optionnel — laisser null pour désactiver
+
+# ----------------------------------------------------------------------------
+#  Réseau / HTTP
+# ----------------------------------------------------------------------------
+network:
+  timeout_connect: 10.0          # secondes
+  timeout_read: 30.0
+  timeout_write: 30.0
+  timeout_pool: 5.0
+  timeout_total: 120.0
+  max_connections: 100
+  max_keepalive_connections: 20
+  keepalive_expiry: 30.0
+  http2: true
+  follow_redirects: true
+  max_redirects: 10
+  verify_ssl: true
+  retries:
+    max_attempts: 4
+    backoff_initial: 0.5         # secondes
+    backoff_max: 30.0
+    backoff_multiplier: 2.0
+    jitter: true
+    retry_statuses: [408, 425, 429, 500, 502, 503, 504, 522, 524]
+  user_agent:
+    mode: rotate                 # fixed | rotate | custom
+    custom: null                 # ex: "Mozilla/5.0 (X11; Linux x86_64) ..."
+    rotate_every_requests: 50
+    pool_file: null              # null = data/user_agents.txt
+  headers:
+    Accept-Language: "fr-FR,fr;q=0.9,en;q=0.8"
+    DNT: "1"
+  dns:
+    cache_ttl_seconds: 300
+    overrides: {}                # ex: { "mangadex.org": "1.2.3.4" }
+
+# ----------------------------------------------------------------------------
+#  Proxy
+# ----------------------------------------------------------------------------
+proxy:
+  enabled: false
+  # Format : scheme://[user:pass@]host:port
+  default: null                  # ex: "http://127.0.0.1:8080"
+  per_site: {}                   # ex: { "nhentai.net": "socks5://127.0.0.1:9050" }
+  rotate_on_error: false
+  pool: []                       # Liste de proxies pour rotation
+  health_check:
+    enabled: false
+    url: "https://httpbin.org/ip"
+    interval_seconds: 300
+    timeout: 5.0
+
+# ----------------------------------------------------------------------------
+#  Session / anti-bot
+# ----------------------------------------------------------------------------
+session:
+  cookie_store: encrypted        # memory | file | encrypted
+  cookie_encryption: aes-gcm     # aes-gcm | fernet (nécessite NEXUSDL_SECRET_KEY)
+  cookie_refresh_hours: 24
+  persist_cookies: true
+  # --- Cloudflare ---
+  cloudflare:
+    strategy: auto               # auto | http | playwright | flaresolverr | manual
+    detection_markers:
+      - "cf-chl-"
+      - "cf_chl_"
+      - "__cf_bm"
+      - "Just a moment..."
+      - "Checking your browser"
+    auto_solve: true
+    solve_timeout: 45.0
+    prefer: playwright           # playwright | flaresolverr
+  # --- Playwright ---
+  playwright:
+    enabled: true
+    browser: chromium            # chromium | firefox | webkit
+    headless: true
+    max_contexts: 4
+    context_ttl_seconds: 600
+    default_timeout: 30.0
+    navigation_timeout: 45.0
+    block_resources:             # Ressources bloquées pour accélérer
+      - image
+      - media
+      - font
+    stealth: true                # Patches anti-détection (navigator.webdriver, etc.)
+    storage_state_path: null     # null = {cache_dir}/playwright_state.json
+    executable_path: null        # null = Playwright auto-download
+  # --- FlareSolverr ---
+  flaresolverr:
+    enabled: false
+    endpoint: "http://127.0.0.1:8191/v1"
+    timeout: 60.0
+    max_timeout: 120.0
+    session_ttl_seconds: 900
+    reuse_sessions: true
+  # --- Headers dynamiques ---
+  impersonate: chrome            # chrome | firefox | safari | edge (via curl_cffi si activé)
+  tls_fingerprint: null          # null | chrome | firefox — nécessite curl_cffi
+
+# ----------------------------------------------------------------------------
+#  Rate limiting
+# ----------------------------------------------------------------------------
+rate_limit:
+  enabled: true
+  algorithm: token_bucket        # token_bucket | sliding_window | leaky_bucket
+  default:
+    requests_per_second: 2.0
+    burst: 5
+  per_site: {}                   # ex: { "mangadex.org": { requests_per_second: 5.0 } }
+  per_domain_delay_ms: 250       # Délai minimum entre 2 requêtes même domaine
+  respect_retry_after: true      # Honore l'en-tête Retry-After (429)
+  adaptive: true                 # Réduit automatiquement si 429/503 répétés
+
+# ----------------------------------------------------------------------------
+#  Téléchargement
+# ----------------------------------------------------------------------------
+download:
+  max_concurrent_tasks: 3        # Mangas simultanés
+  max_concurrent_chapters: 2     # Chapitres simultanés par manga
+  max_concurrent_pages: 8        # Pages simultanées par chapitre
+  chunk_size: 65536              # 64 KiB
+  resume: true                   # Reprise après interruption
+  overwrite_existing: false
+  skip_existing: true
+  verify_checksums: false        # SHA256 par page si le parser le fournit
+  retry_failed_pages: 3
+  min_page_size_bytes: 1024      # Rejette les réponses tronquées/erreurs HTML
+  max_page_size_bytes: 52428800  # 50 MiB — garde-fou anti-DoS
+  allowed_extensions:            # Extensions acceptées
+    - .jpg
+    - .jpeg
+    - .png
+    - .webp
+    - .gif
+    - .avif
+  convert_webp_to_jpg: false     # Compatibilité liseuses
+  strip_metadata: false
+  strip_ads: true                # Supprime les images "pub" détectées par heuristique
+  naming:
+    pattern: "{series} - Ch.{number:>4} - {title}"  # Modèle Jinja2
+    sanitize: true
+    max_filename_length: 200
+    unicode_normalize: NFC
+    transliterate: false         # Convertit accents → ASCII si true
+    replace_spaces_with: " "
+  directory_layout: series_chapter   # flat | series | series_chapter | site/series/chapter
+  on_chapter_error: continue     # abort | continue | retry
+  pause_between_chapters_seconds: 0.0
+
+# ----------------------------------------------------------------------------
+#  Empaquetage
+# ----------------------------------------------------------------------------
+packaging:
+  default_format: cbz            # folder | zip | cbz | cbr | pdf
+  zip:
+    compression_level: 6         # 0-9 (0 = store, 9 = max)
+    zip64: true
+    deterministic: false         # Timestamps fixes si true (reproductibilité)
+  cbz:
+    include_comic_info: true
+    include_cover: true
+    rename_cover_to: "000_cover.jpg"
+  cbr:
+    rar_executable: null         # null = auto-détection (rar, unrar)
+    compression_level: 5
+  pdf:
+    image_quality: 90            # 1-100
+    page_size: original          # original | a4 | a5 | letter
+    fit_mode: contain            # contain | cover | stretch
+    add_outline: true
+    embed_metadata: true
+    dpi: 150
+  folder:
+    keep_naming: true            # Conserve la numérotation originale
+  comic_info:
+    enabled: true
+    language_iso: auto           # auto | fr | en | ...
+    include_summary: true
+    include_genres: true
+    include_year: true
+    include_web_link: true
+    write_manga_metadata: true   # Écrit MangaInfo.xml en parallèle
+
+# ----------------------------------------------------------------------------
+#  Images
+# ----------------------------------------------------------------------------
+image:
+  optimize:
+    enabled: false
+    jpeg_quality: 90
+    png_optimize: true
+    progressive_jpeg: true
+    strip_exif: true
+    max_dimension: null          # ex: 2400 (px) — downscale si dépassé
+  convert:
+    enabled: false
+    target_format: null          # jpeg | png | webp | avif
+  watermark:
+    enabled: false
+    text: null
+    image_path: null
+    position: bottom-right       # top-left | top-right | bottom-left | bottom-right | center
+    opacity: 0.5
+    margin: 20
+  validation:
+    enabled: true
+    min_width: 100
+    min_height: 100
+    check_truncated: true        # Détecte les JPEG/PNG tronqués
+    reject_blank: true           # Rejette les images uniformes (pub/erreur)
+
+# ----------------------------------------------------------------------------
+#  Bibliothèque locale
+# ----------------------------------------------------------------------------
+library:
+  enabled: true
+  auto_scan_on_start: true
+  scan_interval_minutes: 0       # 0 = désactivé (scan manuel uniquement)
+  watch_downloads_dir: false     # Watchdog sur downloads_dir
+  use_fts5: true                 # Recherche plein-texte SQLite
+  fts_tokenizer: unicode61      # unicode61 | porter | trigram
+  track_reading_progress: true
+  auto_tag_from_site: true
+  auto_cover_extraction: true
+  deduplication:
+    enabled: true
+    strategy: checksum           # checksum | title_author | fuzzy
+    fuzzy_threshold: 0.9
+  metadata_sources:              # Ordre de priorité pour enrichissement
+    - mangadex
+    - comick
+    - anilist
+  backup:
+    enabled: false
+    interval_hours: 24
+    keep_last: 7
+    destination: null            # ex: ~/Backups/NexusDL
+
+# ----------------------------------------------------------------------------
+#  Registre des sites
+# ----------------------------------------------------------------------------
+registry:
+  sites_file: null               # null = core/registry/sites.yaml
+  overrides_file: null           # null = {config_dir}/sites_overrides.yaml
+  auto_reload: true
+  validate_on_load: true
+  enabled_sites: []              # Vide = tous les sites non-adult activés
+  disabled_sites: []
+  include_adult: false           # DÉSACTIVÉ par défaut — activation explicite requise
+  adult_confirmation_shown: false
+  language_filter: []            # ex: [fr, en] — vide = toutes
+  favorites: []                  # IDs de sites favoris (mis en avant dans l'UI)
+  search:
+    parallel_sites: 8
+    per_site_timeout: 20.0
+    global_timeout: 60.0
+    deduplicate_results: true
+    merge_same_series: true
+
+# ----------------------------------------------------------------------------
+#  Interfaces
+# ----------------------------------------------------------------------------
+interfaces:
+  # --- CLI (Textual) ---
+  cli:
+    enabled: true
+    theme: nexus-dark            # nexus-dark | nexus-light | textural
+    show_banner: true
+    animations: true
+    mouse: true
+    notify_on_complete: true
+    default_screen: main         # main | search | downloads | library | settings
+    history_size: 500
+    external_editor: null        # ex: nvim — pour éditer config depuis TUI
+  # --- GUI (CustomTkinter) ---
+  gui:
+    enabled: true
+    appearance: system           # system | light | dark
+    color_theme: blue            # blue | dark-blue | green
+    window_size: [1280, 800]
+    remember_geometry: true
+    minimize_to_tray: false
+    start_minimized: false
+    confirm_exit_on_active_downloads: true
+  # --- Web (FastAPI + Next.js) ---
+  web:
+    enabled: false
+    host: 127.0.0.1              # 0.0.0.0 en Docker — ATTENTION sécurité
+    port: 8000
+    frontend_url: null           # null = build statique servi par FastAPI
+    workers: 1                   # >1 nécessite Redis pour le state partagé
+    reload: false                # dev uniquement
+    trusted_hosts: ["localhost", "127.0.0.1"]
+    docs_enabled: true           # Désactive /docs en prod si false
+    root_path: ""                # ex: /nexusdl si reverse proxy
+
+# ----------------------------------------------------------------------------
+#  Web — sécurité & auth
+# ----------------------------------------------------------------------------
+web:
+  auth:
+    enabled: true
+    mode: jwt                    # none | jwt | basic
+    jwt_secret: null             # null = NEXUSDL_WEB__AUTH__JWT_SECRET requis
+    jwt_algorithm: HS256
+    access_token_ttl_minutes: 60
+    refresh_token_ttl_days: 30
+    allow_registration: true
+    default_admin_username: admin
+    # Le mot de passe admin DOIT venir d'une variable d'env au 1er lancement
+    require_email_verification: false
+    password_min_length: 12
+    password_require_special: true
+    max_login_attempts: 5
+    lockout_minutes: 15
+    oauth2:
+      enabled: false
+      providers: []              # ex: [google, github, discord]
+  cors:
+    enabled: true
+    allow_origins: ["http://localhost:3000", "http://127.0.0.1:3000"]
+    allow_credentials: true
+    allow_methods: ["*"]
+    allow_headers: ["*"]
+    max_age: 600
+  rate_limit:
+    enabled: true
+    default: "120/minute"
+    per_endpoint:                # Surcharges
+      "/api/auth/login": "5/minute"
+      "/api/search": "30/minute"
+      "/api/download": "20/minute"
+    storage: memory              # memory | redis (obligatoire si workers > 1)
+    redis_url: null              # ex: "redis://localhost:6379/0"
+  websocket:
+    enabled: true
+    ping_interval: 25.0
+    ping_timeout: 10.0
+    max_connections_per_user: 5
+    auth_required: true
+  security:
+    csrf_enabled: true
+    csrf_secret: null
+    hsts_max_age: 31536000
+    csp: "default-src 'self'; img-src * data: blob:; connect-src 'self' ws: wss:"
+    secure_cookies: true         # false uniquement en dev HTTP
+    same_site: lax               # lax | strict | none
+
+# ----------------------------------------------------------------------------
+#  Notifications
+# ----------------------------------------------------------------------------
+notifications:
+  enabled: true
+  on_download_complete: true
+  on_download_failed: true
+  on_new_chapter: false          # nécessite le suivi des séries
+  desktop:
+    enabled: false
+    backend: auto                # auto | notify-send | osascript | win10toast
+    sound: false
+  discord:
+    enabled: false
+    webhook_url: null            # ⚠️ secret — préférer NEXUSDL_NOTIFICATIONS__DISCORD__WEBHOOK_URL
+    username: "NexusDL"
+    mention_role_id: null
+  telegram:
+    enabled: false
+    bot_token: null
+    chat_id: null
+  gotify:
+    enabled: false
+    url: null
+    token: null
+  email:
+    enabled: false
+    smtp_host: null
+    smtp_port: 587
+    smtp_username: null
+    smtp_password: null
+    smtp_use_tls: true
+    from_address: "nexusdl@localhost"
+    to_addresses: []
+
+# ----------------------------------------------------------------------------
+#  Plugins
+# ----------------------------------------------------------------------------
+plugins:
+  enabled: true
+  auto_load: true
+  sandbox: true                  # Restreint les imports risqués
+  allowed_hooks:
+    - pre_download
+    - post_download
+    - pre_package
+    - post_package
+    - pre_search
+    - post_search
+    - on_error
+  plugins: {}                    # ex: { my_plugin: { enabled: true, api_key: "..." } }
+  extra_dirs: []                 # Chemins additionnels à scanner
+
+# ----------------------------------------------------------------------------
+#  Avancé
+# ----------------------------------------------------------------------------
+advanced:
+  debug: false
+  dev_mode: false
+  profile_python: false          # Active cProfile sur les tâches
+  gc_tuning: false
+  uvloop: true                   # Linux/macOS uniquement
+  max_event_loop_lag_ms: 500
+  sqlite:
+    journal_mode: WAL
+    synchronous: NORMAL
+    cache_size_kb: 20000
+    busy_timeout_ms: 5000
+    mmap_size_mb: 256
+  concurrency:
+    global_semaphore: 32
+    io_bound_threads: 8          # Pour opérations bloquantes (rar, etc.)
+  shutdown:
+    graceful_timeout: 30.0
+    cancel_pending: true
+    save_state_on_exit: true
