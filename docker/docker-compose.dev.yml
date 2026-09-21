@@ -1,0 +1,409 @@
+# ============================================================================
+#  NexusDL — Docker Compose (développement)
+#  Usage :
+#    docker compose -f docker/docker-compose.dev.yml up           # stack dev
+#    docker compose -f docker/docker-compose.dev.yml up -d        # background
+#    docker compose -f docker/docker-compose.dev.yml --profile flaresolverr up
+#    docker compose -f docker/docker-compose.dev.yml --profile debug up
+#    docker compose -f docker/docker-compose.dev.yml down -v      # reset
+#
+#  Ce fichier N'EST PAS destiné à la production :
+#    - Conteneurs en root (pas de drop de privilèges)
+#    - Secrets triviaux (dev-jwt-secret, devpassword)
+#    - Ports exposés en clair sur 0.0.0.0 (backend, frontend, redis)
+#    - Volumes source montés en bind (override l'image)
+#    - Logs verbeux, hot-reload, debugpy activé
+#
+#  Utiliser docker-compose.yml pour la production.
+# ============================================================================
+
+name: nexusdl-dev
+
+# ----------------------------------------------------------------------------
+#  Extensions réutilisables (YAML anchors)
+# ----------------------------------------------------------------------------
+x-dev-env: &dev-env
+  NEXUSDL_ENV: development
+  NEXUSDL_DEBUG: "1"
+  NEXUSDL_DEV_MODE: "true"
+  NEXUSDL_CONFIG_DIR: /config
+  NEXUSDL_LIBRARY_DIR: /data
+  NEXUSDL_LOG_DIR: /logs
+  NEXUSDL_CACHE_DIR: /cache
+  NEXUSDL_SECRET_KEY: "0000000000000000000000000000000000000000000000000000000000000000"
+  NEXUSDL_WEB__AUTH__JWT_SECRET: "dev-jwt-secret-do-not-use-in-production"
+  NEXUSDL_WEB__SECURITY__CSRF_SECRET: "dev-csrf-secret-do-not-use-in-production"
+  NEXUSDL_WEB__AUTH__DEFAULT_ADMIN_USERNAME: "admin"
+  NEXUSDL_WEB__AUTH__DEFAULT_ADMIN_PASSWORD: "devpassword"
+  NEXUSDL_WEB__AUTH__ALLOW_REGISTRATION: "true"
+  NEXUSDL_WEB__AUTH__REQUIRE_EMAIL_VERIFICATION: "false"
+  NEXUSDL_REDIS_URL: "redis://redis:6379/0"
+  NEXUSDL_WAIT_FOR: "redis:6379"
+  NEXUSDL_SKIP_MIGRATIONS: "false"
+  NEXUSDL_SKIP_DROP_PRIVILEGES: "true"
+  TZ: "Europe/Paris"
+  PYTHONUNBUFFERED: "1"
+  PYTHONDONTWRITEBYTECODE: "1"
+  PYTHONPATH: "/app/src"
+  FORCE_COLOR: "1"
+  RICH_FORCE_TERMINAL: "1"
+
+x-dev-build: &dev-build
+  context: ..
+  dockerfile: docker/Dockerfile
+
+# ============================================================================
+#  SERVICES
+# ============================================================================
+services:
+
+  # --------------------------------------------------------------------------
+  #  redis — sans mot de passe, sans persistance (données éphémères)
+  # --------------------------------------------------------------------------
+  redis:
+    image: redis:7-alpine
+    container_name: nexusdl-dev-redis
+    hostname: redis
+    command:
+      - redis-server
+      - --save ""                     # pas de snapshot
+      - --appendonly no               # pas de persistance
+      - --maxmemory 64mb
+      - --maxmemory-policy allkeys-lru
+    networks:
+      - nexusdl-dev-net
+    ports:
+      - "127.0.0.1:6379:6379"         # debug local (redis-cli)
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 2s
+      retries: 5
+      start_period: 3s
+
+  # --------------------------------------------------------------------------
+  #  web-backend — FastAPI en mode reload, source montée en bind
+  # --------------------------------------------------------------------------
+  web-backend:
+    <<: *dev-build
+    image: nexusdl:dev
+    container_name: nexusdl-dev-web
+    hostname: web-backend
+    environment:
+      <<: *dev-env
+      NEXUSDL_ROLE: web
+      NEXUSDL_WEB__HOST: "0.0.0.0"
+      NEXUSDL_WEB__PORT: "8000"
+      NEXUSDL_WEB__WORKERS: "1"       # reload nécessite 1 worker
+      NEXUSDL_WEB__RELOAD: "true"
+      NEXUSDL_WEB__DOCS_ENABLED: "true"
+      # CORS ouvert pour le frontend Next.js en dev
+      NEXUSDL_WEB__CORS__ALLOW_ORIGINS: '["http://localhost:3000","http://127.0.0.1:3000","http://host.docker.internal:3000"]'
+    volumes:
+      # --- Source en bind (hot-reload) ---
+      - ../src:/app/src:ro
+      - ../scripts:/app/scripts:ro
+      - ../config:/config
+      # --- Données persistantes ---
+      - nexusdl-dev-data:/data
+      - nexusdl-dev-logs:/logs
+      - nexusdl-dev-cache:/cache
+      # --- Cache Playwright (chromium téléchargé une fois) ---
+      - nexusdl-dev-playwright:/home/nexusdl/.cache/ms-playwright
+      # --- Entrypoint monté pour édition à chaud ---
+      - ../docker/entrypoint.sh:/app/docker/entrypoint.sh:ro
+    networks:
+      - nexusdl-dev-net
+    depends_on:
+      redis:
+        condition: service_healthy
+    ports:
+      - "8000:8000"                   # API directe (pas de Nginx en dev)
+      - "5678:5678"                   # debugpy (optionnel)
+    working_dir: /app
+    # uvicorn --reload sur le code monté
+    command:
+      - python
+      - -m
+      - uvicorn
+      - nexusdl.interfaces.web.backend.main:app
+      - --host=0.0.0.0
+      - --port=8000
+      - --reload
+      - --reload-dir=/app/src/nexusdl
+      - --reload-delay=0.5
+      - --log-level=debug
+      - --no-access-log
+    stop_signal: SIGINT               # uvicorn reload écoute SIGINT pour un arrêt propre
+    stop_grace_period: 5s
+    stdin_open: true
+    tty: true
+
+  # --------------------------------------------------------------------------
+  #  web-frontend — Next.js dev server (HMR, port 3000)
+  #  Tourne dans une image Node (pas Python) — package manager détecté au boot.
+  # --------------------------------------------------------------------------
+  web-frontend:
+    image: node:20-alpine
+    container_name: nexusdl-dev-frontend
+    hostname: web-frontend
+    environment:
+      NODE_ENV: development
+      NEXT_TELEMETRY_DISABLED: "1"
+      NEXT_PUBLIC_API_URL: "http://localhost:8000"
+      NEXT_PUBLIC_WS_URL: "ws://localhost:8000"
+      WATCHPACK_POLLING: "true"       # nécessaire pour inotify sur bind mounts
+      CHOKIDAR_USEPOLLING: "true"
+      TZ: "Europe/Paris"
+    volumes:
+      - ../src/nexusdl/interfaces/web/frontend:/app
+      - nexusdl-dev-frontend-node-modules:/app/node_modules
+      - nexusdl-dev-frontend-next:/app/.next
+    networks:
+      - nexusdl-dev-net
+    depends_on:
+      - web-backend
+    ports:
+      - "3000:3000"
+    working_dir: /app
+    # Détection du package manager à l'exécution
+    command:
+      - sh
+      - -c
+      - |
+        set -e
+        if [ ! -d node_modules/next ]; then
+          echo "▶ Installation des dépendances Node…"
+          if [ -f pnpm-lock.yaml ]; then
+            corepack enable && corepack prepare pnpm@latest --activate
+            pnpm install --frozen-lockfile
+          elif [ -f yarn.lock ]; then
+            corepack enable && corepack prepare yarn@stable --activate
+            yarn install --immutable
+          else
+            npm ci
+          fi
+        fi
+        echo "▶ Démarrage du serveur Next.js dev…"
+        if [ -f pnpm-lock.yaml ]; then
+          exec pnpm dev --hostname 0.0.0.0 --port 3000
+        elif [ -f yarn.lock ]; then
+          exec yarn dev --hostname 0.0.0.0 --port 3000
+        else
+          exec npm run dev -- --hostname 0.0.0.0 --port 3000
+        fi
+    stop_grace_period: 5s
+    stdin_open: true
+    tty: true
+
+  # --------------------------------------------------------------------------
+  #  worker — téléchargements en arrière-plan (hot-reload sur la source)
+  # --------------------------------------------------------------------------
+  worker:
+    <<: *dev-build
+    image: nexusdl:dev
+    container_name: nexusdl-dev-worker
+    hostname: worker
+    environment:
+      <<: *dev-env
+      NEXUSDL_ROLE: worker
+      # Concurrence réduite en dev pour ne pas saturer le réseau local
+      NEXUSDL_DOWNLOAD__MAX_CONCURRENT_TASKS: "1"
+      NEXUSDL_DOWNLOAD__MAX_CONCURRENT_PAGES: "4"
+      NEXUSDL_SESSION__PLAYWRIGHT__ENABLED: "true"
+    volumes:
+      - ../src:/app/src:ro
+      - ../scripts:/app/scripts:ro
+      - ../config:/config
+      - nexusdl-dev-data:/data
+      - nexusdl-dev-logs:/logs
+      - nexusdl-dev-cache:/cache
+      - nexusdl-dev-playwright:/home/nexusdl/.cache/ms-playwright
+    networks:
+      - nexusdl-dev-net
+    depends_on:
+      redis:
+        condition: service_healthy
+    working_dir: /app
+    # Boucle de rechargement simple : redémarre le module si crash
+    command:
+      - sh
+      - -c
+      - |
+        while true; do
+          echo "[dev-worker] Démarrage du worker…"
+          python -m nexusdl worker --foreground || true
+          echo "[dev-worker] Worker arrêté, redémarrage dans 3s…"
+          sleep 3
+        done
+    stop_grace_period: 10s
+
+  # --------------------------------------------------------------------------
+  #  flaresolverr — profil optionnel
+  #  Activer : --profile flaresolverr
+  # --------------------------------------------------------------------------
+  flaresolverr:
+    image: ghcr.io/flaresolverr/flaresolverr:latest
+    container_name: nexusdl-dev-flaresolverr
+    hostname: flaresolverr
+    profiles: ["flaresolverr"]
+    environment:
+      LOG_LEVEL: debug
+      LOG_HTML: "true"                # utile pour debug
+      CAPTCHA_SOLVER: none
+      TZ: "Europe/Paris"
+    networks:
+      - nexusdl-dev-net
+    ports:
+      - "127.0.0.1:8191:8191"         # exposé en dev pour debug curl
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8191/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+
+  # --------------------------------------------------------------------------
+  #  cli — exécution ponctuelle du CLI (profil cli)
+  #  Usage : docker compose -f docker/docker-compose.dev.yml --profile cli \
+  #              run --rm cli download --site mangadex --url ...
+  # --------------------------------------------------------------------------
+  cli:
+    <<: *dev-build
+    image: nexusdl:dev
+    container_name: nexusdl-dev-cli
+    hostname: cli
+    profiles: ["cli"]
+    environment:
+      <<: *dev-env
+      NEXUSDL_ROLE: cli
+    volumes:
+      - ../src:/app/src:ro
+      - ../scripts:/app/scripts:ro
+      - ../config:/config
+      - nexusdl-dev-data:/data
+      - nexusdl-dev-logs:/logs
+      - nexusdl-dev-cache:/cache
+      - nexusdl-dev-playwright:/home/nexusdl/.cache/ms-playwright
+      - ../exports:/exports
+    networks:
+      - nexusdl-dev-net
+    depends_on:
+      redis:
+        condition: service_healthy
+    stdin_open: true
+    tty: true
+    entrypoint: ["/app/docker/entrypoint.sh"]
+    command: []
+
+  # --------------------------------------------------------------------------
+  #  test — exécution ponctuelle de pytest (profil test)
+  #  Usage : docker compose -f docker/docker-compose.dev.yml --profile test \
+  #              run --rm test
+  # --------------------------------------------------------------------------
+  test:
+    <<: *dev-build
+    image: nexusdl:dev
+    container_name: nexusdl-dev-test
+    hostname: test
+    profiles: ["test"]
+    environment:
+      <<: *dev-env
+      NEXUSDL_ROLE: cli
+      NEXUSDL_ENV: testing
+      NEXUSDL_DEBUG: "0"
+    volumes:
+      - ../src:/app/src:ro
+      - ../tests:/app/tests:ro
+      - ../scripts:/app/scripts:ro
+      - ../config:/config
+      - ../pyproject.toml:/app/pyproject.toml:ro
+      - nexusdl-dev-test-cache:/cache
+    networks:
+      - nexusdl-dev-net
+    depends_on:
+      redis:
+        condition: service_healthy
+    working_dir: /app
+    command:
+      - pytest
+      - -x
+      - -q
+      - --no-header
+      - --tb=short
+      - --cov=nexusdl
+      - --cov-report=term-missing
+      - tests/
+
+  # --------------------------------------------------------------------------
+  #  shell — shell de debug dans l'image backend (profil debug)
+  #  Usage : docker compose -f docker/docker-compose.dev.yml --profile debug \
+  #              run --rm shell
+  # --------------------------------------------------------------------------
+  shell:
+    <<: *dev-build
+    image: nexusdl:dev
+    container_name: nexusdl-dev-shell
+    hostname: shell
+    profiles: ["debug"]
+    environment:
+      <<: *dev-env
+      NEXUSDL_ROLE: shell
+    volumes:
+      - ../src:/app/src:ro
+      - ../scripts:/app/scripts:ro
+      - ../config:/config
+      - nexusdl-dev-data:/data
+      - nexusdl-dev-logs:/logs
+      - nexusdl-dev-cache:/cache
+      - nexusdl-dev-playwright:/home/nexusdl/.cache/ms-playwright
+    networks:
+      - nexusdl-dev-net
+    depends_on:
+      redis:
+        condition: service_healthy
+    working_dir: /app
+    entrypoint: ["/bin/bash"]
+    stdin_open: true
+    tty: true
+
+# ============================================================================
+#  RÉSEAUX
+# ============================================================================
+networks:
+  nexusdl-dev-net:
+    name: nexusdl-dev-net
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.31.0.0/24
+
+# ============================================================================
+#  VOLUMES
+# ============================================================================
+volumes:
+  # Données applicatives dev (SQLite, cookies, logs) — éphémères mais
+  # conservées entre redémarrages. Supprimer via `docker compose down -v`.
+  nexusdl-dev-data:
+    name: nexusdl-dev-data
+  nexusdl-dev-logs:
+    name: nexusdl-dev-logs
+  nexusdl-dev-cache:
+    name: nexusdl-dev-cache
+
+  # Cache Playwright (navigateurs ~300 MB) — partagé entre web-backend,
+  # worker, cli, shell. Évite de re-télécharger chromium à chaque rebuild.
+  nexusdl-dev-playwright:
+    name: nexusdl-dev-playwright
+
+  # node_modules et .next séparés du bind mount — sinon ils polluent le
+  # filesystem hôte et cassent le HMR (permissions, symlinks).
+  nexusdl-dev-frontend-node-modules:
+    name: nexusdl-dev-frontend-node-modules
+  nexusdl-dev-frontend-next:
+    name: nexusdl-dev-frontend-next
+
+  # Cache pytest
+  nexusdl-dev-test-cache:
+    name: nexusdl-dev-test-cache
