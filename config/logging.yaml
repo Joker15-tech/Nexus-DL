@@ -1,0 +1,469 @@
+# ============================================================================
+#  NexusDL — Configuration du logging
+#  Consommé par : core/logger.py
+#  Deux sections :
+#    - loguru : schéma custom (handlers Loguru)
+#    - stdlib : logging.config.dictConfig (libs tierces)
+#  Pont : InterceptHandler redirige stdlib → Loguru (sauf "propagate: false")
+# ============================================================================
+
+version: 1
+# Rechargement à chaud si true (surveillé par watchdog en dev uniquement)
+watch: false
+# Intervalle de vérification du fichier (secondes) si watch=true
+watch_interval: 5.0
+# Répertoire racine des logs (null = résolu via core.paths.logs_dir)
+log_dir: null
+# Fuseau horaire des timestamps (null = system local, "UTC" recommandé en prod)
+timezone: null
+
+# ----------------------------------------------------------------------------
+#  LOGURU — Handlers applicatifs
+#  Chaque handler est instancié via logger.add(...). Les clés correspondent
+#  aux paramètres natifs de Loguru (sink, level, format, rotation, etc.).
+# ----------------------------------------------------------------------------
+loguru:
+  # Handler sink=sys.stderr — sortie console colorée
+  console:
+    enabled: true
+    sink: stderr                 # stderr | stdout
+    level: INFO                  # TRACE | DEBUG | INFO | SUCCESS | WARNING | ERROR | CRITICAL
+    colorize: auto               # auto | true | false
+    format: >-
+      <green>{time:HH:mm:ss.SSS}</green>
+      <level>{level: <8}</level>
+      <cyan>{name}</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan>
+      - <level>{message}</level>
+    backtrace: true
+    diagnose: false              # true uniquement en dev local — fuite de variables
+    catch: true                  # Capture les erreurs du handler lui-même
+    enqueue: false               # Console : pas besoin de thread dédié
+    # Filtre par niveau minimum global (appliqué avant le format)
+    filter_min_level: null
+    # Modules ignorés sur ce handler (ex: ["nexusdl.parsers"] pour silencier)
+    filter_exclude: []
+
+  # Handler sink=fichier — log applicatif principal (texte)
+  app_file:
+    enabled: true
+    sink: "{log_dir}/nexusdl.log"
+    level: DEBUG
+    colorize: false
+    format: >-
+      {time:YYYY-MM-DD HH:mm:ss.SSS ZZ} | {level: <8} | {name}:{function}:{line} | {message}
+    rotation: "20 MB"            # Taille | "00:00" (quotidien) | "1 week"
+    retention: "14 days"         # Nombre | durée | callable (via code)
+    compression: zip             # null | gz | bz2 | xz | zip
+    delay: false                 # true = n'ouvre le fichier qu'au 1er log
+    mode: "a"                    # a | w
+    encoding: utf-8
+    enqueue: true
+    backtrace: true
+    diagnose: false
+    catch: true
+    filter_min_level: null
+    filter_exclude: []
+
+  # Handler sink=fichier — erreurs uniquement (analyse rapide)
+  error_file:
+    enabled: true
+    sink: "{log_dir}/errors.log"
+    level: ERROR
+    colorize: false
+    format: >-
+      {time:YYYY-MM-DD HH:mm:ss.SSS ZZ} | {level: <8} | {name}:{function}:{line} | {message}
+      {exception}
+    rotation: "10 MB"
+    retention: "30 days"
+    compression: gz
+    delay: true
+    mode: "a"
+    encoding: utf-8
+    enqueue: true
+    backtrace: true
+    diagnose: false             # Jamais true en prod — risque de fuite de secrets
+    catch: true
+    filter_min_level: null
+    filter_exclude: []
+
+  # Handler sink=fichier — JSON structuré (ingestion ELK/Loki/Datadog)
+  json_file:
+    enabled: false               # Activer en prod si pipeline d'observabilité
+    sink: "{log_dir}/nexusdl.jsonl"
+    level: INFO
+    colorize: false
+    serialize: true              # Loguru bascule automatiquement en JSON
+    format: null                 # Ignoré si serialize=true
+    rotation: "50 MB"
+    retention: "7 days"
+    compression: gz
+    delay: true
+    mode: "a"
+    encoding: utf-8
+    enqueue: true
+    backtrace: true
+    diagnose: false
+    catch: true
+    filter_min_level: null
+    filter_exclude:
+      - "nexusdl.core.session.http_session"    # Bruit : chaque requête
+      - "nexusdl.parsers.base"
+
+  # Handler sink=fichier — traces de téléchargement (audit + debug reprise)
+  download_file:
+    enabled: true
+    sink: "{log_dir}/downloads.log"
+    level: DEBUG
+    colorize: false
+    format: >-
+      {time:YYYY-MM-DD HH:mm:ss.SSS} | {level: <8} | {extra[task_id]} | {extra[site]} | {message}
+    rotation: "10 MB"
+    retention: "30 days"
+    compression: zip
+    delay: true
+    mode: "a"
+    encoding: utf-8
+    enqueue: true
+    backtrace: false
+    diagnose: false
+    catch: true
+    # Filtre : uniquement les logs émis depuis ces modules
+    filter_include:
+      - "nexusdl.core.downloader"
+      - "nexusdl.core.image.downloader"
+      - "nexusdl.parsers.base"
+    filter_exclude: []
+    # Contexte requis — les logs sans ces clés sont rejetés
+    required_extra:
+      - task_id
+
+  # Handler sink=fichier — audit sécurité (auth, cookies, config)
+  audit_file:
+    enabled: true
+    sink: "{log_dir}/audit.log"
+    level: INFO
+    colorize: false
+    format: >-
+      {time:YYYY-MM-DD HH:mm:ss.SSS ZZ} | {level: <8} | {extra[actor]} | {extra[action]} | {message}
+    rotation: "5 MB"
+    retention: "365 days"
+    compression: zip
+    delay: true
+    mode: "a"
+    encoding: utf-8
+    enqueue: true
+    backtrace: false
+    diagnose: false
+    catch: true
+    filter_include:
+      - "nexusdl.interfaces.web.backend.security"
+      - "nexusdl.interfaces.web.backend.routers.auth"
+      - "nexusdl.core.session.cookie_manager"
+      - "nexusdl.plugins.loader"
+    filter_exclude: []
+    required_extra: []           # Pas obligatoire — log de sécurité best-effort
+
+  # Handler sink=callable — hook vers EventBus / WebSocket (UI temps réel)
+  events:
+    enabled: true
+    sink: "callable:nexusdl.core.logger.loguru_to_event_bus"
+    level: INFO
+    colorize: false
+    format: null                 # Le callable reçoit le record brut
+    backtrace: false
+    diagnose: false
+    catch: true
+    filter_include:
+      - "nexusdl.core.downloader"
+      - "nexusdl.core.library"
+      - "nexusdl.parsers"
+    filter_exclude: []
+    required_extra: []
+
+# ----------------------------------------------------------------------------
+#  LOGURU — Réglages globaux
+# ----------------------------------------------------------------------------
+loguru_globals:
+  # Niveau minimum absolu : aucun handler ne reçoit en dessous
+  min_level: TRACE
+  # Longueur max du message (troncature avec suffixe "... [truncated]")
+  max_message_length: 8192
+  # Patcher global — ajoute des clés à chaque record (voir core/logger.py)
+  patch:
+    environment: "${NEXUSDL_ENV:-production}"
+    instance_id: "${NEXUSDL_INSTANCE_ID:-unknown}"
+    app: NexusDL
+  # Handler pour les erreurs non capturées
+  fatal_sink:
+    enabled: true
+    path: "{log_dir}/fatal.log"
+    level: CRITICAL
+    format: >-
+      {time:YYYY-MM-DD HH:mm:ss.SSS ZZ} | FATAL | {name}:{function}:{line}
+      | {message}
+      {exception}
+    retention: "365 days"
+    compression: gz
+  # Redaction des secrets — patterns Regex remplacés par ***
+  redaction:
+    enabled: true
+    patterns:
+      - name: jwt
+        regex: 'eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}'
+        replacement: "***JWT***"
+      - name: bearer
+        regex: '(?i)bearer\s+[A-Za-z0-9._~+/-]+=*'
+        replacement: "Bearer ***"
+      - name: basic_auth_url
+        regex: '(?i)(https?://)[^:@/\s]+:[^@/\s]+@'
+        replacement: '\1***:***@'
+      - name: api_key_query
+        regex: '(?i)([?&](api[_-]?key|token|access_token|auth)=)[^&\s]+'
+        replacement: '\1***'
+      - name: cookie_header
+        regex: '(?i)(cookie|set-cookie)\s*:\s*[^\r\n]+'
+        replacement: '\1: ***'
+      - name: aws_key
+        regex: 'AKIA[0-9A-Z]{16}'
+        replacement: "***AWS_KEY***"
+      - name: private_key
+        regex: '-----BEGIN [A-Z ]*PRIVATE KEY-----[\s\S]+?-----END [A-Z ]*PRIVATE KEY-----'
+        replacement: "***PRIVATE_KEY***"
+      - name: discord_webhook
+        regex: 'https://discord\.com/api/webhooks/\d+/[A-Za-z0-9_-]+'
+        replacement: "***DISCORD_WEBHOOK***"
+      - name: telegram_token
+        regex: '\d{8,10}:[A-Za-z0-9_-]{35}'
+        replacement: "***TELEGRAM_TOKEN***"
+    # Champs de `extra` à redacter intégralement (nom de clé)
+    redact_extra_keys:
+      - password
+      - passwd
+      - secret
+      - token
+      - api_key
+      - apikey
+      - access_token
+      - refresh_token
+      - authorization
+      - cookie
+      - set-cookie
+      - private_key
+      - jwt_secret
+
+# ----------------------------------------------------------------------------
+#  STDLIB logging.config.dictConfig
+#  S'applique aux libs tierces qui utilisent logging stdlib.
+#  Le root est redirigé vers Loguru via InterceptHandler (voir core/logger.py).
+# ----------------------------------------------------------------------------
+stdlib:
+  version: 1
+  disable_existing_loggers: false
+  # InterceptHandler est enregistré par code — ne pas définir ici
+  handlers:
+    intercept:
+      class: "nexusdl.core.logger.InterceptHandler"
+      level: TRACE
+      # Pas de formatter : le record est transmis brut à Loguru
+  root:
+    level: TRACE                 # Laisse tout passer à l'InterceptHandler
+    handlers: [intercept]
+  loggers:
+    # --- Uvicorn / Starlette / FastAPI ---
+    uvicorn:
+      level: INFO
+      handlers: [intercept]
+      propagate: false
+    uvicorn.error:
+      level: INFO
+      handlers: [intercept]
+      propagate: false
+    uvicorn.access:
+      level: WARNING             # DEBUG pour tracer chaque requête HTTP
+      handlers: [intercept]
+      propagate: false
+    fastapi:
+      level: INFO
+      handlers: [intercept]
+      propagate: false
+    starlette:
+      level: WARNING
+      handlers: [intercept]
+      propagate: false
+
+    # --- HTTP clients ---
+    httpx:
+      level: WARNING             # DEBUG loggue chaque requête + headers
+      handlers: [intercept]
+      propagate: false
+    httpcore:
+      level: WARNING
+      handlers: [intercept]
+      propagate: false
+    h11:
+      level: WARNING
+      handlers: [intercept]
+      propagate: false
+    h2:
+      level: WARNING
+      handlers: [intercept]
+      propagate: false
+    aiohttp:
+      level: WARNING
+      handlers: [intercept]
+      propagate: false
+    aiohttp.client:
+      level: WARNING
+      handlers: [intercept]
+      propagate: false
+    aiohttp.access:
+      level: WARNING
+      handlers: [intercept]
+      propagate: false
+    urllib3:
+      level: WARNING
+      handlers: [intercept]
+      propagate: false
+
+    # --- Playwright ---
+    playwright:
+      level: WARNING
+      handlers: [intercept]
+      propagate: false
+    asyncio:
+      level: WARNING
+      handlers: [intercept]
+      propagate: false
+
+    # --- Bases de données ---
+    aiosqlite:
+      level: WARNING
+      handlers: [intercept]
+      propagate: false
+    sqlalchemy:
+      level: WARNING
+      handlers: [intercept]
+      propagate: false
+    sqlalchemy.engine:
+      level: WARNING
+      handlers: [intercept]
+      propagate: false
+
+    # --- Divers ---
+    PIL:
+      level: WARNING
+      handlers: [intercept]
+      propagate: false
+    matplotlib:
+      level: WARNING
+      handlers: [intercept]
+      propagate: false
+    websockets:
+      level: WARNING
+      handlers: [intercept]
+      propagate: false
+    multipart:
+      level: WARNING
+      handlers: [intercept]
+      propagate: false
+    python_multipart:
+      level: WARNING
+      handlers: [intercept]
+      propagate: false
+    passlib:
+      level: WARNING
+      handlers: [intercept]
+      propagate: false
+    jose:
+      level: WARNING
+      handlers: [intercept]
+      propagate: false
+
+# ----------------------------------------------------------------------------
+#  PROFILS — Surcouches appliquées selon NEXUSDL_ENV
+#  Fusionnées avec la config de base (deep merge, non destructif)
+# ----------------------------------------------------------------------------
+profiles:
+  development:
+    loguru:
+      console:
+        level: TRACE
+        colorize: true
+      app_file:
+        level: TRACE
+      json_file:
+        enabled: false
+    loguru_globals:
+      patch:
+        environment: development
+    stdlib:
+      loggers:
+        uvicorn.access:
+          level: DEBUG
+        httpx:
+          level: INFO
+        playwright:
+          level: INFO
+
+  testing:
+    loguru:
+      console:
+        enabled: false         # Silence en CI sauf erreurs
+        level: ERROR
+      app_file:
+        enabled: false
+      error_file:
+        enabled: false
+      json_file:
+        enabled: false
+      download_file:
+        enabled: false
+      audit_file:
+        enabled: false
+      events:
+        enabled: false
+    loguru_globals:
+      patch:
+        environment: testing
+    stdlib:
+      root:
+        level: WARNING
+
+  staging:
+    loguru:
+      console:
+        level: DEBUG
+      json_file:
+        enabled: true
+    loguru_globals:
+      patch:
+        environment: staging
+
+  production:
+    loguru:
+      console:
+        level: WARNING
+      app_file:
+        level: INFO
+      json_file:
+        enabled: true
+      events:
+        enabled: true
+    loguru_globals:
+      patch:
+        environment: production
+    stdlib:
+      loggers:
+        uvicorn.access:
+          level: WARNING
+
+  headless:
+    # Profil serveur sans TTY : pas de console colorée
+    loguru:
+      console:
+        enabled: false
+      events:
+        enabled: true
+    loguru_globals:
+      patch:
+        environment: headless
