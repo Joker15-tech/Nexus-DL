@@ -1,0 +1,186 @@
+# nexus.dl — Marqueur de package NexusDL
+# ============================================================================
+# Ce fichier est un marqueur structurel du projet NexusDL. Sa présence
+# identifie un dossier comme étant un package officiel du projet et permet
+# aux outils internes (validateurs, scripts de build, hooks de migration)
+# de détecter la portée d'un répertoire sans avoir à parser le code Python.
+#
+# Toute modification manuelle de ce fichier doit être validée par
+# `scripts/validate_sites.py` avant commit (pre-commit hook).
+# ============================================================================
+
+package: nexusdl.parsers.kr
+kind: parsers.namespace
+description: >
+  Namespace des parseurs coréens (langue cible : Korean).
+  Chaque module de ce dossier implémente un parser NexusDL pour un site
+  de scanlation/manhwa coréen ou pour une variante KR d'un site
+  international. Tous les parsers héritent de
+  `nexusdl.parsers.base.BaseParser` et combinent un ou plusieurs mixins
+  transverses (Madara, MangaThemesia, Cloudflare, JsRendered, ApiBased,
+  FoolSlide).
+
+language: ko
+locale: ko-KR
+
+# ---------------------------------------------------------------------------
+# Politique de contenu
+# ---------------------------------------------------------------------------
+content_policy:
+  allow_adult: true
+  allow_mature: true
+  require_age_gate: false
+  respect_site_rating: true
+  prefer_raw: true  # Ce namespace privilégie les raws (non traduits)
+
+# ---------------------------------------------------------------------------
+# Règles d'héritage et conventions
+# ---------------------------------------------------------------------------
+conventions:
+  # Ordre canonique des mixins dans la déclaration de classe.
+  mixin_order:
+    - JsRenderedMixin       # primitives bas-niveau (rendu navigateur)
+    - CloudflareMixin       # bypass CF (peut dépendre du rendu)
+    - ApiBasedMixin         # client REST (indépendant)
+    - MadaraMixin           # thème WordPress Madara
+    - MangaThemesiaMixin    # thème MangaThemesia
+    - FoolSlideMixin        # CMS FoolSlide
+    - BaseParser            # contrat final
+
+  # Tous les parseurs de ce namespace DOIVENT :
+  required:
+    - declarer_un_site_id_unique: true
+    - declarer_une_langue: true  # Language.KO ou variante
+    - implementer_les_4_methodes_abstraites:
+        - search
+        - get_manga
+        - get_chapters
+        - get_pages
+    - exposer_un_health_check: true
+    - declarer_une_liste_de_domaines_de_fallback: true
+    - utiliser_selectolax_pour_le_parsing_html: true
+    - utiliser_httpx_via_http_session: true
+    - supporter_les_chapitres_coreens: true  # 챕터/화/장
+    - passer_mypy_strict: true
+    - passer_ruff_check: true
+
+  # Interdits stricts
+  forbidden:
+    - dependance_vers_interfaces: true
+    - requests_sync_dans_code_async: true
+    - any_non_justifie: true
+    - except_pass: true
+    - secrets_en_dur: true
+    - hotlink_images_sans_referer: true
+    - traduire_les_titres_coreens: true  # Conserver les titres originaux
+
+# ---------------------------------------------------------------------------
+# Parseurs enregistrés dans ce namespace
+# ---------------------------------------------------------------------------
+parsers:
+  - module: nexusdl.parsers.kr.asura_scans_kr
+    class: AsuraScansKrParser
+    site_id: asura_scans_kr
+    status: active
+    primary_domain: https://asura-scans.com
+    language: ko
+    protection: [cloudflare-managed, slug-mapping, rate-limit]
+    mixins: [JsRendered, Cloudflare, ApiBased, MangaThemesia]
+
+  - module: nexusdl.parsers.kr.manhwa_raw
+    class: ManhwaRawParser
+    site_id: manhwa_raw
+    status: active
+    primary_domain: https://manhwaraw.com
+    language: ko
+    protection: [cloudflare]
+    mixins: [JsRendered, Cloudflare, Madara]
+
+  - module: nexusdl.parsers.kr.manhwaclub
+    class: ManhwaClubParser
+    site_id: manhwaclub
+    status: active
+    primary_domain: https://manhwaclub.net
+    language: en  # Site anglophone, classé dans kr/ par cohérence manhwa
+    protection: [cloudflare-managed, custom-api]
+    mixins: [JsRendered, Cloudflare, ApiBased, Madara]
+
+# ---------------------------------------------------------------------------
+# Registre des domaines de fallback par parser
+# ---------------------------------------------------------------------------
+fallback_domains:
+  asura_scans_kr:
+    - https://asura-scans.com
+    - https://asurascans.kr
+    - https://asuracomic.net
+    - https://asura.nacm.xyz
+  manhwa_raw:
+    - https://manhwaraw.com
+    - https://manhwaraw.net
+    - https://manhwaraw.org
+  manhwaclub:
+    - https://manhwaclub.net
+    - https://manhwa.club
+    - https://manhwahentai.to
+
+# ---------------------------------------------------------------------------
+# Regex de parsing coréen (partagées)
+# ---------------------------------------------------------------------------
+korean_parsing:
+  # Numéros de chapitre en coréen.
+  chapter_patterns:
+    - "(?:chapter|ch\\.?|episode|ep\\.?|ep)\\s*(\\d+(?:[.,]\\d+)?)"
+    - "챕터\\s*(\\d+(?:[.,]\\d+)?)"
+    - "(\\d+(?:[.,]\\d+)?)\\s*(?:화|장)"
+  # Numéros de tome en coréen.
+  volume_patterns:
+    - "(?:volume|vol\\.?|권)\\s*(\\d+)"
+  # Statuts coréens → énumération NexusDL.
+  status_map:
+    "연재중": ongoing
+    "완결": completed
+    "휴재": hiatus
+    "중단": cancelled
+    "종료": completed
+  # Marqueurs de contenu adulte coréens.
+  adult_markers:
+    - 성인
+    - 야설
+    - 성인물
+    - 성인만화
+    - 성인웹툰
+    - 19금
+  # Dates relatives coréennes.
+  relative_dates:
+    - "(\\d+)\\s*초\\s*(?:전|ago)?"
+    - "(\\d+)\\s*분\\s*(?:전|ago)?"
+    - "(\\d+)\\s*시간\\s*(?:전|ago)?"
+    - "(\\d+)\\s*일\\s*(?:전|ago)?"
+    - "(\\d+)\\s*주\\s*(?:전|ago)?"
+    - "(\\d+)\\s*개월\\s*(?:전|ago)?"
+    - "(\\d+)\\s*년\\s*(?:전|ago)?"
+
+# ---------------------------------------------------------------------------
+# Compteurs (générés par scripts/validate_sites.py)
+# ---------------------------------------------------------------------------
+counts:
+  total: 3
+  active: 3
+  deprecated: 0
+  archived: 0
+  with_cloudflare: 3
+  without_cloudflare: 0
+  api_based: 2
+  html_based: 1
+  language_ko: 2
+  language_en: 1
+
+# ---------------------------------------------------------------------------
+# Signature
+# ---------------------------------------------------------------------------
+marker:
+  format_version: "1.0"
+  generator: nexusdl.marker
+  signature: "nx-kr-8d2e4f1a6b3c9e5"
+  created_at: "2026-01-01T00:00:00Z"
+  updated_at: "2026-09-21T00:00:00Z"
