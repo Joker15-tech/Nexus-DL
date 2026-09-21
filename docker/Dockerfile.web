@@ -1,0 +1,333 @@
+# syntax=docker/dockerfile:1.7
+# ============================================================================
+#  NexusDL — Dockerfile.web
+#  Image du backend FastAPI (uvicorn) + frontend Next.js statique embarqué.
+#
+#  Multi-stage :
+#    stage 1 : frontend-builder  → build Next.js (out/)
+#    stage 2 : python-builder    → compile les wheels + crée le venv
+#    stage 3 : runtime           → image finale minimale non-root
+#
+#  Build :
+#    docker build -f docker/Dockerfile.web \
+#      --build-arg VERSION=0.1.0 \
+#      --build-arg BUILD_PROFILE=release \
+#      -t nexusdl-web:0.1.0 .
+#
+#  Run :
+#    docker run --rm -p 8000:8000 \
+#      -v nexusdl-config:/config \
+#      -v nexusdl-data:/data \
+#      nexusdl-web:0.1.0
+#
+#  Variables de build :
+#    VERSION                 → version injectée dans le package (défaut: 0.1.0)
+#    BUILD_PROFILE           → release | dev (défaut: release)
+#    PYTHON_VERSION          → version Python (défaut: 3.12)
+#    NODE_VERSION            → version Node.js pour le frontend (défaut: 20)
+#    INSTALL_PLAYWRIGHT      → true | false (défaut: true) — télécharge chromium
+#    INSTALL_FLARESOLVERR    → true | false (défaut: false) — inutile ici, côté compose
+# ============================================================================
+
+# ============================================================================
+#  Stage 1 : frontend-builder — build Next.js statique
+# ============================================================================
+ARG NODE_VERSION=20
+FROM node:${NODE_VERSION}-bookworm-slim AS frontend-builder
+
+ARG VERSION=0.1.0
+ARG BUILD_PROFILE=release
+
+WORKDIR /build/frontend
+
+# --- Installation des outils système minimaux --------------------------------
+RUN set -eux; \
+    apt-get update; \
+    apt-get install -y --no-install-recommends \
+        ca-certificates \
+        git \
+    ; \
+    rm -rf /var/lib/apt/lists/*; \
+    corepack enable; \
+    corepack prepare pnpm@latest --activate
+
+# --- Copie des manifests (cache Docker optimal) ------------------------------
+# Ne copie que les fichiers de dépendances d'abord : le cache persiste tant que
+# ces fichiers ne changent pas, même si le code source change.
+COPY src/nexusdl/interfaces/web/frontend/package.json ./package.json
+COPY src/nexusdl/interfaces/web/frontend/pnpm-lock.yaml* ./
+COPY src/nexusdl/interfaces/web/frontend/yarn.lock* ./
+COPY src/nexusdl/interfaces/web/frontend/package-lock.json* ./
+
+# --- Installation des dépendances Node ---------------------------------------
+RUN set -eux; \
+    if [ -f pnpm-lock.yaml ]; then \
+        pnpm install --frozen-lockfile --prefer-offline; \
+    elif [ -f yarn.lock ]; then \
+        yarn install --immutable --prefer-offline; \
+    elif [ -f package-lock.json ]; then \
+        npm ci --prefer-offline --no-audit --no-fund; \
+    else \
+        echo "Aucun lockfile trouvé — fallback npm install"; \
+        npm install --no-audit --no-fund; \
+    fi
+
+# --- Copie du reste du frontend ----------------------------------------------
+COPY src/nexusdl/interfaces/web/frontend/ ./
+
+# --- Build Next.js -----------------------------------------------------------
+ENV NEXT_TELEMETRY_DISABLED=1
+ENV NODE_ENV=production
+ENV NEXT_PUBLIC_BUILD_PROFILE=${BUILD_PROFILE}
+ENV NEXT_PUBLIC_APP_VERSION=${VERSION}
+
+RUN set -eux; \
+    if [ -f pnpm-lock.yaml ]; then \
+        pnpm run build; \
+    elif [ -f yarn.lock ]; then \
+        yarn build; \
+    else \
+        npm run build; \
+    fi; \
+    # Vérifie que le build existe
+    if [ ! -d "out" ] && [ ! -d ".next" ]; then \
+        echo "Erreur : ni out/ ni .next/ n'existe après le build" >&2; \
+        exit 1; \
+    fi
+
+# ============================================================================
+#  Stage 2 : python-builder — compile les wheels + venv
+# ============================================================================
+ARG PYTHON_VERSION=3.12
+FROM python:${PYTHON_VERSION}-slim-bookworm AS python-builder
+
+ARG VERSION=0.1.0
+ARG BUILD_PROFILE=release
+ARG INSTALL_PLAYWRIGHT=true
+
+# --- Dépendances de build ----------------------------------------------------
+# Requises pour compiler les extensions C (cryptography, pillow, lxml...)
+RUN set -eux; \
+    apt-get update; \
+    apt-get install -y --no-install-recommends \
+        build-essential \
+        ca-certificates \
+        curl \
+        gcc \
+        git \
+        libffi-dev \
+        libjpeg-dev \
+        liblzma-dev \
+        libssl-dev \
+        libwebp-dev \
+        libxml2-dev \
+        libxslt1-dev \
+        pkg-config \
+        zlib1g-dev \
+    ; \
+    rm -rf /var/lib/apt/lists/*
+
+# --- Installation de uv (installateur Python rapide) -------------------------
+RUN set -eux; \
+    curl -LsSf https://astral.sh/uv/install.sh | sh; \
+    mv /root/.local/bin/uv /usr/local/bin/uv; \
+    mv /root/.local/bin/uvx /usr/local/bin/uvx 2>/dev/null || true; \
+    uv --version
+
+# --- Création du venv --------------------------------------------------------
+ENV VIRTUAL_ENV=/opt/venv
+ENV PATH="${VIRTUAL_ENV}/bin:${PATH}"
+
+RUN python -m venv ${VIRTUAL_ENV}
+
+# --- Copie des manifests (cache Docker optimal) ------------------------------
+WORKDIR /build
+COPY pyproject.toml ./
+COPY README.md ./
+COPY LICENSE* ./
+COPY MANIFEST.in ./
+COPY src/nexusdl/__init__.py ./src/nexusdl/__init__.py
+COPY src/nexusdl/version.py ./src/nexusdl/version.py
+
+# --- Mise à jour de pip + wheel ----------------------------------------------
+RUN set -eux; \
+    uv pip install --upgrade pip setuptools wheel
+
+# --- Installation des dépendances du projet ----------------------------------
+# --no-install-project : ne copie que les deps, pas le package lui-même.
+# Le package sera installé plus bas, une fois tout le code copié.
+#
+# On force les extras : [web] + [browsers] (Playwright, si INSTALL_PLAYWRIGHT).
+RUN set -eux; \
+    if [ "${INSTALL_PLAYWRIGHT}" = "true" ]; then \
+        uv pip install -e ".[web,browsers]"; \
+    else \
+        uv pip install -e ".[web]"; \
+    fi
+
+# --- Copie du reste du code source -------------------------------------------
+COPY src/ ./src/
+
+# --- Réinstallation du package en mode editable ------------------------------
+# (Pour que --reload fonctionne si utilisé plus tard. En prod pure, on
+# pourrait faire `uv pip install .` sans `-e`.)
+RUN set -eux; \
+    uv pip install --no-deps -e . ; \
+    # Nettoyage des caches uv/pip
+    uv cache clean; \
+    find ${VIRTUAL_ENV} -name "*.pyc" -delete; \
+    find ${VIRTUAL_ENV} -name "__pycache__" -type d -exec rm -rf {} + 2>/dev/null || true
+
+# --- Téléchargement des navigateurs Playwright -------------------------------
+# Installé dans un dossier partagé, copié dans l'image runtime.
+# Le stage runtime n'a pas besoin des deps système Playwright complètes
+# (celles-ci sont installées dans le stage runtime via `playwright install-deps`).
+ENV PLAYWRIGHT_BROWSERS_PATH=/opt/playwright-browsers
+
+RUN set -eux; \
+    if [ "${INSTALL_PLAYWRIGHT}" = "true" ]; then \
+        ${VIRTUAL_ENV}/bin/playwright install chromium; \
+        # Nettoyage des artefacts lourds non nécessaires en prod
+        find ${PLAYWRIGHT_BROWSERS_PATH} -name "*.zip" -delete 2>/dev/null || true; \
+        find ${PLAYWRIGHT_BROWSERS_PATH} -name "chrome-*" -type d 2>/dev/null | head -20 || true; \
+    fi
+
+# ============================================================================
+#  Stage 3 : runtime — image finale minimale
+# ============================================================================
+FROM python:${PYTHON_VERSION}-slim-bookworm AS runtime
+
+ARG VERSION=0.1.0
+ARG BUILD_PROFILE=release
+ARG INSTALL_PLAYWRIGHT=true
+
+# --- Labels OCI ---------------------------------------------------------------
+LABEL org.opencontainers.image.title="NexusDL Web Backend"
+LABEL org.opencontainers.image.description="API FastAPI + frontend Next.js pour NexusDL"
+LABEL org.opencontainers.image.version="${VERSION}"
+LABEL org.opencontainers.image.vendor="NexusDL"
+LABEL org.opencontainers.image.licenses="GPL-3.0-or-later"
+LABEL org.opencontainers.image.source="https://github.com/nexusdl/nexusdl"
+LABEL org.opencontainers.image.documentation="https://github.com/nexusdl/nexusdl/blob/main/README.md"
+LABEL org.opencontainers.image.base.name="python:${PYTHON_VERSION}-slim-bookworm"
+
+# --- Variables d'environnement de base ---------------------------------------
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONFAULTHANDLER=1 \
+    PYTHONHASHSEED=random \
+    PYTHONIOENCODING=UTF-8 \
+    PIP_NO_CACHE_DIR=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    VIRTUAL_ENV=/opt/venv \
+    PATH="/opt/venv/bin:/usr/local/bin:/usr/bin:/bin" \
+    NEXUSDL_ENV=production \
+    NEXUSDL_ROLE=web \
+    NEXUSDL_CONFIG_DIR=/config \
+    NEXUSDL_LIBRARY_DIR=/data \
+    NEXUSDL_LOG_DIR=/logs \
+    NEXUSDL_CACHE_DIR=/cache \
+    NEXUSDL_WEB__HOST=0.0.0.0 \
+    NEXUSDL_WEB__PORT=8000 \
+    NEXUSDL_VERSION=${VERSION} \
+    TZ=UTC \
+    PLAYWRIGHT_BROWSERS_PATH=/opt/playwright-browsers
+
+# --- Dépendances système runtime ---------------------------------------------
+# Uniquement les bibliothèques partagées nécessaires à l'exécution.
+# Les outils de build (gcc, make) ne sont PAS installés.
+RUN set -eux; \
+    apt-get update; \
+    apt-get install -y --no-install-recommends \
+        ca-certificates \
+        curl \
+        fonts-liberation \
+        gosu \
+        libjpeg62-turbo \
+        liblzma5 \
+        libssl3 \
+        libwebp7 \
+        libxml2 \
+        libxslt1.1 \
+        tini \
+        tzdata \
+        zlib1g \
+    ; \
+    rm -rf /var/lib/apt/lists/*; \
+    # Nettoyage des locales inutiles
+    find /usr/share/doc -type f -delete; \
+    find /usr/share/man -type f -delete
+
+# --- Dépendances Playwright (dépend du flag INSTALL_PLAYWRIGHT) --------------
+# Le playwright install-deps installe automatiquement toutes les libs
+# nécessaires pour chromium (libnss3, libatk, libcups, etc.). On le fait
+# ici pour ne pas polluer l'image si Playwright est désactivé.
+RUN set -eux; \
+    if [ "${INSTALL_PLAYWRIGHT}" = "true" ]; then \
+        # Copie temporaire de playwright pour exécuter install-deps
+        python -m pip install --no-cache-dir "playwright>=1.45,<2"; \
+        python -m playwright install-deps chromium; \
+        python -m pip uninstall -y playwright; \
+    fi
+
+# --- Copie du venv depuis le builder -----------------------------------------
+COPY --from=python-builder /opt/venv /opt/venv
+
+# --- Copie des navigateurs Playwright ----------------------------------------
+RUN set -eux; \
+    mkdir -p /opt/playwright-browsers; \
+    if [ "${INSTALL_PLAYWRIGHT}" = "true" ]; then \
+        echo "Playwright browsers seront copiés depuis le builder"; \
+    fi
+
+COPY --from=python-builder /opt/playwright-browsers/ /opt/playwright-browsers/
+
+# --- Copie du code source (utile pour les migrations, scripts) ---------------
+WORKDIR /app
+
+COPY --from=python-builder /build/src /app/src
+COPY docker/entrypoint.sh /app/docker/entrypoint.sh
+COPY scripts/ /app/scripts/
+COPY config/ /app/config/
+COPY pyproject.toml /app/pyproject.toml
+
+# --- Copie du build frontend (Next.js statique) ------------------------------
+# Le build Next.js a produit `out/`. On le copie dans le dossier static du
+# backend pour que FastAPI puisse le servir si Nginx n'est pas devant.
+COPY --from=frontend-builder /build/frontend/out /app/src/nexusdl/interfaces/web/backend/static
+
+# --- Création de l'utilisateur non-root --------------------------------------
+RUN set -eux; \
+    groupadd --gid 1000 nexusdl; \
+    useradd --uid 1000 --gid 1000 --shell /sbin/nologin --create-home --home-dir /home/nexusdl nexusdl; \
+    # Création des dossiers de données et attribution à l'utilisateur
+    mkdir -p /config /data /logs /cache; \
+    chown -R nexusdl:nexusdl /config /data /logs /cache /home/nexusdl; \
+    # Scripts exécutables
+    chmod +x /app/docker/entrypoint.sh; \
+    chown -R nexusdl:nexusdl /app
+
+# --- Healthcheck interne (Docker) --------------------------------------------
+HEALTHCHECK --interval=15s --timeout=6s --start-period=30s --retries=3 \
+    CMD python -c "import sys, urllib.request; \
+        sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8000/api/health', timeout=5).status == 200 else 1)" \
+    || exit 1
+
+# --- Expose le port de l'API (documentaire) ----------------------------------
+EXPOSE 8000
+
+# --- Entrypoint + CMD --------------------------------------------------------
+# tini = PID 1 minimaliste qui forward correctement les signaux.
+# entrypoint.sh = logique de bootstrap (configs, secrets, migrations).
+# CMD = commande par défaut (uvicorn), surchargeable.
+ENTRYPOINT ["/usr/bin/tini", "--", "/app/docker/entrypoint.sh"]
+CMD ["uvicorn", "nexusdl.interfaces.web.backend.main:app", \
+     "--host", "0.0.0.0", \
+     "--port", "8000", \
+     "--log-level", "info", \
+     "--no-access-log", \
+     "--proxy-headers", \
+     "--forwarded-allow-ips", "*"]
+
+# --- Métadonnées de build ----------------------------------------------------
+RUN echo "NexusDL Web Backend v${VERSION} (profile=${BUILD_PROFILE}, playwright=${INSTALL_PLAYWRIGHT})" > /app/.build-info
