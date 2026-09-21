@@ -1,0 +1,443 @@
+# ============================================================================
+#  nexus.dl — Dossier "src/nexusdl/parsers/custom/"
+#  Documentation locale du dossier. Non chargé à l'exécution.
+#  Format : YAML parsable (utilisé par docs/source/conf.py et la CI).
+# ============================================================================
+
+meta:
+  path: "src/nexusdl/parsers/custom/"
+  parent: "src/nexusdl/parsers/"
+  role: "Parsers personnalisés utilisateur + template de création"
+  owner: "@nexusdl/parsers-team"
+  since: "0.1.0"
+  updated: "2025-01-15"
+  status: stable
+  tracked_in_git: true
+
+# ----------------------------------------------------------------------------
+#  Rôle du dossier
+# ----------------------------------------------------------------------------
+purpose: |
+  Ce dossier contient :
+
+    1. Un **template** (``_template.py``) — squelette commenté à copier
+       pour créer un nouveau parser from scratch.
+    2. Un **marqueur de package** (``__init__.py``) — vide, pour permettre
+       l'import ``nexusdl.parsers.custom``.
+    3. La **documentation locale** (``nexus.dl`` — ce fichier).
+
+  **Différence avec les autres dossiers de parsers** (``fr/``, ``en/``,
+  ``kr/``, ``adult/``) :
+
+    - ``fr/``, ``en/``, ``kr/``, ``adult/`` contiennent des parsers
+      **officiels**, maintenus par l'équipe NexusDL et livrés avec le
+      package.
+    - ``custom/`` est destiné aux parsers **utilisateur**, écrits par
+      des tiers (fork, site privé, test en développement).
+
+  **Politique de chargement** :
+
+    - Les parsers de ce dossier **ne sont PAS** référencés dans
+      ``core/registry/sites.yaml`` par défaut.
+    - Pour qu'un parser custom soit chargé, l'utilisateur doit :
+        1. Déclarer le site dans ``{config_dir}/sites_overrides.yaml``
+           avec ``parser_class: "nexusdl.parsers.custom.mon_site:MonParser"``.
+        2. OU placer le parser dans ``{config_dir}/plugins_data/`` (sandbox
+           plugins) avec un manifest ``nexus.plugin.yaml``.
+    - Sans cette déclaration explicite, le parser existe sur le disque
+      mais n'est jamais instancié.
+
+  **Différence avec les plugins** : un parser dans ``custom/`` est un
+  **parser** (sous-classe de ``BaseParser``), pas un **plugin**
+  (sous-classe du système ``plugins/``). Les deux mécanismes coexistent :
+
+    - ``custom/`` : fork direct du code, accès complet au core.
+    - ``plugins/`` : sandboxé, API limitée, permissions déclarées.
+
+# ----------------------------------------------------------------------------
+#  Contenu du dossier
+# ----------------------------------------------------------------------------
+contents:
+
+  - file: "__init__.py"
+    type: module
+    role: "Marqueur de package Python (vide)"
+    loaded_at_runtime: false
+    notes: |
+      Fichier vide — sa seule fonction est de rendre le dossier importable
+      via ``import nexusdl.parsers.custom``. Ne contient aucun export,
+      aucun code, aucun side-effect.
+
+  - file: "_template.py"
+    type: template
+    role: "Squelette commenté pour créer un parser custom"
+    loaded_at_runtime: false
+    class: "TemplateParser"
+    notes: |
+      Template **pédagogique** — chaque méthode est stub avec un
+      docstring expliquant ce qu'elle doit faire. Sert de point de
+      départ pour un développeur qui veut créer un parser from scratch
+      sans utiliser un des mixins officiels.
+
+      Le préfixe ``_`` signale au loader qu'il ne s'agit **pas** d'un
+      parser à charger automatiquement (dossier commençant par ``_``
+      ou fichier préfixé ``_`` → ignoré par la découverte).
+
+      Le template importe ``BaseParser`` et implémente les 4 méthodes
+      abstraites obligatoires (``search``, ``get_manga``, ``get_chapters``,
+      ``get_pages``) avec des ``raise NotImplementedError``.
+
+  - file: "nexus.dl"
+    type: documentation
+    role: "Ce fichier — documentation locale du dossier"
+    loaded_at_runtime: false
+
+# ----------------------------------------------------------------------------
+#  Fichiers utilisateur attendus (gitignored)
+# ----------------------------------------------------------------------------
+user_files:
+  note: |
+    Un utilisateur qui crée un parser custom **ne doit pas** le placer
+    dans ``src/nexusdl/parsers/custom/`` (c'est un dossier du package
+    installé, potentiellement écrasé à la mise à jour). Il doit utiliser
+    l'un des emplacements suivants :
+
+  recommended_locations:
+    - path: "{config_dir}/parsers_custom/"
+      description: |
+        Dossier utilisateur, chemin XDG standard (``~/.config/nexusdl/
+        parsers_custom/`` sous Linux). Chargé en priorité si présent
+        et listé dans ``sites_overrides.yaml``.
+      persistence: "survit aux mises à jour du package"
+      security: "accès complet au core (comme le code du package)"
+      example: |
+        # Dans {config_dir}/sites_overrides.yaml
+        new_sites:
+          mon_site:
+            parser_class: "parsers_custom.mon_site:MonParser"
+            domains: ["https://mon-site.example"]
+            language: fr
+            adult: false
+            capabilities:
+              supports_search: true
+              supports_manga_info: true
+              supports_chapters: true
+              supports_pages: true
+              supports_download: true
+
+    - path: "{config_dir}/plugins_data/{plugin_name}/"
+      description: |
+        Emplacement pour les plugins sandboxés. Un plugin peut fournir
+        un parser via son entrypoint, en utilisant l'API plugin
+        (``api.http``, ``api.fs``) au lieu du core.
+      persistence: "survit aux mises à jour du package"
+      security: "sandboxé, permissions déclarées dans le manifest"
+      example: |
+        # plugins_data/mon_parser_plugin/nexus.plugin.yaml
+        name: mon_parser_plugin
+        version: 1.0.0
+        api_version: "1.0"
+        entrypoint: "plugin:MonParserPlugin"
+        hooks: [on_load]
+        permissions: [network_http]
+
+  discouraged_locations:
+    - path: "src/nexusdl/parsers/custom/"
+      reason: |
+        Ce dossier fait partie du **package installé**. Y placer un
+        fichier personnalisé :
+          - sera perdu à la prochaine mise à jour,
+          - peut être écrasé silencieusement,
+          - pollue le wheel distribuable,
+          - n'est pas testable en CI.
+
+    - path: "site-packages/nexusdl/parsers/custom/"
+      reason: "Même problème que ci-dessus, en pire (accès root souvent requis)."
+
+# ----------------------------------------------------------------------------
+#  Workflow de création d'un parser custom
+# ----------------------------------------------------------------------------
+workflow:
+
+  step_1: |
+    Copier le template :
+
+        mkdir -p ~/.config/nexusdl/parsers_custom/
+        cp $(python -c "import nexusdl.parsers.custom as m; print(m.__path__[0])")/_template.py \\
+           ~/.config/nexusdl/parsers_custom/mon_site.py
+
+  step_2: |
+    Éditer le fichier — renommer la classe ``TemplateParser`` en
+    ``MonSiteParser``, changer les ``ClassVar`` (``site_id``,
+    ``language``, ``base_url``, ``adult``), implémenter les 4 méthodes
+    abstraites.
+
+  step_3: |
+    Enregistrer le site dans ``~/.config/nexusdl/sites_overrides.yaml`` :
+
+        new_sites:
+          mon_site:
+            parser_class: "parsers_custom.mon_site:MonSiteParser"
+            domains: ["https://mon-site.example"]
+            language: fr
+            adult: false
+
+  step_4: |
+    Ajouter le dossier au PYTHONPATH (ou l'installer comme package) :
+
+        # Option A : variable d'environnement
+        export PYTHONPATH="$HOME/.config/nexusdl:$PYTHONPATH"
+
+        # Option B : fichier .pth dans le venv
+        echo "$HOME/.config/nexusdl" > $(python -c "import site; print(site.getsitepackages()[0])")/nexusdl_custom.pth
+
+  step_5: |
+    Valider et tester :
+
+        python -m nexusdl sites validate mon_site
+        python -m nexusdl search "test" --site mon_site
+
+  step_6: |
+    Si le parser est utile à la communauté, proposer une PR pour
+    l'ajouter aux parsers officiels (``parsers/fr/``, ``parsers/en/``,
+    etc.). Voir ``docs/source/development/adding_parsers.md``.
+
+# ----------------------------------------------------------------------------
+#  Template — structure attendue
+# ----------------------------------------------------------------------------
+template:
+
+  file: "_template.py"
+  class_name: "TemplateParser"
+  site_id: "template_site"
+  language: "en"
+  adult: false
+
+  abstract_methods:
+    - name: "search"
+      signature: "async def search(self, query: str, *, page: int = 1) -> list[SearchResult]"
+      purpose: "Rechercher des mangas par query"
+
+    - name: "get_manga"
+      signature: "async def get_manga(self, url_or_id: str) -> Manga"
+      purpose: "Récupérer les métadonnées complètes d'un manga"
+
+    - name: "get_chapters"
+      signature: "async def get_chapters(self, manga: Manga) -> list[Chapter]"
+      purpose: "Lister les chapitres d'un manga"
+
+    - name: "get_pages"
+      signature: "async def get_pages(self, chapter: Chapter) -> list[Page]"
+      purpose: "Extraire les URLs des pages d'un chapitre"
+
+  optional_methods:
+    - name: "download_page"
+      signature: "async def download_page(self, page: Page, dest: Path, *, overwrite: bool = False) -> Path"
+      purpose: "Télécharger une page (par défaut : via self.session)"
+      default: "héritée de BaseParser"
+
+    - name: "health_check"
+      signature: "async def health_check(self) -> bool"
+      purpose: "Vérifier que le site est accessible"
+      default: "héritée de BaseParser"
+
+    - name: "normalize_url"
+      signature: "def normalize_url(self, url: str) -> str"
+      purpose: "Convertir une URL relative en absolue"
+      default: "héritée de BaseParser"
+
+  class_vars:
+    required:
+      - "site_id: ClassVar[str] — identifiant unique"
+      - "language: ClassVar[str] — code langue (fr, en, ja, ...)"
+    optional:
+      - "adult: ClassVar[bool] = False — contenu 18+"
+      - "base_url: ClassVar[str] — URL canonique"
+      - "mirror_domains: ClassVar[tuple[str, ...]] — miroirs"
+      - "cloudflare_strategy: ClassVar[str] — playwright | flaresolverr"
+      - "content_rating: ClassVar[ContentRating] — SAFE | SUGGESTIVE | EROTICA | PORNOGRAPHIC"
+
+# ----------------------------------------------------------------------------
+#  Conventions
+# ----------------------------------------------------------------------------
+conventions:
+  naming:
+    - "Nom du fichier : snake_case, correspond au site_id (ex: mon_site.py)"
+    - "Nom de la classe : PascalCase + suffixe 'Parser' (ex: MonSiteParser)"
+    - "Classe déclarée dans le module, référence par entrypoint 'module:Classe'"
+  structure:
+    - "from __future__ import annotations en tête"
+    - "Imports : stdlib → third-party → nexusdl (séparés par ligne vide)"
+    - "Docstring de module Google-style (usage + exemples)"
+    - "Docstrings Google-style sur toutes les méthodes publiques"
+  typing:
+    - "Type hints partout (mypy strict compatible)"
+    - "Utiliser TYPE_CHECKING pour les imports cycliques"
+    - "Préférer les ClassVar typés (pas de simple attribut de classe)"
+  async:
+    - "Toutes les méthodes I/O sont async"
+    - "Utiliser asyncio.TaskGroup plutôt que gather (Python 3.11+)"
+    - "Timeouts systématiques sur les opérations réseau"
+    - "Sémaphores pour limiter la concurrence (via HttpSession)"
+  errors:
+    - "ParserError pour les erreurs de configuration/query"
+    - "MangaNotFoundError pour les 404"
+    - "ChapterDownloadError pour les échecs de téléchargement"
+    - "SiteUnreachableError pour les échecs réseau"
+  logging:
+    - "logger.bind(site=self.site_id) dans chaque méthode"
+    - "DEBUG pour les étapes, INFO pour les résultats"
+    - "WARNING pour les anomalies (chapitres manquants, retry)"
+  security:
+    - "Aucun credential en dur (utiliser HttpSession + CookieManager)"
+    - "Pas d'eval/exec/__import__ dynamique non whitelisté"
+    - "Validation des entrées utilisateur (URLs, IDs)"
+
+# ----------------------------------------------------------------------------
+#  Invariants (vérifiés par la CI)
+# ----------------------------------------------------------------------------
+invariants:
+
+  - id: "template-importable"
+    description: "Le template _template.py est syntaxiquement valide"
+    check: "python -c 'import ast; ast.parse(open(\"src/nexusdl/parsers/custom/_template.py\").read())'"
+    severity: error
+
+  - id: "template-subclass"
+    description: "TemplateParser hérite de BaseParser"
+    check: "python -c 'from nexusdl.parsers.custom._template import TemplateParser; from nexusdl.parsers.base import BaseParser; assert issubclass(TemplateParser, BaseParser)'"
+    severity: error
+
+  - id: "template-abstract-methods"
+    description: "Le template implémente (ou stub) les 4 méthodes abstraites"
+    check: "python -c 'from nexusdl.parsers.custom._template import TemplateParser; import inspect; methods = {\"search\", \"get_manga\", \"get_chapters\", \"get_pages\"}; missing = methods - set(dir(TemplateParser)); assert not missing, missing'"
+    severity: error
+
+  - id: "no-user-files-committed"
+    description: "Aucun fichier utilisateur (non-préfixé _) n'est committé dans ce dossier"
+    check: "find src/nexusdl/parsers/custom -name '*.py' ! -name '_*' ! -name '__init__.py' | grep -q . && exit 1 || exit 0"
+    severity: error
+
+  - id: "init-empty"
+    description: "__init__.py est vide (aucun import, aucun code)"
+    check: "test $(wc -l < src/nexusdl/parsers/custom/__init__.py) -le 5"
+    severity: warning
+
+  - id: "no-secrets"
+    description: "Aucun secret hardcodé dans le template ou le __init__"
+    check: "pre-commit run detect-secrets --files src/nexusdl/parsers/custom/*"
+    severity: error
+
+# ----------------------------------------------------------------------------
+#  Points d'attention
+# ----------------------------------------------------------------------------
+notes:
+  - "Ce dossier est destiné à un usage INTERNE uniquement — les utilisateurs"
+  - "doivent placer leurs parsers dans {config_dir}/parsers_custom/, pas ici."
+  - "Tout fichier Python dans ce dossier (hors _template.py et __init__.py)"
+  - "doit être .gitignored (voir .gitignore racine)."
+  - "Le template _template.py est livré avec le package — il est référencé"
+  - "par la commande 'nexusdl sites scaffold <site_id>' (Phase 13)."
+  - "Le préfixe _ sur _template.py signale au loader de ne pas le traiter"
+  - "comme un parser officiel — il est ignoré par la découverte de sites."
+  - "Aucun parser de ce dossier n'est chargé automatiquement au démarrage."
+  - "L'enregistrement se fait via sites_overrides.yaml (parser custom)"
+  - "ou via plugins_data/ (plugin sandboxé)."
+  - "Les parsers custom ont un ACCÈS COMPLET au core (comme le code officiel)."
+  - "Ils ne sont PAS sandboxés — un parser malveillant peut tout casser."
+  - "Pour un parser sandboxé, utiliser le système de plugins (permissions)."
+  - "Le template est volontairement minimal — il ne démontre PAS les patterns"
+  - "avancés (caching, Cloudflare, miroirs). Voir les parsers officiels pour ça."
+
+# ----------------------------------------------------------------------------
+#  Sécurité — différence parser custom vs plugin
+# ----------------------------------------------------------------------------
+security_comparison:
+
+  parser_custom:
+    sandboxed: false
+    permissions_required: false
+    access_level: "full core access"
+    install_method: "sites_overrides.yaml + PYTHONPATH"
+    trust_model: |
+      L'utilisateur qui installe un parser custom accorde sa confiance
+      COMPLÈTE au code de ce parser. Un parser custom peut :
+        - lire/écrire n'importe quel fichier
+        - faire des requêtes réseau arbitraires
+        - accéder aux cookies, à la bibliothèque, à la config
+        - importer n'importe quel module Python
+      C'est le même niveau de confiance que le code officiel de NexusDL.
+    recommended_for:
+      - "Parser pour un site privé/internet qu'on maintient soi-même"
+      - "Fork d'un parser officiel avec des modifications locales"
+      - "Parser en cours de développement avant PR upstream"
+    not_recommended_for:
+      - "Parser tiers téléchargé depuis une source non vérifiée"
+      - "Parser de provenance inconnue"
+
+  plugin:
+    sandboxed: true
+    permissions_required: true
+    access_level: "limited (API plugin)"
+    install_method: "plugins_data/ + nexus.plugin.yaml"
+    trust_model: |
+      Un plugin est sandboxé : ses imports sont whitelistés, ses accès
+      aux ressources core passent par l'API plugin qui vérifie les
+      permissions déclarées dans le manifest. Un plugin malveillant
+      peut au pire :
+        - faire des requêtes HTTP (si permission network_http)
+        - lire/écrire dans son sandbox fs (si permission filesystem_*)
+        - envoyer des notifications (si permission notifications)
+      Il ne peut PAS accéder directement au core.
+    recommended_for:
+      - "Extensions tierces d'auteurs non vérifiés"
+      - "Plugins de notification (Discord, Telegram, etc.)"
+      - "Hooks de transformation légers (pre_search, post_download)"
+    not_recommended_for:
+      - "Parsers complexes avec scraping fin (limitations API)"
+      - "Code qui a besoin d'accéder aux cookies/cookies_manager"
+
+  summary: |
+    | Critère              | Parser custom   | Plugin sandboxé  |
+    |----------------------|-----------------|------------------|
+    | Installation         | sites_overrides | nexus.plugin.yaml|
+    | Accès core           | Complet         | Via API limitée  |
+    | Permissions          | Non             | Déclarées        |
+    | Sandbox              | Non             | Oui              |
+    | Complexité scraping  | Libre           | Limitée          |
+    | Recommandé pour      | Parsers custom  | Extensions       |
+
+# ----------------------------------------------------------------------------
+#  Outils associés
+# ----------------------------------------------------------------------------
+tooling:
+  scaffold:
+    - "nexusdl sites scaffold mon_site --output ~/.config/nexusdl/parsers_custom/"
+    - "# Copie _template.py en mon_site.py avec substitutions (site_id, class_name)"
+
+  validate:
+    - "nexusdl sites validate mon_site"
+    - "python scripts/validate_sites.py run all"
+    - "python -m py_compile ~/.config/nexusdl/parsers_custom/mon_site.py"
+
+  test:
+    - "pytest tests/parsers/custom/ -v"
+    - "# Les tests utilisateur vivent hors du repo, dans leur propre dossier"
+
+  inspect:
+    - "nexusdl sites list --include-custom"
+    - "nexusdl sites info mon_site"
+
+# ----------------------------------------------------------------------------
+#  Références
+# ----------------------------------------------------------------------------
+see_also:
+  - "src/nexusdl/parsers/nexus.dl              # Documentation du dossier parent"
+  - "src/nexusdl/parsers/base.py               # ABC commune"
+  - "src/nexusdl/parsers/_template.py (à créer) # Emplacement alternatif du template"
+  - "src/nexusdl/parsers/fr/                    # Exemples officiels (FR)"
+  - "src/nexusdl/parsers/en/                    # Exemples officiels (EN)"
+  - "src/nexusdl/parsers/adult/                 # Exemples officiels (18+)"
+  - "docs/source/development/adding_parsers.md  # Guide complet"
+  - "docs/source/development/plugins.md         # Alternative sandboxée"
+  - "config/sites_overrides.example.yaml        # Déclaration d'un parser custom"
