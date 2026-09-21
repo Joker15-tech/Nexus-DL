@@ -1,0 +1,306 @@
+# ============================================================================
+#  NexusDL — Surcharges de sites
+#  Copier en {config_dir}/sites_overrides.yaml puis adapter.
+#  Gitignored. Deep-mergé avec core/registry/sites.yaml.
+# ============================================================================
+
+# Version de schéma — incrémentée si le format change (migration auto).
+schema_version: 1
+
+# ----------------------------------------------------------------------------
+#  Surcharges de sites existants
+#  Clé = site_id (doit correspondre exactement à celui de sites.yaml).
+# ----------------------------------------------------------------------------
+sites:
+
+  # === Exemple 1 : mise à jour d'un domaine (site a changé de TLD) ==========
+  sushiscan:
+    domains:
+      - "https://sushiscan.net"       # Remplace l'ancien (liste = replace)
+      - "https://sushiscan.fr"
+    # Header spécifique requis par le nouveau backend
+    default_headers:
+      Referer: "https://sushiscan.net/"
+      X-Requested-With: "XMLHttpRequest"
+
+  # === Exemple 2 : ajout de headers sans écraser les existants =============
+  # Préfixe "+" = append à la liste héritée (pour les listes uniquement)
+  # Pour les dicts, le merge est récursif : pas besoin de préfixe.
+  mangadex:
+    default_headers:
+      # Merge récursif : les autres headers hérités sont conservés
+      X-Custom-Header: "nexusdl/0.1"
+    rate_limit:
+      requests_per_second: 5.0        # MangaDex tolère plus que la défaut
+    capabilities:
+      max_concurrent_downloads: 6
+
+  # === Exemple 3 : retirer une valeur héritée ==============================
+  # null explicite = suppression de la clé héritée
+  comick:
+    default_headers:
+      X-Old-Header: null              # Supprime ce header hérité
+
+  # === Exemple 4 : désactiver temporairement un site =======================
+  # Utile si un site est cassé et qu'on veut éviter les erreurs en boucle
+  scan_manga:
+    _disable: true
+    _disable_reason: "Cloudflare a durci ses protections le 2025-01-10"
+    _disable_until: "2025-02-01"      # Réactivation auto après cette date
+
+  # === Exemple 5 : nouveau domaine pour un site Cloudflare =================
+  nhentai:
+    domains:
+      - "https://nhentai.net"
+    # Forcer Playwright (le site a ajouté un challenge JS récemment)
+    capabilities:
+      requires_cloudflare_bypass: true
+    session:
+      cloudflare:
+        strategy: playwright
+        prefer: playwright
+
+  # === Exemple 6 : sélecteurs CSS personnalisés ============================
+  # Si le site a modifié son HTML et que le parser ne trouve plus les éléments
+  asurascans:
+    selectors:
+      search_item: "div.book-item a"
+      search_title: "div.book-item h3 a"
+      search_cover: "div.book-item img"
+      manga_title: "h1.entry-title"
+      manga_description: "div.summary__content"
+      manga_cover: "div.thumb img"
+      chapter_item: "div.eplister ul li a"
+      chapter_number: "span.chapternum"
+      chapter_title: "span.chaptertitle"
+      page_image: "div#readerarea img"
+
+  # === Exemple 7 : cookies requis (site passé derrière un login) ===========
+  toonily:
+    cookies_required:
+      - "+_session_id"                # "+" = ajoute à la liste héritée
+      - "cf_clearance"
+    # Note : les cookies eux-mêmes sont stockés dans le CookieManager
+    # (chiffrés), pas ici. Cette liste indique juste quels cookies
+    # sont nécessaires pour que le parser fonctionne.
+
+  # === Exemple 8 : rate limit personnalisé =================================
+  reaperscans:
+    rate_limit:
+      requests_per_second: 0.5        # Site très agressif sur le rate limit
+      burst: 2
+    capabilities:
+      max_concurrent_downloads: 2
+
+  # === Exemple 9 : proxy dédié pour un site ================================
+  # (nécessite que proxy.yaml soit configuré)
+  hentaizone:
+    proxy:
+      mode: pool
+      tags: [tor, anonymous]
+      sticky: true
+
+  # === Exemple 10 : forcer une langue différente ===========================
+  # (si le site expose plusieurs langues et que l'auto-détection échoue)
+  mangas_origines:
+    language: fr
+    # Le parser hérité peut proposer plusieurs langues ; on force la FR
+    language_filter:
+      - fr
+
+  # === Exemple 11 : timeout spécifique (site lent) =========================
+  batoto:
+    timeouts:
+      connect: 20.0
+      read: 60.0
+      total: 180.0
+
+  # === Exemple 12 : auth basique custom ====================================
+  # Certains sites nécessitent une auth HTTP Basic (rare)
+  custom_example:
+    auth:
+      type: basic
+      username_env: "NEXUSDL_MYSITE_USER"   # Nom de variable d'env
+      password_env: "NEXUSDL_MYSITE_PASS"   # Jamais de credentials en clair
+      # Alternative en clair (⚠️ déconseillé) :
+      # username: "user"
+      # password: "pass"
+
+  # === Exemple 13 : parser class custom ====================================
+  # Si tu as forké/écrit ton propre parser en dehors du package
+  my_custom_site:
+    parser_class: "my_plugins.my_parser:MyCustomParser"
+    domains:
+      - "https://my-site.example.com"
+    language: fr
+    adult: false
+    capabilities:
+      supports_search: true
+      supports_manga_info: true
+      supports_chapters: true
+      supports_pages: true
+      supports_download: true
+      requires_auth: false
+      requires_cloudflare_bypass: false
+      max_concurrent_downloads: 4
+      rate_limit_per_second: 1.0
+
+# ----------------------------------------------------------------------------
+#  Nouveaux sites — ajout complet sans toucher au package
+#  Utile pour les sites morts-vivants ou les forks communautaires.
+#  Chaque entrée DOIT fournir au minimum : parser_class, domains, language.
+# ----------------------------------------------------------------------------
+new_sites:
+
+  # Exemple : nouveau site Madara (utilise le mixin existant)
+  my_madara_site:
+    name: "My Madara Site"
+    domains:
+      - "https://my-madara-site.example.com"
+    parser_class: "nexusdl.parsers.mixins.wordpress_madara:MadaraParser"
+    language: fr
+    adult: false
+    capabilities:
+      supports_search: true
+      supports_manga_info: true
+      supports_chapters: true
+      supports_pages: true
+      supports_download: true
+      requires_cloudflare_bypass: false
+      max_concurrent_downloads: 4
+      rate_limit_per_second: 1.5
+    default_headers:
+      User-Agent: "Mozilla/5.0 (compatible; NexusDL/0.1)"
+    # Options spécifiques au mixin Madara
+    mixin_options:
+      base_url: "https://my-madara-site.example.com"
+      search_path: "/?s={query}&post_type=wp-manga"
+      manga_path: "/manga/{slug}/"
+      chapter_path: "/manga/{slug}/{chapter_slug}/"
+
+  # Exemple : nouveau site API-based (MangaDex-like)
+  my_api_site:
+    name: "My API Site"
+    domains:
+      - "https://api.my-site.example.com"
+    parser_class: "nexusdl.parsers.mixins.api_based:ApiBasedParser"
+    language: en
+    adult: false
+    mixin_options:
+      api_base: "https://api.my-site.example.com/v1"
+      search_endpoint: "/search"
+      manga_endpoint: "/manga/{id}"
+      chapters_endpoint: "/manga/{id}/chapters"
+      pages_endpoint: "/chapter/{id}/pages"
+      api_key_env: "NEXUSDL_MYSITE_API_KEY"    # Jamais en clair
+
+# ----------------------------------------------------------------------------
+#  Alias de sites — mapper un nom court vers un site_id existant
+#  Utile pour la CLI : `nexusdl download --site sc <url>`
+# ----------------------------------------------------------------------------
+aliases:
+  sc: sushiscan
+  md: mangadex
+  nh: nhentai
+  hz: hentaizone
+  mfo: mangas_origines_fr
+  as: asurascans
+
+# ----------------------------------------------------------------------------
+#  Groupes de sites — raccourcis pour la CLI et la recherche multi-sites
+#  Utilisables comme `--site @fr` ou `--site @adult`
+# ----------------------------------------------------------------------------
+groups:
+  fr:
+    - sushiscan
+    - scan_manga
+    - mangas_origines_fr
+    - anime_scans
+    - raijin_scans
+    - phenix_scans
+    - poseidon_scans
+    - xanadu_scans
+  en:
+    - mangadex
+    - comick
+    - asurascans
+    - batoto
+    - flamescans
+    - reaperscans
+    - luminousscans
+  adult:
+    - nhentai
+    - hentaizone
+    - pururin
+    - x_manga_org
+  api:
+    - mangadex
+    - comick
+  fast:
+    - mangadex
+    - comick
+    - asurascans
+    - sushiscan
+  # Groupe auto-calculé (non modifiable) : "all", "enabled", "favorites"
+
+# ----------------------------------------------------------------------------
+#  Règles globales — appliquées à tous les sites sauf override explicite
+# ----------------------------------------------------------------------------
+global_rules:
+  # Timeouts par défaut (hérités par tous les sites qui n'ont pas de `timeouts`)
+  default_timeouts:
+    connect: 10.0
+    read: 30.0
+    total: 120.0
+
+  # Headers par défaut (hérités sauf override)
+  default_headers:
+    Accept-Language: "fr-FR,fr;q=0.9,en;q=0.8"
+    DNT: "1"
+
+  # Rate limit par défaut
+  default_rate_limit:
+    requests_per_second: 2.0
+    burst: 5
+
+  # Capabilities par défaut
+  default_capabilities:
+    supports_search: true
+    supports_manga_info: true
+    supports_chapters: true
+    supports_pages: true
+    supports_download: true
+    requires_auth: false
+    requires_cloudflare_bypass: false
+    max_concurrent_downloads: 4
+    rate_limit_per_second: 2.0
+
+  # Sites désactivés globalement (raccourci pour sites.*._disable: true)
+  disabled: []
+    # - toongod
+    # - manhwaclub
+
+  # Sites à ignorer lors de la recherche multi-sites (mais utilisables en direct)
+  exclude_from_search: []
+    # - x_manga_org
+
+# ----------------------------------------------------------------------------
+#  Fichiers additionnels de surcharge
+#  Permet de scinder en plusieurs fichiers (ex: sites_perso.yaml, sites_fr.yaml)
+#  Les fichiers listés ici sont chargés dans l'ordre, puis les `sites:` de ce
+#  fichier priment en cas de conflit.
+# ----------------------------------------------------------------------------
+extra_files: []
+  # - "{config_dir}/sites_perso.yaml"
+  # - "{config_dir}/sites_fr.yaml"
+
+# ----------------------------------------------------------------------------
+#  Debug
+# ----------------------------------------------------------------------------
+debug:
+  # Loguer le diff entre sites.yaml et les overrides au chargement
+  log_merge_diff: false
+  # Valider strictement : erreur si une clé inconnue apparaît
+  strict_validation: true
+  # Dump le résultat du merge dans un fichier pour inspection
+  dump_merged_path: null           # ex: "{cache_dir}/sites_merged.yaml"
