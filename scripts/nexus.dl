@@ -1,0 +1,296 @@
+# ============================================================================
+#  nexus.dl — Dossier "scripts/"
+#  Documentation locale du dossier. Non chargé à l'exécution.
+#  Format : YAML parsable (utilisé par docs/source/conf.py et la CI).
+# ============================================================================
+
+meta:
+  path: "scripts/"
+  parent: "Nexus-DL/"
+  role: "Outils développeur, build, release, migration, validation"
+  owner: "@nexusdl/devops-team"
+  since: "0.1.0"
+  updated: "2025-01-15"
+  status: stable
+  tracked_in_git: true
+
+# ----------------------------------------------------------------------------
+#  Rôle du dossier
+# ----------------------------------------------------------------------------
+purpose: |
+  Ce dossier contient les **scripts Python autonomes** qui orchestrent le
+  cycle de vie du projet : build, test, dev, clean, migration, validation,
+  benchmark, génération de parsers, récupération de cookies.
+
+  Ces scripts sont :
+
+    1. **Indépendants du package installé** — ils ajoutent `src/` à
+       `sys.path` pour tourner sans `pip install -e .`.
+    2. **Appelables directement** — `python scripts/<nom>.py [commandes]`.
+    3. **Exposés via le Makefile et le justfile** — `make build`, `just bench`.
+    4. **Utilisés en CI** — `.github/workflows/*.yml` les invoque.
+
+  Ils ne sont **pas** installés avec le package (exclus de `pyproject.toml`
+  via `[tool.hatch.build.targets.wheel] exclude = ["scripts/"]`). C'est du
+  tooling développeur, pas du code applicatif.
+
+# ----------------------------------------------------------------------------
+#  Contenu du dossier
+# ----------------------------------------------------------------------------
+contents:
+
+  # === Scripts de build / release ===========================================
+  - file: "build.py"
+    type: tool
+    role: "Build unifié — wheel, sdist, frontend, GUI, docs"
+    subcommands: [python, frontend, gui, docs, all]
+    dependencies: [hatchling, uv, pyinstaller, sphinx, pnpm/npm]
+    used_by: [".github/workflows/build.yml", ".github/workflows/release.yml", "Makefile"]
+    loaded_at_runtime: false
+    notes: |
+      Ordre canonique : frontend → python → gui → docs. Le frontend doit
+      être buildé avant le wheel pour être embarqué dans
+      `interfaces/web/backend/static/`. Vérifie l'absence de secrets dans
+      le wheel/sdist (FORBIDDEN_PATTERNS).
+
+  - file: "dev.py"
+    type: tool
+    role: "Workflow développeur — CLI, web, GUI, shell, doctor"
+    subcommands: [cli, web, gui, all, shell, doctor, init, stop, status]
+    dependencies: [uvicorn, IPython (opt), pnpm/npm, customtkinter (opt)]
+    used_by: [".github/workflows/lint.yml (doctor)", "Makefile", "justfile"]
+    loaded_at_runtime: false
+    notes: |
+      Modes foreground (Ctrl+C tue tout) et background (PID dans
+      build/dev/*.pid). `doctor` sort en code 1 si Python < 3.12 ou
+      modules core manquants. `all` lance services en background + CLI
+      en foreground.
+
+  - file: "clean.py"
+    type: tool
+    role: "Nettoyage — caches, build, temp, données utilisateur"
+    subcommands: [run, caches, build, all]
+    dependencies: [platformdirs (opt)]
+    used_by: [".github/workflows/*.yml", "Makefile", "justfile"]
+    loaded_at_runtime: false
+    notes: |
+      Dry-run par défaut. `user` n'est JAMAIS inclus dans `all` — il faut
+      `--include-user` explicitement + confirmation interactive. Protections
+      multiples : PROTECTED_PATHS, `is_protected`, MAX_FILES_PER_PATTERN.
+
+  # === Scripts de migration / validation ====================================
+  - file: "migrate_config.py"
+    type: tool
+    role: "Migration de configuration entre versions de schéma"
+    subcommands: [check, migrate, reset, history]
+    dependencies: [pyyaml]
+    used_by: [".pre-commit-config.yaml", ".github/workflows/lint.yml", "Makefile"]
+    loaded_at_runtime: false
+    notes: |
+      CURRENT_SCHEMA_VERSION = 2. Migrations en chaîne (v1→v2→v3...).
+      Backup horodaté avant toute écriture. Restauration auto si la
+      validation Pydantic post-migration échoue. `check` sort en code 1
+      si migration requise — utilisable en pre-commit.
+
+  - file: "validate_sites.py"
+    type: tool
+    role: "Validation de la config — schema, parsers, orphans, sync"
+    subcommands: [run, all, list]
+    dependencies: [pyyaml, jsonschema (opt)]
+    used_by: [".github/workflows/lint.yml", ".pre-commit-config.yaml", "Makefile"]
+    loaded_at_runtime: false
+    notes: |
+      Sept validateurs indépendants : schema, sites, parsers, orphans,
+      duplicates, config-sync, logging-profiles. Mode --strict (warnings →
+      erreurs) pour la CI. Sortie JSON via --format json.
+
+  # === Scripts de génération ===============================================
+  - file: "generate_parser.py"
+    type: tool
+    role: "Génération de squelettes de parsers (6 templates)"
+    subcommands: [new, list-templates, validate]
+    dependencies: [typer, rich]
+    used_by: [".github/ISSUE_TEMPLATE/new_site.md", "docs/source/development/adding_parsers.md"]
+    loaded_at_runtime: false
+    notes: |
+      Templates : madara, mangathemesia, foolslide, api_based, playwright,
+      minimal. Assistant interactif si aucun argument. Enregistre
+      automatiquement dans sites.yaml ou sites_overrides.yaml.
+
+  - file: "fetch_cookies.py"
+    type: tool
+    role: "Récupération interactive de cookies (Playwright + import navigateur)"
+    subcommands: [interactive, import, refresh, list]
+    dependencies: [playwright, cryptography, sqlite3 (stdlib)]
+    used_by: [".github/ISSUE_TEMPLATE/bug_report.md", "docs/source/usage/configuration.md"]
+    loaded_at_runtime: false
+    notes: |
+      Trois modes : interactive (Playwright + login manuel), import
+      (Firefox en clair, Chromium noms seulement), refresh (revalidation
+      headless). Cookies chiffrés AES-GCM via CookieManager. Clé dérivée
+      de NEXUSDL_SECRET_KEY.
+
+  # === Scripts d'analyse ====================================================
+  - file: "benchmark.py"
+    type: tool
+    role: "Benchmark des performances (parsers, HTTP, packaging)"
+    subcommands: [all, site, local]
+    dependencies: [pytest, pillow, respx (mode offline)]
+    used_by: ["Makefile (make bench)", "justfile", ".github/workflows/build.yml (smoke)"]
+    loaded_at_runtime: false
+    notes: |
+      Modes live (réseau, quota) et offline (fixtures locales). Warmup
+      obligatoire pour éviter le biais de cold start. Médiane > moyenne
+      pour la queue de distribution (p95, p99). Exit code 1 si échec.
+
+  # === Documentation du dossier =============================================
+  - file: "nexus.dl"
+    type: documentation
+    role: "Ce fichier — documentation locale du dossier"
+    loaded_at_runtime: false
+
+# ----------------------------------------------------------------------------
+#  Fichiers futurs (roadmap)
+# ----------------------------------------------------------------------------
+planned:
+  - file: "benchmark_diff.py"
+    reason: "Comparer deux rapports JSON de benchmark pour détecter les régressions"
+    phase: 18
+    priority: low
+  - file: "release.py"
+    reason: "Orchestration de release multi-plateforme (tag, build, upload GitHub)"
+    phase: 20
+    priority: medium
+  - file: "migrate_library.py"
+    reason: "Migration du schéma de la base de données de bibliothèque"
+    phase: 9
+    priority: medium
+  - file: "export_cookies.py"
+    reason: "Export de cookies dans un format compatible yt-dlp / gallery-dl"
+    phase: 5
+    priority: low
+  - file: "check_docs.py"
+    reason: "Vérifie que chaque module public a une entrée dans docs/source/api/"
+    phase: 20
+    priority: low
+
+# ----------------------------------------------------------------------------
+#  Conventions
+# ----------------------------------------------------------------------------
+conventions:
+  shebang:
+    - "#!/usr/bin/env python3 en première ligne"
+    - "chmod +x appliqué — appelables directement"
+  structure:
+    - "from __future__ import annotations en tête"
+    - "Ajout de src/ à sys.path avant imports nexusdl"
+    - "Typer pour la CLI (app = typer.Typer())"
+    - "Rich pour l'affichage (console = Console())"
+    - "Loguru pour le logging (logger.remove() + logger.add())"
+  cli:
+    - "Commande par défaut : subcommands explicites (all, run, check...)"
+    - "Exit codes : 0=OK, 1=échec métier, 2=erreur de config CLI, 130=Ctrl+C"
+    - "--verbose / -v pour DEBUG, --quiet / -q pour silencieux"
+  format:
+    - "Docstring de module Google-style (usage + exemples)"
+    - "Type hints partout (mypy strict compatible)"
+    - "Ruff format, line length 100"
+    - "Pas de secrets hardcodés (env vars uniquement)"
+  imports:
+    - "stdlib → third-party → nexusdl (séparés par ligne vide)"
+    - "noqa: E402 sur les imports après sys.path.insert"
+    - "Imports lourds (playwright, PIL, sphinx) en local dans les fonctions"
+
+# ----------------------------------------------------------------------------
+#  Invariants (vérifiés par la CI)
+# ----------------------------------------------------------------------------
+invariants:
+  - id: "scripts-importable"
+    description: "Chaque script s'importe sans erreur (syntaxe + deps core)"
+    check: "for f in scripts/*.py; do python -c 'import ast; ast.parse(open(\"$f\").read())'; done"
+    severity: error
+
+  - id: "scripts-help-works"
+    description: "Chaque script répond à --help sans crash"
+    check: "for f in scripts/*.py; do python $f --help > /dev/null || exit 1; done"
+    severity: error
+
+  - id: "scripts-shebang-executable"
+    description: "Chaque script a un shebang et est exécutable"
+    check: "for f in scripts/*.py; do head -1 $f | grep -q '^#!/usr/bin/env python3' && test -x $f; done"
+    severity: warning
+
+  - id: "no-print-outside-console"
+    description: "Les scripts utilisent console.print() (Rich) plutôt que print()"
+    check: "grep -L 'from rich.console import Console' scripts/*.py | grep -v nexus.dl"
+    severity: warning
+
+  - id: "no-hardcoded-secrets"
+    description: "Aucun secret hardcodé dans les scripts"
+    check: "pre-commit run detect-secrets --files scripts/*.py"
+    severity: error
+
+  - id: "validate-sites-self-check"
+    description: "validate_sites.py peut valider le dépôt lui-même"
+    check: "python scripts/validate_sites.py run all --quiet"
+    severity: error
+
+# ----------------------------------------------------------------------------
+#  Exit codes (contrat commun à tous les scripts)
+# ----------------------------------------------------------------------------
+exit_codes:
+  - code: 0
+    meaning: "Succès"
+  - code: 1
+    meaning: "Échec métier (validations, erreurs de build, warnings en --strict)"
+  - code: 2
+    meaning: "Erreur de configuration CLI (argument invalide, fichier manquant)"
+  - code: 130
+    meaning: "Interruption par l'utilisateur (Ctrl+C, SIGINT)"
+  - code: 127
+    meaning: "Binaire externe introuvable (node, pyinstaller, uv, etc.)"
+
+# ----------------------------------------------------------------------------
+#  Points d'attention
+# ----------------------------------------------------------------------------
+notes:
+  - "Les scripts ne sont PAS installés avec le package — utilisés uniquement en dev/CI."
+  - "Aucun script ne charge la config effective de l'utilisateur (config.yaml local) —"
+  - "ils utilisent soit les défauts du code, soit des arguments explicites."
+  - "Les scripts qui touchent aux données utilisateur (clean.py, fetch_cookies.py)"
+  - "sont en dry-run par défaut ou demandent confirmation explicite."
+  - "Les imports lourds (playwright, PIL, sphinx) sont localisés dans les fonctions"
+  - "pour ne pas ralentir le démarrage des scripts qui n'en ont pas besoin."
+  - "Chaque script expose --help via Typer — la découvrabilité passe par là."
+  - "En cas d'ajout d'un script, ajouter une entrée dans `contents:` ci-dessus et"
+  - "dans la cible correspondante du Makefile/justfile."
+
+# ----------------------------------------------------------------------------
+#  Outils associés
+# ----------------------------------------------------------------------------
+tooling:
+  entry_points:
+    - "make build              → python scripts/build.py all"
+    - "make dev                → python scripts/dev.py all"
+    - "make clean              → python scripts/clean.py run all --apply"
+    - "make bench              → python scripts/benchmark.py local"
+    - "make migrate            → python scripts/migrate_config.py migrate --apply"
+    - "make validate           → python scripts/validate_sites.py run all --strict"
+    - "make new-parser         → python scripts/generate_parser.py new"
+    - "make cookies SITE=x     → python scripts/fetch_cookies.py interactive x"
+  just_recipes:
+    - "just build, just dev, just clean, just bench, just validate"
+    - "just parser new, just cookies SITE, just migrate"
+
+# ----------------------------------------------------------------------------
+#  Références
+# ----------------------------------------------------------------------------
+see_also:
+  - "Makefile"
+  - "justfile"
+  - ".github/workflows/*.yml"
+  - ".pre-commit-config.yaml"
+  - "pyproject.toml (extras dev, build)"
+  - "docs/source/development/contributing.md"
+  - "docs/source/development/adding_sites.md"
+  - "docs/source/development/adding_parsers.md"
