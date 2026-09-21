@@ -1,0 +1,182 @@
+# ============================================================================
+#  nexus.dl — Dossier "config/"
+#  Documentation locale du dossier. Non chargé à l'exécution.
+#  Format : YAML parsable (utilisé par scripts/validate_sites.py et Sphinx).
+# ============================================================================
+
+meta:
+  path: "config/"
+  parent: "Nexus-DL/"
+  role: "Configuration utilisateur et fichiers d'exemple"
+  owner: "@nexusdl/core-team"
+  since: "0.1.0"
+  updated: "2025-01-15"
+  status: stable
+  tracked_in_git: true
+
+# ----------------------------------------------------------------------------
+#  Rôle du dossier
+# ----------------------------------------------------------------------------
+purpose: |
+  Ce dossier contient la configuration **destinée à l'utilisateur** et les
+  fichiers d'exemple à copier lors de l'installation. Il se distingue de :
+
+    - `src/nexusdl/data/`   → ressources embarquées avec le package (lecture
+                              seule, jamais modifiées par l'utilisateur)
+    - `~/.config/nexusdl/`  → configuration effective de l'utilisateur
+                              (résolue via platformdirs, prioritaire)
+    - `core/config.py`      → valeurs par défaut définies dans le code
+                              (Pydantic Settings v2)
+
+  Ordre de résolution à l'exécution :
+    1. Défauts code (core/config.py)
+    2. {config_dir}/config.yaml           ← copie de config.example.yaml
+    3. Variables d'environnement NEXUSDL_*
+    4. Arguments CLI
+
+# ----------------------------------------------------------------------------
+#  Contenu du dossier
+# ----------------------------------------------------------------------------
+contents:
+  - file: "nexus.dl"
+    type: documentation
+    role: "Ce fichier — documentation locale du dossier"
+    loaded_at_runtime: false
+
+  - file: "config.example.yaml"
+    type: example
+    role: "Configuration principale complète et commentée"
+    loaded_at_runtime: false
+    copy_to: "{config_dir}/config.yaml"
+    schema: "src/nexusdl/core/config.py::Settings"
+    required: true
+    notes: |
+      Doit rester synchronisé avec `core/config.py`. Toute nouvelle clé
+      Pydantic doit être reflétée ici avec un commentaire explicatif.
+      Validé par `make validate-config` en CI.
+
+  - file: "logging.yaml"
+    type: config
+    role: "Configuration Loguru + stdlib (dictConfig) + profils par environnement"
+    loaded_at_runtime: true
+    loader: "src/nexusdl/core/logger.py::setup_logging"
+    schema: "src/nexusdl/core/logger.py::LoggingConfig"
+    required: false
+    default: "src/nexusdl/data/default_config.yaml#logging"
+    notes: |
+      Surcharge le logging défini en dur. Utilise un double schéma :
+      `loguru:` (custom) + `stdlib:` (dictConfig). Voir en-tête du fichier.
+
+  - file: "proxy.example.yaml"
+    type: example
+    role: "Exemple de configuration proxy avancée (pool, rotation, per-site)"
+    loaded_at_runtime: false
+    copy_to: "{config_dir}/proxy.yaml"
+    schema: "src/nexusdl/core/session/proxy_manager.py::ProxyConfig"
+    required: false
+    notes: |
+      Chargé automatiquement si présent. Peut aussi être inliné dans
+      config.yaml sous la clé `proxy:`. Le fichier séparé est recommandé
+      pour ne pas committer les credentials de proxy.
+
+  - file: "sites_overrides.example.yaml"
+    type: example
+    role: "Surcharge des propriétés de sites (domaines, headers, cookies requis)"
+    loaded_at_runtime: false
+    copy_to: "{config_dir}/sites_overrides.yaml"
+    schema: "src/nexusdl/core/registry/validator.py::SiteOverride"
+    required: false
+    notes: |
+      Permet de corriger un site cassé (nouveau domaine, sélecteur modifié)
+      sans attendre une release. Deep-merged avec `core/registry/sites.yaml`.
+
+# ----------------------------------------------------------------------------
+#  Conventions
+# ----------------------------------------------------------------------------
+conventions:
+  naming:
+    - "*.example.* : fichiers à copier, JAMAIS chargés directement"
+    - "*.yaml : configuration effective, gitignored"
+    - "nexus.dl : documentation du dossier, committé"
+  format:
+    - "YAML 1.2 strict (pas de tabulations, indentation 2 espaces)"
+    - "UTF-8 sans BOM"
+    - "Commentaires en français (l'UI et la doc sont francophones par défaut)"
+    - "Clés en snake_case"
+  secrets:
+    policy: never_commit
+    handling: |
+      Aucun fichier de ce dossier committé ne doit contenir de secret réel.
+      Les valeurs sensibles utilisent des placeholders :
+        - null
+        - "CHANGEME"
+        - "${NEXUSDL_*}"     (résolu depuis l'environnement)
+        - "REPLACE_ME"
+      Un hook pre-commit (`.pre-commit-config.yaml::detect-secrets`) bloque
+      tout commit contenant un pattern de secret.
+
+# ----------------------------------------------------------------------------
+#  Invariants (vérifiés par la CI)
+# ----------------------------------------------------------------------------
+invariants:
+  - id: "config-example-sync"
+    description: "config.example.yaml doit lister toutes les clés de core/config.py::Settings"
+    check: "scripts/validate_sites.py --check-config-sync"
+    severity: error
+
+  - id: "no-secrets-committed"
+    description: "Aucun fichier *.{yaml,yml} de ce dossier ne contient de secret"
+    check: "pre-commit run detect-secrets --files config/*"
+    severity: error
+
+  - id: "valid-yaml"
+    description: "Tous les fichiers YAML parsent sans erreur"
+    check: "python -c 'import yaml,glob;[yaml.safe_load(open(f)) for f in glob.glob(\"config/*.yaml\")]'"
+    severity: error
+
+  - id: "logging-profiles-complete"
+    description: "logging.yaml doit définir les profils development, testing, staging, production"
+    check: "scripts/validate_sites.py --check-logging-profiles"
+    severity: warning
+
+# ----------------------------------------------------------------------------
+#  Fichiers gitignored attendus dans ce dossier
+# ----------------------------------------------------------------------------
+gitignored:
+  - "config.yaml"                 # Config effective utilisateur
+  - "logging.local.yaml"          # Surcharge locale du logging
+  - "proxy.yaml"                  # Credentials proxy
+  - "sites_overrides.yaml"        # Surcharges personnelles
+  - "cookies/"                    # Si l'utilisateur choisit le stockage local
+  - "*.bak"                       # Backups automatiques
+
+# ----------------------------------------------------------------------------
+#  Outils associés
+# ----------------------------------------------------------------------------
+tooling:
+  validate: "make validate-config"
+  migrate: "python scripts/migrate_config.py --in-place"
+  reset: "python scripts/migrate_config.py --reset"
+  dump_schema: "python -m nexusdl.core.config --dump-schema > config/schema.json"
+  help: "nexusdl config --help"
+
+# ----------------------------------------------------------------------------
+#  Points d'attention
+# ----------------------------------------------------------------------------
+notes:
+  - "Ne jamais éditer les fichiers `*.example.*` en production — ce sont des templates."
+  - "Le `config.yaml` effectif vit dans {config_dir} (XDG), pas dans ce dossier."
+  - "Ce dossier est versionné tel quel dans le dépôt Git : tout ajout de fichier"
+  - "doit être accompagné d'une entrée dans `contents:` ci-dessus."
+  - "En Docker, /config est monté en volume ; voir docker/docker-compose.yml."
+
+# ----------------------------------------------------------------------------
+#  Références
+# ----------------------------------------------------------------------------
+see_also:
+  - "src/nexusdl/core/config.py"
+  - "src/nexusdl/core/logger.py"
+  - "src/nexusdl/core/paths.py"
+  - "docs/source/usage/configuration.md"
+  - "docs/source/installation/*.md"
+  - ".env.example"
