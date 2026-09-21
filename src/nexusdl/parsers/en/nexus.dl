@@ -1,0 +1,267 @@
+# nexus.dl — Marqueur de package NexusDL
+# ============================================================================
+# Ce fichier est un marqueur structurel du projet NexusDL. Sa présence
+# identifie un dossier comme étant un package officiel du projet et permet
+# aux outils internes (validateurs, scripts de build, hooks de migration)
+# de détecter la portée d'un répertoire sans avoir à parser le code Python.
+#
+# Toute modification manuelle de ce fichier doit être validée par
+# `scripts/validate_sites.py` avant commit (pre-commit hook).
+# ============================================================================
+
+package: nexusdl.parsers.en
+kind: parsers.namespace
+description: >
+  Namespace des parseurs anglophones (langue cible : English).
+  Chaque module de ce dossier implémente un parser NexusDL pour un site
+  de scanlation/manga anglophone. Tous les parsers héritent de
+  `nexusdl.parsers.base.BaseParser` et combinent un ou plusieurs mixins
+  transverses (Madara, MangaThemesia, Cloudflare, JsRendered, ApiBased,
+  FoolSlide).
+
+language: en
+locale: en-US
+
+# ---------------------------------------------------------------------------
+# Politique de contenu
+# ---------------------------------------------------------------------------
+content_policy:
+  allow_adult: true
+  allow_mature: true
+  require_age_gate: false
+  respect_site_rating: true
+
+# ---------------------------------------------------------------------------
+# Règles d'héritage et conventions
+# ---------------------------------------------------------------------------
+conventions:
+  # Ordre canonique des mixins dans la déclaration de classe.
+  mixin_order:
+    - JsRenderedMixin       # primitives bas-niveau (rendu navigateur)
+    - CloudflareMixin       # bypass CF (peut dépendre du rendu)
+    - ApiBasedMixin         # client REST (indépendant)
+    - MadaraMixin           # thème WordPress Madara
+    - MangaThemesiaMixin    # thème MangaThemesia
+    - FoolSlideMixin        # CMS FoolSlide
+    - BaseParser            # contrat final
+
+  # Tous les parseurs de ce namespace DOIVENT :
+  required:
+    - declarer_un_site_id_unique: true
+    - declarer_une_langue: true
+    - implementer_les_4_methodes_abstraites:
+        - search
+        - get_manga
+        - get_chapters
+        - get_pages
+    - exposer_un_health_check: true
+    - declarer_une_liste_de_domaines_de_fallback: true
+    - utiliser_selectolax_pour_le_parsing_html: true
+    - utiliser_httpx_via_http_session: true
+    - passer_mypy_strict: true
+    - passer_ruff_check: true
+
+  # Interdits stricts
+  forbidden:
+    - dependance_vers_interfaces: true
+    - requests_sync_dans_code_async: true
+    - any_non_justifie: true
+    - except_pass: true
+    - secrets_en_dur: true
+    - hotlink_images_sans_referer: true
+
+# ---------------------------------------------------------------------------
+# Parseurs enregistrés dans ce namespace
+# ---------------------------------------------------------------------------
+parsers:
+  - module: nexusdl.parsers.en.asurascans
+    class: AsuraScansParser
+    site_id: asurascans
+    status: active
+    primary_domain: https://asuracomic.net
+    protection: [cloudflare-managed, slug-mapping, scrambled-images]
+    mixins: [JsRendered, Cloudflare, ApiBased, MangaThemesia]
+
+  - module: nexusdl.parsers.en.batoto
+    class: BatotoParser
+    site_id: batoto
+    status: active
+    primary_domain: https://bato.to
+    protection: [cloudflare, ajax-reader, tab-pagination]
+    mixins: [JsRendered, Cloudflare]
+
+  - module: nexusdl.parsers.en.comick
+    class: ComickParser
+    site_id: comick
+    status: archived  # service fermé en 2025
+    primary_domain: https://comick.io
+    protection: [cloudflare-managed]
+    mixins: [Cloudflare, ApiBased]
+
+  - module: nexusdl.parsers.en.crunchyscan_org
+    class: CrunchyScanParser
+    site_id: crunchyscan_org
+    status: active
+    primary_domain: https://crunchyscan.org
+    language: fr  # exception : site francophone référencé dans "en"
+    protection: [cloudflare, captcha-interceptor]
+    mixins: [JsRendered, Cloudflare, Madara]
+
+  - module: nexusdl.parsers.en.disasterscans
+    class: DisasterScansParser
+    site_id: disasterscans
+    status: deprecated  # site inactif depuis 2024
+    primary_domain: https://disasterscans.com
+    protection: [cloudflare]
+    mixins: [JsRendered, Cloudflare, Madara]
+
+  - module: nexusdl.parsers.en.flamescans
+    class: FlameScansParser
+    site_id: flamescans
+    status: active
+    primary_domain: https://flamecomics.xyz
+    protection: [cloudflare, nextjs-build-id]
+    mixins: [JsRendered, Cloudflare, ApiBased]
+
+  - module: nexusdl.parsers.en.galaxy_scans
+    class: GalaxyScansParser
+    site_id: galaxy_scans
+    status: active
+    primary_domain: https://gdscans.com
+    protection: [cloudflare, paywall]
+    mixins: [JsRendered, Cloudflare, Madara]
+
+  - module: nexusdl.parsers.en.kireicake
+    class: KireiCakeParser
+    site_id: kireicake
+    status: active
+    primary_domain: https://kireicake.com
+    protection: [php-custom, ajax-reader]
+    mixins: [JsRendered, Cloudflare, ApiBased]
+
+  - module: nexusdl.parsers.en.leviathanscans
+    class: LeviatanScansParser
+    site_id: leviathanscans
+    status: deprecated  # site fermé en 2024
+    primary_domain: https://leviatanscans.com
+    protection: [cloudflare]
+    mixins: [JsRendered, Cloudflare]
+
+  - module: nexusdl.parsers.en.luminousscans
+    class: LuminousScansParser
+    site_id: luminousscans
+    status: active
+    primary_domain: https://luminouscomics.org
+    protection: [cloudflare, promo-filter]
+    mixins: [JsRendered, Cloudflare]
+
+  - module: nexusdl.parsers.en.mangadex
+    class: MangaDexParser
+    site_id: mangadex
+    status: active
+    primary_domain: https://mangadex.org
+    protection: []  # API publique, aucun bypass nécessaire
+    mixins: [ApiBased]
+
+  - module: nexusdl.parsers.en.mangafire
+    class: MangaFireParser
+    site_id: mangafire
+    status: active
+    primary_domain: https://mangafire.to
+    protection: [cloudflare, vrf-token, rate-limit]
+    mixins: [JsRendered, Cloudflare, ApiBased]
+
+  - module: nexusdl.parsers.en.mangakakalot
+    class: MangakakalotParser
+    site_id: mangakakalot
+    status: active
+    primary_domain: https://www.mangakakalot.gg
+    protection: [cloudflare, hotlink-cdn]
+    mixins: [JsRendered, Cloudflare, ApiBased]
+
+  - module: nexusdl.parsers.en.mangasee123
+    class: MangaSee123Parser
+    site_id: mangasee123
+    status: active
+    primary_domain: https://mangasee123.com
+    protection: [cloudflare, angularjs, firewall-1020]
+    mixins: [JsRendered, Cloudflare, ApiBased]
+
+  - module: nexusdl.parsers.en.reaperscans
+    class: ReaperScansParser
+    site_id: reaperscans
+    status: active
+    primary_domain: https://reaperscans.com
+    protection: [cloudflare, nextjs, junk-pages]
+    mixins: [JsRendered, Cloudflare, ApiBased]
+
+  - module: nexusdl.parsers.en.scyllascans
+    class: ScyllaScansParser
+    site_id: scyllascans
+    status: deprecated  # site fermé en 2025
+    primary_domain: https://scyllascans.org
+    protection: [cloudflare]
+    mixins: [JsRendered, Cloudflare, Madara]
+
+  - module: nexusdl.parsers.en.tcbscans
+    class: TCBScansParser
+    site_id: tcbscans
+    status: active
+    primary_domain: https://tcbscans.com
+    protection: [cloudflare, nextjs, junk-pages]
+    mixins: [JsRendered, Cloudflare]
+
+  - module: nexusdl.parsers.en.toongod
+    class: ToonGodParser
+    site_id: toongod
+    status: active
+    primary_domain: https://www.toongod.org
+    protection: [cloudflare, infinite-captcha, referer-cdn]
+    mixins: [JsRendered, Cloudflare, Madara]
+
+  - module: nexusdl.parsers.en.toonily
+    class: ToonilyParser
+    site_id: toonily
+    status: active
+    primary_domain: https://toonily.com
+    protection: [cloudflare, mature-cookie]
+    mixins: [JsRendered, Cloudflare, Madara]
+
+  - module: nexusdl.parsers.en.void_scans
+    class: VoidScansParser
+    site_id: void_scans
+    status: active
+    primary_domain: https://voidscans.net
+    protection: [cloudflare, paywall]
+    mixins: [JsRendered, Cloudflare]
+
+  - module: nexusdl.parsers.en.zenith_scans
+    class: ZenithScansParser
+    site_id: zenith_scans
+    status: active
+    primary_domain: https://zenithscans.com
+    protection: [cloudflare]
+    mixins: [JsRendered, Cloudflare, MangaThemesia]
+
+# ---------------------------------------------------------------------------
+# Compteurs (générés par scripts/validate_sites.py)
+# ---------------------------------------------------------------------------
+counts:
+  total: 21
+  active: 15
+  deprecated: 4
+  archived: 1
+  with_cloudflare: 19
+  without_cloudflare: 2  # mangadex, comick (API pure)
+  api_based: 12
+  html_based: 9
+
+# ---------------------------------------------------------------------------
+# Signature
+# ---------------------------------------------------------------------------
+marker:
+  format_version: "1.0"
+  generator: nexusdl.marker
+  signature: "nx-en-3f4a7b8c9d1e2f"
+  created_at: "2026-01-01T00:00:00Z"
+  updated_at: "2026-09-21T00:00:00Z"
