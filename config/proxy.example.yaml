@@ -1,0 +1,244 @@
+# ============================================================================
+#  NexusDL — Configuration proxy avancée
+#  Copier en {config_dir}/proxy.yaml puis adapter.
+#  Gitignored : peut contenir des credentials.
+#  Surcharge intégralement la clé `proxy:` de config.yaml si présent.
+# ============================================================================
+
+# ----------------------------------------------------------------------------
+#  Interrupteur global
+# ----------------------------------------------------------------------------
+enabled: false
+# Comportement si un proxy échoue :
+#   fail_fast  → abandonne la tâche en cours
+#   rotate     → essaie le proxy suivant du pool
+#   direct     → bascule en connexion directe (⚠️ peut exposer l'IP réelle)
+on_failure: rotate
+
+# ----------------------------------------------------------------------------
+#  Proxy par défaut (utilisé si aucun pool / aucune règle per_site ne matche)
+#  Format : scheme://[user:pass@]host:port
+#  Schemes supportés : http, https, socks4, socks5, socks5h
+#  socks5h = résolution DNS côté proxy (recommandé pour Tor/privacy)
+# ----------------------------------------------------------------------------
+default: null
+# Exemples :
+#   default: "http://127.0.0.1:8080"
+#   default: "http://user:pass@proxy.example.com:3128"
+#   default: "socks5h://127.0.0.1:9050"          # Tor
+#   default: "socks5://user:pass@10.0.0.1:1080"
+
+# ----------------------------------------------------------------------------
+#  Pool de proxies — rotation automatique
+#  Utilisé si `rotation.enabled: true` et si le nombre de proxies > 1.
+# ----------------------------------------------------------------------------
+pool:
+  # Chaque entrée peut être :
+  #   - une string simple : "http://host:port"
+  #   - un objet avec metadata : { url, weight, tags, max_requests }
+  - url: "http://proxy1.example.com:8080"
+    weight: 1                    # Pondération relative (défaut : 1)
+    tags: [fast, eu]             # Tags libres pour ciblage per_site
+    max_requests: null           # Recycle après N requêtes (null = illimité)
+    max_failures: 5              # Désactivé après N échecs consécutifs
+    cooldown_seconds: 300        # Durée de désactivation après max_failures
+    username: null               # Alternative à user:pass@ dans l'URL
+    password: null
+    headers: {}                  # Headers spécifiques à ce proxy
+
+  - url: "socks5h://127.0.0.1:9050"
+    weight: 2
+    tags: [tor, anonymous]
+    max_requests: null
+    max_failures: 3
+    cooldown_seconds: 60
+
+  - url: "http://user:pass@proxy3.example.com:3128"
+    weight: 1
+    tags: [us, residential]
+    max_requests: 1000
+    max_failures: 10
+    cooldown_seconds: 600
+
+# ----------------------------------------------------------------------------
+#  Rotation
+# ----------------------------------------------------------------------------
+rotation:
+  enabled: false
+  strategy: round_robin          # round_robin | random | weighted | least_used | least_failed
+  # Change de proxy tous les N téléchargements ou N requêtes
+  rotate_every: requests         # requests | task | chapter | manga
+  rotate_every_count: 100        # Nombre avant rotation (si rotate_every=requests)
+  # Sticky session : garde le même proxy pour une même origine
+  sticky_per_domain: true        # Évite les re-logins / re-CF entre requêtes liées
+  sticky_ttl_seconds: 600        # Durée de la sticky session
+  # Rotation à la volée sur erreur
+  rotate_on_status: [403, 407, 429, 502, 503, 504, 522, 524]
+  rotate_on_timeout: true
+  rotate_on_dns_error: true
+  # Si pool épuisé
+  on_pool_exhausted: direct      # direct | fail | wait
+  wait_seconds: 30               # Si on_pool_exhausted=wait
+
+# ----------------------------------------------------------------------------
+#  Routage par site
+#  Priorité : per_site > per_tag > default
+#  Les clés correspondent aux `site_id` de core/registry/sites.yaml.
+# ----------------------------------------------------------------------------
+per_site:
+  # Exemple : forcer Tor pour les sites adultes
+  nhentai.net:
+    mode: pool                   # pool | direct | fixed
+    tags: [tor, anonymous]
+    sticky: true
+
+  hentaizone:
+    mode: pool
+    tags: [tor]
+
+  # Exemple : proxy résidentiel US pour MangaDex (rate limit plus généreux)
+  mangadex:
+    mode: fixed
+    url: "http://user:pass@us-residential.example.com:8000"
+    sticky: true
+
+  # Exemple : connexion directe (pas de proxy) pour un site local
+  localhost-mock:
+    mode: direct
+
+  # Exemple : proxy EU pour sites FR
+  sushiscan:
+    mode: pool
+    tags: [eu, fast]
+    sticky: true
+
+# ----------------------------------------------------------------------------
+#  Routage par tag (au cas où per_site n'est pas défini)
+# ----------------------------------------------------------------------------
+per_tag:
+  adult:
+    mode: pool
+    tags: [anonymous, tor]
+    sticky: true
+  # Les tags "adult" sont définis dans sites.yaml via `adult: true`
+
+# ----------------------------------------------------------------------------
+#  Exclusions — sites qui ne passent JAMAIS par proxy
+# ----------------------------------------------------------------------------
+exclude_domains:
+  - "localhost"
+  - "127.0.0.1"
+  - "*.local"
+  - "flaresolverr"               # Nom de service Docker interne
+  - "10.*"                       # RFC1918 (à ajuster selon ton réseau)
+  - "192.168.*"
+
+# ----------------------------------------------------------------------------
+#  Health check
+# ----------------------------------------------------------------------------
+health_check:
+  enabled: true
+  # URL testée pour valider le proxy (doit renvoyer 200 et l'IP du proxy)
+  url: "https://httpbin.org/ip"
+  fallback_urls:
+    - "https://api.ipify.org?format=json"
+    - "https://ifconfig.me/ip"
+  interval_seconds: 300          # Fréquence de re-check
+  timeout: 8.0
+  # Nombre d'échecs avant désactivation du proxy
+  failure_threshold: 3
+  # Nombre de succès consécutifs avant réactivation d'un proxy en cooldown
+  recovery_threshold: 2
+  # Vérifier la cohérence IP (proxy transparent = suspect)
+  verify_ip_change: true
+  # Bannière de détection : IP attendue vs IP observée (si connue)
+  expected_ip: null
+  # Lancer un health check au démarrage
+  on_startup: true
+  # Lancer un health check avant chaque tâche de téléchargement
+  on_task_start: false
+  # Mettre en cache le résultat pendant N secondes
+  cache_ttl_seconds: 60
+
+# ----------------------------------------------------------------------------
+#  Authentification proxy
+# ----------------------------------------------------------------------------
+auth:
+  # Type d'auth : basic | digest | ntlm | none
+  type: basic
+  # Credentials par défaut (utilisés si ni l'URL ni per_site ne fournissent)
+  username: null
+  password: null
+  # Réutiliser l'auth HTTP du site pour le proxy (rare, cas corporate)
+  reuse_site_auth: false
+
+# ----------------------------------------------------------------------------
+#  Timeouts spécifiques proxy
+# ----------------------------------------------------------------------------
+timeouts:
+  connect: 15.0                  # Plus long que direct (latence proxy)
+  read: 45.0
+  write: 45.0
+  total: 180.0
+  # Timeout pour le tunnel CONNECT (HTTPS via proxy HTTP)
+  tunnel: 30.0
+
+# ----------------------------------------------------------------------------
+#  DNS
+# ----------------------------------------------------------------------------
+dns:
+  # Résolution DNS via le proxy (socks5h) — recommandé en privacy
+  resolve_via_proxy: true
+  # Override de résolution (utile si le proxy ne résout pas)
+  overrides: {}
+    # "mangadex.org": "1.2.3.4"
+  # Cache DNS local
+  cache_ttl_seconds: 300
+
+# ----------------------------------------------------------------------------
+#  Debug / logs
+# ----------------------------------------------------------------------------
+debug:
+  # Loguer chaque requête avec le proxy utilisé (DEBUG)
+  log_requests: false
+  # Loguer l'IP observée après health check
+  log_observed_ip: false         # ⚠️ Peut apparaître dans les logs d'audit
+  # Tracer les changements de proxy (rotation)
+  trace_rotation: true
+  # Traceback détaillé en cas d'échec proxy
+  traceback_on_error: false
+
+# ----------------------------------------------------------------------------
+#  Anti-fuite (kill switch)
+#  Si le proxy tombe, empêche tout trafic direct accidentel.
+# ----------------------------------------------------------------------------
+kill_switch:
+  enabled: false                 # ⚠️ À activer si privacy critique
+  # Si un proxy est down et kill_switch=true, le trafic est bloqué
+  # (aucun fallback direct silencieux)
+  block_direct: true
+  # Notifier l'utilisateur à chaque blocage
+  notify: true
+  # Exception : ces domaines restent accessibles sans proxy
+  allowlist:
+    - "flaresolverr"
+    - "localhost"
+    - "127.0.0.1"
+
+# ----------------------------------------------------------------------------
+#  Statistiques
+# ----------------------------------------------------------------------------
+stats:
+  enabled: true
+  # Conservation des stats en mémoire uniquement (pas de persistance)
+  persist: false
+  # Fichier de stats (si persist=true)
+  path: null                     # null = {cache_dir}/proxy_stats.json
+  # Métriques collectées
+  track:
+    - requests_total
+    - requests_failed
+    - bytes_transferred
+    - avg_latency_ms
+    - last_success_at
+    - last_failure_at
