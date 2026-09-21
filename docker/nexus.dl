@@ -1,0 +1,468 @@
+# ============================================================================
+#  nexus.dl — Dossier "docker/"
+#  Documentation locale du dossier. Non chargé à l'exécution.
+#  Format : YAML parsable (utilisé par docs/source/conf.py et la CI).
+# ============================================================================
+
+meta:
+  path: "docker/"
+  parent: "Nexus-DL/"
+  role: "Conteneurisation, orchestration, reverse proxy"
+  owner: "@nexusdl/devops-team"
+  since: "0.1.0"
+  updated: "2025-01-15"
+  status: stable
+  tracked_in_git: true
+
+# ----------------------------------------------------------------------------
+#  Rôle du dossier
+# ----------------------------------------------------------------------------
+purpose: |
+  Ce dossier contient tout ce qui touche à la **conteneurisation** et au
+  **déploiement** de NexusDL :
+
+    - Dockerfiles multi-stage (backend générique, web, GUI builder)
+    - Fichiers docker-compose (production, développement)
+    - Entrypoints shell (bootstrap, drop de privilèges, migrations)
+    - Configuration Nginx (reverse proxy, TLS, WebSocket, static)
+
+  Ce dossier est **autonome** : il ne dépend d'aucun autre dossier que la
+  racine du projet (`..` comme contexte de build). Les Dockerfiles copient
+  depuis `src/`, `config/`, `scripts/`, `packaging/` — jamais l'inverse.
+
+  Le dossier `docker/certs/` (gitignored) est créé par l'utilisateur pour
+  accueillir les certificats TLS Let's Encrypt ou auto-signés.
+
+# ----------------------------------------------------------------------------
+#  Contenu du dossier
+# ----------------------------------------------------------------------------
+contents:
+
+  # === Dockerfiles ==========================================================
+  - file: "Dockerfile"
+    type: dockerfile
+    role: "Image backend générique (worker, cli, migrate, test, shell)"
+    base: "python:3.12-slim-bookworm"
+    stages: [python-builder, runtime]
+    target_stage: runtime
+    build_args:
+      VERSION: "0.1.0"
+      BUILD_PROFILE: "release"
+      PYTHON_VERSION: "3.12"
+      INSTALL_PLAYWRIGHT: "true"
+      ENABLE_DEV_TOOLS: "false"
+    extras_python: ["core", "browsers", "cli"]
+    embeds: [venv, playwright-chromium, scripts, config-examples]
+    excludes: [frontend-nextjs, uvicorn, nginx]
+    image_size_mb: 500-600
+    used_by: [worker, cli, migrate, test, shell]
+    notes: |
+      Image la plus générique. Pas de FastAPI/uvicorn — c'est le rôle de
+      Dockerfile.web. CMD par défaut = worker. Utilisée par tous les
+      services sauf web-backend.
+
+  - file: "Dockerfile.web"
+    type: dockerfile
+    role: "Image backend Web (FastAPI + frontend Next.js embarqué)"
+    base: "python:3.12-slim-bookworm"
+    stages: [frontend-builder, python-builder, runtime]
+    target_stage: runtime
+    build_args:
+      VERSION: "0.1.0"
+      BUILD_PROFILE: "release"
+      PYTHON_VERSION: "3.12"
+      NODE_VERSION: "20"
+      INSTALL_PLAYWRIGHT: "true"
+    extras_python: ["core", "browsers", "web"]
+    embeds: [venv, playwright-chromium, frontend-static-out, scripts, config-examples]
+    image_size_mb: 650-750
+    used_by: [web-backend, web-backend-dev]
+    notes: |
+      Inclut le build Next.js statique (copié dans backend/static/).
+      CMD par défaut = uvicorn. Le frontend est embarqué pour un
+      déploiement mono-conteneur, mais en prod Nginx le sert depuis
+      un volume séparé.
+
+  - file: "Dockerfile.gui"
+    type: dockerfile
+    role: "Builder PyInstaller pour l'exécutable GUI + image de test headless"
+    base: "python:3.12-slim-bookworm"
+    stages: [gui-builder, gui-runtime]
+    target_stage: gui-runtime
+    build_args:
+      VERSION: "0.1.0"
+      GUI_ONEFILE: "false"
+      PYTHON_VERSION: "3.12"
+      ENABLE_VNC: "true"
+    extras_python: ["gui", "build"]
+    embeds: [venv, pyinstaller-dist, xvfb, x11vnc]
+    artifacts:
+      - path: "/build/dist/nexusdl-gui"
+        kind: "exécutable PyInstaller (onedir ou onefile)"
+    used_by: [CI-release, tests-headless]
+    notes: |
+      L'image gui-runtime n'est PAS destinée au déploiement — elle
+      sert à valider que le binaire PyInstaller démarre sans erreur
+      dans un Xvfb. L'exécutable final est extrait du stage
+      gui-builder via `docker cp` ou un volume.
+
+  # === Compose ==============================================================
+  - file: "docker-compose.yml"
+    type: compose
+    role: "Stack de production (nginx, web, worker, redis, migrate)"
+    services_default: [redis, migrate, web-backend, worker, nginx]
+    services_profiles:
+      flaresolverr: [flaresolverr]
+      cli: [cli]
+      dev: [web-backend-dev]
+    volumes: [config, data, logs, cache, redis, nginx-logs, nginx-cache, web-static]
+    networks: [nexusdl-net]
+    secrets_required:
+      - NEXUSDL_SECRET_KEY
+      - NEXUSDL_WEB__AUTH__JWT_SECRET
+      - NEXUSDL_ADMIN_PASSWORD
+      - NEXUSDL_REDIS_PASSWORD
+    ports:
+      - "80:80"
+      - "443:443"
+    notes: |
+      Utilise la syntaxe `${VAR:?message}` pour forcer la présence des
+      secrets critiques. Multi-workers → Redis obligatoire. Ordre de
+      démarrage contrôlé par `depends_on: condition:`.
+
+  - file: "docker-compose.dev.yml"
+    type: compose
+    role: "Stack de développement (hot-reload, bind mounts, secrets triviaux)"
+    services_default: [redis, web-backend, web-frontend, worker]
+    services_profiles:
+      flaresolverr: [flaresolverr]
+      cli: [cli]
+      test: [test]
+      debug: [shell]
+    volumes: [dev-data, dev-logs, dev-cache, dev-playwright, dev-frontend-node-modules, dev-frontend-next, dev-test-cache]
+    networks: [nexusdl-dev-net]
+    ports:
+      - "8000:8000"
+      - "3000:3000"
+      - "6379:6379"
+    notes: |
+      ⚠️ NON DESTINÉ À LA PRODUCTION.
+      Pas de Nginx, secrets triviaux, bind mounts en lecture seule,
+      conteneurs en root, Redis sans auth. Objectif : cycle
+      d'itération < 2s.
+
+  # === Configurations =======================================================
+  - file: "nginx.conf"
+    type: config
+    role: "Reverse proxy TLS + static frontend + WebSocket + rate limiting"
+    server_blocks: [http-redirect, https-main]
+    upstreams: [nexusdl_backend, flaresolverr]
+    rate_zones: [api_general, api_auth, api_search, api_download, conn_per_ip]
+    security_headers:
+      - X-Frame-Options
+      - X-Content-Type-Options
+      - X-XSS-Protection
+      - Referrer-Policy
+      - Permissions-Policy
+      - Strict-Transport-Security
+      - Content-Security-Policy
+    tls:
+      protocols: [TLSv1.2, TLSv1.3]
+      ciphers: "modern (Mozilla intermediate 2024)"
+      ocsp_stapling: true
+      session_tickets: false
+    notes: |
+      Monté dans nginx:1.27-alpine via docker-compose.yml.
+      Le WebSocket (/ws/) est AVANT /api/ dans l'ordre des locations.
+      CSP adaptée à Next.js (unsafe-inline requis pour l'hydratation).
+
+  # === Entrypoints ==========================================================
+  - file: "entrypoint.sh"
+    type: entrypoint
+    role: "Bootstrap universel (configs, secrets, migrations, drop privileges)"
+    shell: "POSIX sh (compatible Alpine/Debian slim)"
+    roles_supported: [web, worker, cli, migrate, shell]
+    phases:
+      - "Validation de l'environnement"
+      - "Génération de config depuis exemples"
+      - "Génération de secrets (.secrets.env)"
+      - "Attente des dépendances (Redis, FlareSolverr)"
+      - "Génération de certificats TLS auto-signés (optionnel)"
+      - "Migrations config + DB"
+      - "Drop de privilèges (gosu/su-exec/setpriv)"
+      - "Exécution du rôle"
+    exit_codes:
+      0: "Succès"
+      1: "Erreur de configuration"
+      2: "Dépendance injoignable"
+      3: "Migration échouée"
+      126: "Commande non exécutable"
+      127: "Commande introuvable"
+    notes: |
+      Utilise `exec` pour remplacer le shell et transférer directement
+      les signaux au processus principal (PID 1). Backup automatique
+      avant toute migration. Le fichier `.secrets.env` persiste dans
+      /config entre restarts.
+
+  - file: "gui-entrypoint.sh"
+    type: entrypoint
+    role: "Démarre Xvfb + x11vnc + l'exécutable GUI (image de test)"
+    shell: "POSIX sh"
+    phases:
+      - "Démarrage Xvfb :99"
+      - "Attente que Xvfb soit prêt"
+      - "Démarrage x11vnc (si présent)"
+      - "Exécution de /usr/local/bin/nexusdl-gui"
+    notes: |
+      Utilisé uniquement par le stage gui-runtime de Dockerfile.gui.
+      Fallback en shell bash si le binaire est absent (debug).
+
+  # === Documentation du dossier ============================================
+  - file: "nexus.dl"
+    type: documentation
+    role: "Ce fichier — documentation locale du dossier"
+    loaded_at_runtime: false
+
+# ----------------------------------------------------------------------------
+#  Fichiers futurs (roadmap)
+# ----------------------------------------------------------------------------
+planned:
+  - file: "Dockerfile.gui-windows"
+    reason: "Build de l'exécutable .exe Windows (base python:3.12-windowsservercore + signtool)"
+    phase: 20
+    priority: low
+  - file: "Dockerfile.gui-macos"
+    reason: "Build du .app macOS (hors Docker — via GitHub Actions runner macos-latest)"
+    phase: 20
+    priority: low
+  - file: "certs/README.md"
+    reason: "Instructions pour générer ou déposer les certificats TLS (Let's Encrypt / auto-signé)"
+    phase: 19
+    priority: medium
+  - file: "certs/.gitkeep"
+    reason: "Préserve le dossier certs/ dans Git tout en ignorant son contenu"
+    phase: 19
+    priority: high
+  - file: "smoke-test.sh"
+    reason: "Vérifie qu'une stack docker-compose est fonctionnelle (health checks, ping Redis, /api/health)"
+    phase: 20
+    priority: medium
+  - file: "docker-compose.test.yml"
+    reason: "Stack éphémère pour tests d'intégration (build + test + teardown)"
+    phase: 20
+    priority: low
+  - file: "docker-compose.override.example.yml"
+    reason: "Template pour surcharger la stack prod (proxy, volumes NFS, ports custom)"
+    phase: 19
+    priority: low
+
+# ----------------------------------------------------------------------------
+#  Conventions
+# ----------------------------------------------------------------------------
+conventions:
+  dockerfile:
+    - "syntax=docker/dockerfile:1.7 en première ligne"
+    - "Multi-stage obligatoire (builder + runtime)"
+    - "Base : python:3.12-slim-bookworm (Debian — requis par Playwright)"
+    - "Labels OCI complets sur le stage runtime"
+    - "Utilisateur non-root créé avec uid/gid 1000"
+    - "VOLUME déclaré (documentaire) pour /config /data /logs /cache"
+    - "HEALTHCHECK présent (au moins un check d'import Python)"
+    - "Pas de `USER` dans le Dockerfile — drop via entrypoint"
+    - "uv pour l'installation Python (jamais pip en direct hors Playwright install-deps)"
+    - "Cache Docker préservé : manifests avant code source"
+  compose:
+    - "name: nexusdl[-dev] pour nommer le projet Compose"
+    - "YAML anchors (x-common-*) pour factoriser env/volumes/logging"
+    - "profiles: pour les services optionnels (flaresolverr, cli, test, shell)"
+    - "depends_on: condition: pour contrôler l'ordre (service_healthy, service_completed_successfully)"
+    - "Volumes nommés pour les données persistantes"
+    - "Réseaux avec subnet fixe (172.30.0.0/24 prod, 172.31.0.0/24 dev)"
+    - "stop_grace_period adapté par service (30s web, 60s worker, 15s nginx)"
+    - "resources.limits: pour éviter la famine d'un service"
+    - "restart: unless-stopped en prod, pas en dev"
+  entrypoint:
+    - "set -eu (pas -o pipefail — BusyBox ne le supporte pas)"
+    - "Trap TERM/INT pour forward au processus principal"
+    - "exec pour remplacer le shell (PID 1 = processus enfant)"
+    - "idempotent : un second lancement ne doit rien casser"
+    - "Codes de sortie standardisés (0/1/2/3/126/127)"
+  nginx:
+    - "TLS 1.2 + 1.3 uniquement, ciphers modernes"
+    - "OCSP stapling activé avec resolver explicite"
+    - "Rate limiting par zone (auth/search/download/general)"
+    - "En-têtes de sécurité sur toutes les réponses (always)"
+    - "WebSocket AVANT /api/ dans l'ordre des locations"
+    - "server_tokens off (masque la version)"
+    - "Blocage des dotfiles et extensions sensibles"
+  secrets:
+    - "Jamais de secret en dur dans un Dockerfile ou un compose committé"
+    - "Utiliser ${VAR:?message} en prod pour forcer la présence"
+    - "Secrets dev triviaux OK dans docker-compose.dev.yml (explicitement marqué)"
+    - "Fichier .secrets.env persistant dans /config, chmod 600"
+
+# ----------------------------------------------------------------------------
+#  Invariants (vérifiés par la CI)
+# ----------------------------------------------------------------------------
+invariants:
+  - id: "dockerfiles-parse"
+    description: "Tous les Dockerfiles sont syntaxiquement valides"
+    check: "for f in docker/Dockerfile*; do docker build --check -f \"$f\" . || exit 1; done"
+    severity: error
+
+  - id: "compose-config-valid"
+    description: "Les fichiers docker-compose sont valides"
+    check: "docker compose -f docker/docker-compose.yml config -q && docker compose -f docker/docker-compose.dev.yml config -q"
+    severity: error
+
+  - id: "no-secrets-in-dockerfiles"
+    description: "Aucun secret en dur dans les Dockerfiles"
+    check: "pre-commit run detect-secrets --files docker/Dockerfile*"
+    severity: error
+
+  - id: "no-secrets-in-compose-prod"
+    description: "docker-compose.yml utilise ${VAR:?} pour les secrets critiques"
+    check: "grep -q 'NEXUSDL_WEB__AUTH__JWT_SECRET:.*:?' docker/docker-compose.yml"
+    severity: error
+
+  - id: "entrypoint-posix-compliant"
+    description: "entrypoint.sh est compatible POSIX sh (pas de bashism)"
+    check: "shellcheck --shell=sh docker/entrypoint.sh docker/gui-entrypoint.sh"
+    severity: error
+
+  - id: "nginx-config-valid"
+    description: "nginx.conf passe le test de configuration Nginx"
+    check: "docker run --rm -v $(pwd)/docker/nginx.conf:/etc/nginx/nginx.conf:ro nginx:1.27-alpine nginx -t"
+    severity: error
+
+  - id: "non-root-user"
+    description: "Chaque Dockerfile runtime crée un utilisateur non-root"
+    check: "grep -q 'useradd' docker/Dockerfile && grep -q 'useradd' docker/Dockerfile.web"
+    severity: warning
+
+  - id: "oci-labels-present"
+    description: "Les images exposent les labels OCI standards"
+    check: "grep -c 'org.opencontainers.image' docker/Dockerfile.web | grep -q '[5-9]'"
+    severity: warning
+
+  - id: "dev-compose-warning"
+    description: "docker-compose.dev.yml contient un avertissement explicite non-prod"
+    check: "grep -q 'NON DESTINÉ À LA PRODUCTION' docker/docker-compose.dev.yml"
+    severity: warning
+
+# ----------------------------------------------------------------------------
+#  Variables d'environnement clés
+# ----------------------------------------------------------------------------
+env_vars:
+  build_time:
+    - name: VERSION
+      scope: all_dockerfiles
+      description: "Version injectée dans le package et les labels OCI"
+    - name: BUILD_PROFILE
+      scope: all_dockerfiles
+      values: [release, dev]
+      description: "Optimisations activées (strip, bytecode, etc.)"
+    - name: INSTALL_PLAYWRIGHT
+      scope: [Dockerfile, Dockerfile.web]
+      values: ["true", "false"]
+      description: "Télécharge ou non chromium + libs système (~350 MB)"
+    - name: ENABLE_DEV_TOOLS
+      scope: Dockerfile
+      values: ["true", "false"]
+      description: "Installe les extras dev (pytest, ruff, mypy, hypothesis)"
+    - name: GUI_ONEFILE
+      scope: Dockerfile.gui
+      values: ["true", "false"]
+      description: "Mode onefile (démarrage lent) vs onedir (défaut)"
+    - name: ENABLE_VNC
+      scope: Dockerfile.gui
+      values: ["true", "false"]
+      description: "Inclut x11vnc dans l'image de test headless"
+
+  runtime_prod:
+    - name: NEXUSDL_ENV
+      required: true
+      values: [development, testing, staging, production, headless]
+    - name: NEXUSDL_ROLE
+      required: true
+      values: [web, worker, cli, migrate, shell]
+    - name: NEXUSDL_SECRET_KEY
+      required: true
+      source: ".env ou .secrets.env"
+      description: "Clé AES-GCM 64 hex — chiffrement cookies"
+    - name: NEXUSDL_WEB__AUTH__JWT_SECRET
+      required: true
+      applies_to: [web-backend, migrate]
+      description: "Secret JWT — invalide les sessions si changé"
+    - name: NEXUSDL_ADMIN_PASSWORD
+      required: true
+      applies_to: [web-backend, migrate]
+      description: "Mot de passe admin initial (premier démarrage)"
+    - name: NEXUSDL_REDIS_PASSWORD
+      required: false
+      description: "Mot de passe Redis (fortement recommandé en prod)"
+    - name: NEXUSDL_WAIT_FOR
+      required: false
+      description: "Liste 'host:port' séparés par virgule — attente au démarrage"
+
+  runtime_dev:
+    - name: NEXUSDL_DEBUG
+      value: "1"
+    - name: NEXUSDL_DEV_MODE
+      value: "true"
+    - name: NEXUSDL_SKIP_DROP_PRIVILEGES
+      value: "true"
+
+# ----------------------------------------------------------------------------
+#  Points d'attention
+# ----------------------------------------------------------------------------
+notes:
+  - "Le contexte de build est TOUJOURS la racine du projet (`.`) — pas `docker/`."
+  - "Les fichiers `docker-compose.yml` et `docker-compose.dev.yml` sont INDÉPENDANTS."
+  - "Ils peuvent tourner simultanément (subnets distincts 172.30.x et 172.31.x)."
+  - "Le dossier `docker/certs/` est gitignored sauf un éventuel `.gitkeep`."
+  - "Les secrets prod sont lus depuis `.env` à la racine (jamais committé)."
+  - "Les secrets dev sont INLINÉS dans docker-compose.dev.yml (valeurs triviales)."
+  - "Le fichier `.secrets.env` généré par entrypoint.sh persiste dans /config."
+  - "Ne jamais éditer `.secrets.env` à la main — regénération → cookies/DB illisibles."
+  - "Nginx et web-backend sont dans le même réseau Docker (nexusdl-net) — pas d'exposition"
+  - "directe du port 8000 en prod (sauf debug)."
+  - "L'image gui-runtime n'est PAS pour l'utilisateur final — le binaire est extrait et"
+  - "distribué via les releases GitHub (Phase 20)."
+
+# ----------------------------------------------------------------------------
+#  Outils associés
+# ----------------------------------------------------------------------------
+tooling:
+  build:
+    - "docker compose -f docker/docker-compose.yml build"
+    - "docker compose -f docker/docker-compose.dev.yml build"
+    - "docker build -f docker/Dockerfile.web -t nexusdl-web:dev ."
+  run:
+    - "docker compose -f docker/docker-compose.yml up -d"
+    - "docker compose -f docker/docker-compose.dev.yml up"
+    - "docker compose --profile flaresolverr up -d"
+  debug:
+    - "docker compose logs -f web-backend"
+    - "docker compose exec web-backend sh"
+    - "docker compose -f docker/docker-compose.dev.yml --profile debug run --rm shell"
+  clean:
+    - "docker compose -f docker/docker-compose.dev.yml down -v   # supprime les volumes"
+    - "docker system prune -af --volumes                        # reset complet"
+  test:
+    - "docker compose -f docker/docker-compose.dev.yml --profile test run --rm test"
+    - "docker run --rm nexusdl-gui-test:0.1.0                    # test GUI headless"
+
+# ----------------------------------------------------------------------------
+#  Références
+# ----------------------------------------------------------------------------
+see_also:
+  - ".env.example"
+  - "config/config.example.yaml"
+  - "scripts/build.py"
+  - "scripts/dev.py"
+  - "pyproject.toml (extras: core, browsers, cli, web, gui, build, dev)"
+  - "docs/source/installation/docker.md"
+  - "docs/source/development/contributing.md"
+  - ".github/workflows/docker.yml"
+  - ".github/workflows/release.yml"
