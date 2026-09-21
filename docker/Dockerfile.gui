@@ -1,0 +1,318 @@
+# syntax=docker/dockerfile:1.7
+# ============================================================================
+#  NexusDL — Dockerfile.gui
+#  Build de l'exécutable GUI (CustomTkinter + PyInstaller) pour Linux.
+#
+#  Ce Dockerfile produit DEUX artefacts utilisables :
+#    1. L'exécutable PyInstaller (dist/nexusdl-gui) → à récupérer
+#    2. Une image de test headless (Xvfb + VNC) → pour valider le démarrage
+#
+#  Multi-stage :
+#    stage 1 : gui-builder   → PyInstaller produit l'exécutable
+#    stage 2 : gui-runtime   → image minimale de test (Xvfb + x11vnc)
+#
+#  Build :
+#    docker build -f docker/Dockerfile.gui \
+#      --build-arg VERSION=0.1.0 \
+#      --build-arg GUI_ONEFILE=false \
+#      -t nexusdl-gui-builder:0.1.0 .
+#
+#  Récupération de l'exécutable :
+#    docker create --name gui-tmp nexusdl-gui-builder:0.1.0
+#    docker cp gui-tmp:/build/dist/nexusdl-gui ./dist/
+#    docker rm gui-tmp
+#
+#  Ou via un volume :
+#    docker run --rm -v "$PWD/dist:/output" nexusdl-gui-builder:0.1.0 \
+#      sh -c 'cp -r /build/dist/* /output/ && chown -R 1000:1000 /output'
+#
+#  Test headless (accès via VNC sur :5900) :
+#    docker run --rm -p 5900:5900 nexusdl-gui-test:0.1.0
+#    # puis `vncviewer localhost:5900`
+#
+#  Variables de build :
+#    VERSION              → version injectée (défaut: 0.1.0)
+#    GUI_ONEFILE          → true | false (défaut: false — onedir plus rapide)
+#    PYTHON_VERSION       → version Python (défaut: 3.12)
+#    BASE_IMAGE           → debian:bookworm-slim | ubuntu:22.04 (défaut: debian)
+#    ENABLE_VNC           → true | false (défaut: true) — inclut x11vnc dans l'image de test
+# ============================================================================
+
+# ============================================================================
+#  Stage 1 : gui-builder — compilation PyInstaller
+# ============================================================================
+ARG PYTHON_VERSION=3.12
+FROM python:${PYTHON_VERSION}-slim-bookworm AS gui-builder
+
+ARG VERSION=0.1.0
+ARG GUI_ONEFILE=false
+
+# --- Dépendances système pour PyInstaller + Tkinter + CustomTkinter ---------
+# PyInstaller a besoin de :
+#   - gcc, make, patchelf (pour bundler les .so)
+#   - binutils (objdump, strip, readelf)
+# CustomTkinter/Tkinter ont besoin de :
+#   - tk-dev (headers pour _tkinter)
+#   - libx11-dev (headers pour X11)
+# Pillow (utilisé par CustomTkinter) a besoin de :
+#   - libjpeg-dev, libpng-dev, zlib1g-dev
+# Le runtime final n'a PAS besoin des -dev, seul le builder les a.
+RUN set -eux; \
+    apt-get update; \
+    apt-get install -y --no-install-recommends \
+        binutils \
+        build-essential \
+        ca-certificates \
+        curl \
+        file \
+        gcc \
+        git \
+        libffi-dev \
+        libjpeg-dev \
+        liblzma-dev \
+        libpng-dev \
+        libssl-dev \
+        libwebp-dev \
+        libx11-6 \
+        libx11-dev \
+        libxcb1-dev \
+        libxcb-render0-dev \
+        libxcb-shape0-dev \
+        libxcb-xfixes0-dev \
+        libxext-dev \
+        libxrender-dev \
+        libxtst-dev \
+        patchelf \
+        pkg-config \
+        python3-tk \
+        tk-dev \
+        unzip \
+        wget \
+        zlib1g-dev \
+    ; \
+    rm -rf /var/lib/apt/lists/*
+
+# --- uv pour l'installation rapide ------------------------------------------
+RUN set -eux; \
+    curl -LsSf https://astral.sh/uv/install.sh | sh; \
+    mv /root/.local/bin/uv /usr/local/bin/uv; \
+    mv /root/.local/bin/uvx /usr/local/bin/uvx 2>/dev/null || true; \
+    uv --version
+
+# --- Création du venv --------------------------------------------------------
+ENV VIRTUAL_ENV=/opt/venv
+ENV PATH="${VIRTUAL_ENV}/bin:${PATH}"
+
+RUN python -m venv ${VIRTUAL_ENV}
+
+# --- Copie des manifests (cache Docker) --------------------------------------
+WORKDIR /build
+
+COPY pyproject.toml ./
+COPY README.md ./
+COPY LICENSE* ./
+COPY MANIFEST.in ./
+COPY src/nexusdl/__init__.py ./src/nexusdl/__init__.py
+COPY src/nexusdl/version.py ./src/nexusdl/version.py
+
+# --- Installation des dépendances GUI + build --------------------------------
+# On installe les extras [gui] et [build] (pyinstaller, pillow, etc.)
+RUN set -eux; \
+    uv pip install --upgrade pip setuptools wheel; \
+    uv pip install -e ".[gui,build]"
+
+# --- Copie du code source complet --------------------------------------------
+COPY src/ ./src/
+COPY docker/ ./docker/
+COPY scripts/ ./scripts/
+COPY packaging/ ./packaging/
+COPY config/ ./config/
+
+# --- Réinstallation du package avec tout le code -----------------------------
+RUN set -eux; \
+    uv pip install --no-deps -e .; \
+    uv cache clean
+
+# --- Vérification de présence des specs PyInstaller --------------------------
+# Les specs sont dans packaging/pyinstaller/nexusdl-linux.spec
+RUN set -eux; \
+    if [ ! -f packaging/pyinstaller/nexusdl-linux.spec ]; then \
+        echo "⚠ Spec PyInstaller absente : packaging/pyinstaller/nexusdl-linux.spec"; \
+        echo "  Génération d'un spec minimal de secours…"; \
+        mkdir -p packaging/pyinstaller; \
+        printf '%s\n' \
+            "# -*- mode: python ; coding: utf-8 -*-" \
+            "block_cipher = None" \
+            "a = Analysis(" \
+            "    ['src/nexusdl/interfaces/gui/app.py']," \
+            "    pathex=['src']," \
+            "    binaries=[]," \
+            "    datas=[('config', 'config'), ('src/nexusdl/data', 'nexusdl/data')]," \
+            "    hiddenimports=['customtkinter', 'PIL._tkinter_finder']," \
+            "    hookspath=[]," \
+            "    runtime_hooks=[]," \
+            "    excludes=['tkinter.test', 'test']," \
+            "    win_no_prefer_redirects=False," \
+            "    win_private_assemblies=False," \
+            "    cipher=block_cipher," \
+            ")" \
+            "pyz = PYZ(a.pure, a.zipped_data, cipher=block_cipher)" \
+            "exe = EXE(" \
+            "    pyz, a.scripts, [], exclude_binaries=True," \
+            "    name='nexusdl-gui', debug=False, bootloader_ignore_signals=False," \
+            "    strip=False, upx=False, console=False, disable_windowed_traceback=False," \
+            ")" \
+            "coll = COLLECT(" \
+            "    exe, a.binaries, a.zipfiles, a.datas," \
+            "    strip=False, upx=False, upx_exclude=[], name='nexusdl-gui'," \
+            ")" \
+            > packaging/pyinstaller/nexusdl-linux.spec; \
+    fi
+
+# --- Build PyInstaller -------------------------------------------------------
+# On passe par le script officiel packaging/build_gui.py s'il existe, sinon
+# on appelle pyinstaller directement sur le spec.
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONOPTIMIZE=2
+ENV NEXUSDL_BUILD_PROFILE=release
+ENV NEXUSDL_VERSION=${VERSION}
+
+RUN set -eux; \
+    SPEC="packaging/pyinstaller/nexusdl-linux.spec"; \
+    EXTRA=""; \
+    if [ "${GUI_ONEFILE}" = "true" ]; then \
+        EXTRA="--onefile"; \
+    fi; \
+    pyinstaller \
+        --noconfirm \
+        --clean \
+        --distpath /build/dist \
+        --workpath /build/build \
+        --specpath /build/spec \
+        ${EXTRA} \
+        "${SPEC}"; \
+    # Vérification : le binaire existe et est exécutable
+    if [ ! -f /build/dist/nexusdl-gui/nexusdl-gui ] && [ ! -f /build/dist/nexusdl-gui ]; then \
+        echo "✗ Build échoué : ni /build/dist/nexusdl-gui/nexusdl-gui ni /build/dist/nexusdl-gui" >&2; \
+        ls -la /build/dist/ 2>/dev/null || true; \
+        exit 1; \
+    fi; \
+    # Nettoyage du build intermédiaire
+    rm -rf /build/build /build/spec; \
+    # Trace de build
+    echo "NexusDL GUI v${VERSION} (onefile=${GUI_ONEFILE})" > /build/dist/.build-info
+
+# --- Analyse du binaire produit (informations de debug) ----------------------
+RUN set -eux; \
+    if [ -f /build/dist/nexusdl-gui/nexusdl-gui ]; then \
+        file /build/dist/nexusdl-gui/nexusdl-gui; \
+        du -sh /build/dist/nexusdl-gui; \
+    fi
+
+# ============================================================================
+#  Stage 2 : gui-runtime — image de test headless (Xvfb + VNC)
+# ============================================================================
+# Cette image embarque l'exécutable + un serveur X virtuel pour vérifier
+# que le binaire démarre sans erreur graphique. Elle sert UNIQUEMENT de
+# test — l'utilisateur final reçoit l'exécutable brut, pas cette image.
+#
+# Usage test :
+#   docker run --rm -p 5900:5900 nexusdl-gui-test:0.1.0
+#   # puis vncviewer localhost:5900 (mot de passe : nexusdl)
+FROM python:${PYTHON_VERSION}-slim-bookworm AS gui-runtime
+
+ARG VERSION=0.1.0
+ARG ENABLE_VNC=true
+
+# --- Labels OCI ---------------------------------------------------------------
+LABEL org.opencontainers.image.title="NexusDL GUI (test runtime)"
+LABEL org.opencontainers.image.description="Image de test headless pour l'exécutable GUI NexusDL"
+LABEL org.opencontainers.image.version="${VERSION}"
+LABEL org.opencontainers.image.vendor="NexusDL"
+LABEL org.opencontainers.image.licenses="GPL-3.0-or-later"
+LABEL org.opencontainers.image.source="https://github.com/nexusdl/nexusdl"
+
+# --- Dépendances runtime GUI --------------------------------------------------
+# Toutes les bibliothèques partagées nécessaires à Tkinter, X11, et Pillow.
+# Ce sont les libs runtime (pas les -dev), suffisantes pour faire tourner
+# le binaire PyInstaller.
+RUN set -eux; \
+    apt-get update; \
+    apt-get install -y --no-install-recommends \
+        ca-certificates \
+        dbus-x11 \
+        fonts-dejavu-core \
+        fonts-liberation \
+        libjpeg62-turbo \
+        libpng16-16 \
+        libx11-6 \
+        libxcb1 \
+        libxcb-render0 \
+        libxcb-shape0 \
+        libxcb-xfixes0 \
+        libxext6 \
+        libxrender1 \
+        libxtst6 \
+        python3-tk \
+        tk \
+        tini \
+        tzdata \
+        xauth \
+        xvfb \
+    ; \
+    if [ "${ENABLE_VNC}" = "true" ]; then \
+        apt-get install -y --no-install-recommends \
+            x11vnc \
+            xterm \
+        ; \
+    fi; \
+    rm -rf /var/lib/apt/lists/*; \
+    find /usr/share/doc -type f -delete; \
+    find /usr/share/man -type f -delete
+
+# --- Copie de l'exécutable depuis le builder ---------------------------------
+COPY --from=gui-builder /build/dist/ /opt/nexusdl-gui/
+
+# --- Copie de l'entrypoint de test (Xvfb + VNC) ------------------------------
+COPY --from=gui-builder /build/docker/gui-entrypoint.sh /usr/local/bin/gui-entrypoint.sh
+
+RUN set -eux; \
+    chmod +x /usr/local/bin/gui-entrypoint.sh; \
+    # Création d'un utilisateur non-root
+    groupadd --gid 1000 nexusdl; \
+    useradd --uid 1000 --gid 1000 --shell /bin/bash --create-home nexusdl; \
+    # Le binaire est propriété de nexusdl
+    chown -R nexusdl:nexusdl /opt/nexusdl-gui; \
+    # Trouver l'exécutable (onedir ou onefile)
+    if [ -f /opt/nexusdl-gui/nexusdl-gui/nexusdl-gui ]; then \
+        ln -sf /opt/nexusdl-gui/nexusdl-gui/nexusdl-gui /usr/local/bin/nexusdl-gui; \
+    elif [ -f /opt/nexusdl-gui/nexusdl-gui ]; then \
+        ln -sf /opt/nexusdl-gui/nexusdl-gui /usr/local/bin/nexusdl-gui; \
+    fi
+
+# --- Variables d'environnement -----------------------------------------------
+ENV DISPLAY=:99 \
+    XVFB_RESOLUTION=1280x800x24 \
+    XVFB_DEPTH=24 \
+    VNC_PORT=5900 \
+    VNC_PASSWORD=nexusdl \
+    NEXUSDL_ENV=headless \
+    NEXUSDL_CONFIG_DIR=/config \
+    NEXUSDL_LIBRARY_DIR=/data \
+    NEXUSDL_LOG_DIR=/logs \
+    NEXUSDL_CACHE_DIR=/cache \
+    TZ=UTC
+
+# --- Volume pour les données persistantes ------------------------------------
+VOLUME ["/config", "/data", "/logs", "/cache"]
+
+# --- Expose le port VNC (documentaire) ---------------------------------------
+EXPOSE 5900
+
+# --- Healthcheck : vérifie que l'exécutable est bien présent ------------------
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+    CMD test -x /usr/local/bin/nexusdl-gui || exit 1
+
+# --- Entrypoint ---------------------------------------------------------------
+ENTRYPOINT ["/usr/bin/tini", "--", "/usr/local/bin/gui-entrypoint.sh"]
+CMD []
