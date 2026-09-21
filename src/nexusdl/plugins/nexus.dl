@@ -1,0 +1,414 @@
+# ============================================================================
+#  nexus.dl — Dossier "src/nexusdl/plugins/"
+#  Documentation locale du dossier. Non chargé à l'exécution.
+#  Format : YAML parsable (utilisé par docs/source/conf.py et la CI).
+# ============================================================================
+
+meta:
+  path: "src/nexusdl/plugins/"
+  parent: "src/nexusdl/"
+  role: "Système de plugins — API, hooks, loader, validation"
+  owner: "@nexusdl/plugins-team"
+  since: "0.1.0"
+  updated: "2025-01-15"
+  status: stable
+  tracked_in_git: true
+
+# ----------------------------------------------------------------------------
+#  Rôle du dossier
+# ----------------------------------------------------------------------------
+purpose: |
+  Ce dossier implémente le **système de plugins** de NexusDL : une couche
+  d'extension permettant à la communauté d'ajouter des comportements
+  personnalisés (hooks, transformations, notificateurs, intégrations) sans
+  modifier le code core.
+
+  Le système de plugins est **sandboxé par défaut** :
+
+    - Chaque plugin est isolé dans son propre dossier.
+    - Un manifest YAML déclare ses métadonnées (nom, version, entrypoint,
+      hooks, permissions, dépendances).
+    - Le loader vérifie le manifest, analyse le code (AST), et n'exécute
+      que si la validation passe.
+    - L'API exposée aux plugins est **stable** et versionnée
+      (``PLUGIN_API_VERSION``).
+    - Les permissions sont **whitelistées** — un plugin ne peut faire que
+      ce qu'il a explicitement déclaré.
+
+  Ce dossier est **interne** : il est importé par le reste de NexusDL mais
+  un plugin utilisateur **ne l'importe jamais directement**. Il utilise
+  ``nexusdl.plugins.api`` (surface publique) et ``nexusdl.plugins.hooks``
+  (types d'événements).
+
+# ----------------------------------------------------------------------------
+#  Contenu du dossier
+# ----------------------------------------------------------------------------
+contents:
+
+  - file: "__init__.py"
+    type: module
+    role: "Marqueur de package + exports publics du système de plugins"
+    exports:
+      - "PluginLoader"
+      - "Plugin"
+      - "PluginContext"
+      - "PluginAPI"
+      - "PLUGIN_API_VERSION"
+      - "HOOK_NAMES"
+      - "HookType"
+      - "validate_plugin"
+      - "validate_all"
+    notes: |
+      Expose une surface minimale et stable. Les internes (`_loader_impl`,
+      `_validators_impl`) ne sont pas exportés. Toute addition d'export
+      public suit la même règle de versionnage que l'API plugin.
+
+  # === API publique ========================================================
+  - file: "api.py"
+    type: module
+    role: "Surface publique exposée aux plugins (importable par plugin.py)"
+    classes:
+      - "PluginAPI"
+      - "PluginContext"
+      - "Notifier"
+      - "LibraryAccessor"
+      - "HttpAccessor"
+      - "FilesystemAccessor"
+      - "ConfigAccessor"
+    stability: stable
+    version: "1.0"
+    notes: |
+      C'est le SEUL module que les plugins peuvent importer en toute
+      confiance. Toute méthode de cette API est couverte par la politique
+      de versionnage PLUGIN_API_VERSION :
+        - Ajout de méthode → mineur (compatible)
+        - Changement de signature → majeur (breaking)
+        - Retrait → majeur (breaking)
+      Les plugins n'importent JAMAIS `nexusdl.core.*` directement — tout
+      passe par les accesseurs exposés ici.
+
+  - file: "hooks.py"
+    type: module
+    role: "Définition des hooks, types d'événements, dispatcher"
+    contents:
+      HookType: "Enum des hooks supportés"
+      HOOK_NAMES: "Frozenset des noms de hooks (source de vérité)"
+      HookPayload: "BaseModel commun à tous les payloads de hooks"
+      SearchPayload: "Payload pour pre_search/post_search"
+      DownloadPayload: "Payload pour pre_download/post_download"
+      PackagingPayload: "Payload pour pre_package/post_package"
+      ErrorPayload: "Payload pour on_error"
+      ChapterPayload: "Payload pour on_new_chapter"
+      MangaPayload: "Payload pour on_manga_update"
+      LibraryScanPayload: "Payload pour on_library_scan"
+      HookDispatcher: "Dispatch d'un hook vers tous les plugins abonnés"
+    version: "1.0"
+    notes: |
+      HOOK_NAMES est importé par `validators.py` (avec fallback défensif
+      en cas d'import circulaire). Toute modification de cette liste est
+      un changement d'API plugin → incrément de minor.
+
+  - file: "loader.py"
+    type: module
+    role: "Chargement, isolation, cycle de vie des plugins"
+    classes:
+      - "PluginLoader"
+      - "LoadedPlugin"
+      - "PluginState"
+    methods:
+      load_all: "Découvre et charge tous les plugins d'un dossier"
+      load_one: "Charge un plugin unique"
+      reload: "Recharge un plugin (hot-reload)"
+      unload: "Décharge un plugin (appel on_unload + nettoyage)"
+      get: "Retourne un plugin chargé par nom"
+      list_loaded: "Liste les plugins chargés"
+      dispatch_hook: "Envoie un hook à tous les plugins abonnés"
+    version: "1.0"
+    notes: |
+      Le loader utilise `validators.py` en amont de chaque chargement.
+      Un plugin qui échoue la validation n'est JAMAIS importé — il est
+      marqué `PluginState.FAILED` et son erreur est loggée.
+      Le dispatch des hooks se fait séquentiellement (pas de parallélisme)
+      pour préserver l'ordre et éviter les race conditions.
+
+  - file: "validators.py"
+    type: module
+    role: "Validation statique et sémantique des plugins (voir code complet)"
+    classes:
+      - "PluginManifest"
+      - "PluginAuthor"
+      - "PluginDependency"
+      - "PluginValidationResult"
+      - "AggregateValidationResult"
+      - "ValidationIssue"
+      - "Severity"
+      - "Category"
+      - "PluginValidationError"
+      - "PluginManifestError"
+    constants:
+      PLUGIN_API_VERSION: "1.0"
+      MANIFEST_FILENAME: "nexus.plugin.yaml"
+      ALLOWED_HOOKS: "frozenset des hooks valides"
+      ALLOWED_PERMISSIONS: "frozenset des permissions whitelistées"
+      DANGEROUS_CALLS: "patterns AST interdits (eval, exec, os.system...)"
+      DANGEROUS_ATTRIBUTES: "attributs d'introspection interdits"
+      SAFE_STDLIB_MODULES: "modules stdlib autorisés en sandbox"
+    notes: |
+      Trois niveaux de validation :
+        1. Structurelle (Pydantic) — schéma du manifest
+        2. Sémantique — version API, hooks, permissions
+        3. Statique (AST) — patterns dangereux, imports sandbox
+      Optionnellement, `allow_import=True` charge réellement le module
+      pour valider l'entrypoint (dev uniquement).
+
+  - file: "nexus.dl"
+    type: documentation
+    role: "Ce fichier — documentation locale du dossier"
+    loaded_at_runtime: false
+
+# ----------------------------------------------------------------------------
+#  Sous-dossier _example/
+# ----------------------------------------------------------------------------
+subfolders:
+
+  - path: "_example/"
+    role: "Plugin d'exemple — squelette de référence pour développeurs"
+    contents:
+      - file: "__init__.py"
+        type: module
+        role: "Marqueur de package (vide)"
+      - file: "nexus.plugin.yaml"
+        type: manifest
+        role: "Manifest d'exemple documenté — copier pour créer un nouveau plugin"
+        notes: |
+          Ce manifest illustre tous les champs disponibles avec commentaires
+          inline. C'est la source de vérité pour comprendre le format.
+      - file: "plugin.py"
+        type: module
+        role: "Classe Plugin d'exemple — implémente tous les hooks disponibles"
+        notes: |
+          Chaque hook est stub avec un log et un TODO. Sert de référence
+          pour les développeurs de plugins.
+      - file: "nexus.dl"
+        type: documentation
+        role: "Documentation locale du sous-dossier _example/"
+    prefixed_underscore: true
+    notes: |
+      Le préfixe `_` signale au loader que ce dossier peut contenir un
+      plugin non productif (exemple, démo). Il EST chargé (sauf si
+      `plugins.disabled: [_example]`), mais il est le premier candidat
+      à la désactivation en production.
+
+# ----------------------------------------------------------------------------
+#  Invariants de sécurité
+# ----------------------------------------------------------------------------
+security_invariants:
+  - id: "no-direct-core-import"
+    description: "Les plugins n'importent jamais nexusdl.core.* directement"
+    enforcement: |
+      Les accesseurs de `api.py` encapsulent tous les accès core.
+      Toute importation directe est détectée par l'analyse AST de
+      `validators.py` (mode sandbox) et produit un warning.
+    severity: error
+
+  - id: "plugin-api-versioned"
+    description: "Toute modification de l'API plugin incrémente PLUGIN_API_VERSION"
+    enforcement: |
+      Un test de non-régression (`tests/plugins/test_api_stability.py`)
+      vérifie que les signatures des méthodes publiques de `api.py` et
+      les valeurs de `HOOK_NAMES` n'ont pas changé sans bump de version.
+    severity: error
+
+  - id: "no-eval-exec"
+    description: "Aucun plugin ne peut utiliser eval/exec"
+    enforcement: "Analyse AST dans validators.py — DANGEROUS_CALLS"
+    severity: error
+
+  - id: "no-introspection"
+    description: "Aucun plugin ne peut accéder à __globals__, __subclasses__, etc."
+    enforcement: "Analyse AST dans validators.py — DANGEROUS_ATTRIBUTES"
+    severity: error
+
+  - id: "permission-whitelist"
+    description: "Chaque permission demandée doit être dans ALLOWED_PERMISSIONS"
+    enforcement: "Validation Pydantic du manifest"
+    severity: error
+
+  - id: "hook-whitelist"
+    description: "Chaque hook déclaré doit être dans ALLOWED_HOOKS"
+    enforcement: "Validation Pydantic du manifest"
+    severity: error
+
+  - id: "manifest-required"
+    description: "Aucun plugin n'est chargé sans nexus.plugin.yaml valide"
+    enforcement: "PluginLoader appelle validate_plugin en amont"
+    severity: error
+
+  - id: "size-limit"
+    description: "Un plugin ne peut dépasser 10 MiB"
+    enforcement: "validate_files — MAX_PLUGIN_SIZE_BYTES"
+    severity: error
+
+  - id: "no-symlinks"
+    description: "Les symlinks dans un plugin sont signalés"
+    enforcement: "validate_files — warning explicite"
+    severity: warning
+
+# ----------------------------------------------------------------------------
+#  Cycle de vie d'un plugin
+# ----------------------------------------------------------------------------
+lifecycle:
+  discovery:
+    - "Scan récursif du dossier plugins/ (config_dir/plugins par défaut)"
+    - "Filtre les dossiers contenant un nexus.plugin.yaml"
+    - "Ignore les dossiers préfixés `_` sauf `_example`"
+  validation:
+    - "validate_plugin(sandbox=True, allow_import=False) par défaut"
+    - "Un plugin invalide est marqué FAILED et loggé en WARNING"
+    - "Le loader continue avec les autres plugins (pas de fail-fast)"
+  loading:
+    - "importlib.util.spec_from_file_location + exec_module"
+    - "Isolation dans sys.modules avec un nom unique"
+    - "Appel on_load(api, context) si la méthode existe"
+    - "Enregistrement du plugin dans LoadedPlugin registry"
+  runtime:
+    - "Chaque hook dispatché par HookDispatcher aux plugins abonnés"
+    - "Un plugin qui lève est retiré temporairement (backoff)"
+    - "Timeout par plugin (configurable, défaut 5s par hook)"
+    - "Logs bindés au plugin_name pour traçabilité"
+  shutdown:
+    - "Appel on_unload() si la méthode existe"
+    - "Retrait de sys.modules"
+    - "Libération des ressources (HttpAccessor, FilesystemAccessor)"
+  hot_reload:
+    - "Watchdog surveille config_dir/plugins/ (dev uniquement)"
+    - "Sur modification : unload + reload du plugin touché"
+    - "En prod, hot_reload désactivé (redémarrage requis)"
+
+# ----------------------------------------------------------------------------
+#  Conventions
+# ----------------------------------------------------------------------------
+conventions:
+  structure:
+    - "Un plugin = un dossier avec nexus.plugin.yaml + plugin.py"
+    - "Structure libre à l'intérieur, à condition que l'entrypoint existe"
+    - "Les ressources (templates, JSON) sont dans un sous-dossier data/"
+    - "Les tests du plugin vivent dans tests/plugins/test_<name>/ (hors plugin)"
+  naming:
+    - "Nom du plugin : snake_case ou kebab-case, [a-z][a-z0-9_-]{2,50}"
+    - "Classe d'entrypoint : PascalCase, terminaison libre (MyPlugin, Notifier...)"
+    - "Modules internes : snake_case, préfixe underscore pour les privés"
+  manifest:
+    - "Format YAML 1.2, indentation 2 espaces"
+    - "Champs obligatoires : name, version, api_version, author, description"
+    - "Version sémantique (MAJOR.MINOR.PATCH), regex `^\\d+\\.\\d+\\.\\d+"
+  code:
+    - "from __future__ import annotations en tête"
+    - "Type hints sur toutes les méthodes publiques"
+    - "Pas de blocage synchrone dans les hooks (async ou to_thread)"
+    - "Pas d'état global mutable — utiliser la classe Plugin"
+  imports:
+    - "Autorisé : nexusdl.plugins.api, nexusdl.plugins.hooks, nexusdl.core.models, stdlib safe"
+    - "Interdit : nexusdl.core.session, nexusdl.core.downloader, accès direct à la DB"
+    - "Toléré (warning) : os, sys, subprocess (si permission déclarée)"
+  hooks:
+    - "Un hook peut être sync ou async — le dispatcher gère les deux"
+    - "Retourner None signifie 'continuer', retourner un payload modifié 'remplacer'"
+    - "Lever une exception annule l'opération en cours (sauf post_*)"
+  permissions:
+    - "Demander le minimum nécessaire — audit humain avant publication"
+    - "Les permissions sensibles (network_raw, filesystem_write) déclenchent un warning"
+    - "Une permission non demandée → accès refusé par l'accesseur"
+  versioning:
+    - "PLUGIN_API_VERSION suit SemVer — bump en cas de changement d'API"
+    - "Un plugin 1.0 charge sur une API 1.x — un plugin 1.7 échoue sur 1.0"
+    - "Une API majeure différente est un rejet dur (pas de compat)"
+
+# ----------------------------------------------------------------------------
+#  Points d'attention
+# ----------------------------------------------------------------------------
+notes:
+  - "Ce dossier est INTERNE — un plugin utilisateur ne l'importe jamais directement."
+  - "La surface publique est api.py + hooks.py. Tout le reste est un détail d'implémentation."
+  - "Le sandbox est ACTIVÉ par défaut (validators.py). Le désactiver est un choix conscient."
+  - "allow_import=False par défaut — le code du plugin n'est PAS exécuté pendant la validation."
+  - "Un plugin invalide n'empêche PAS le démarrage de NexusDL — il est juste ignoré."
+  - "Les hooks sont dispatchés SÉQUENTIELLEMENT — un plugin lent bloque les suivants."
+  - "Le dispatcher applique un timeout par plugin (défaut 5s) — au-delà, le plugin est retiré."
+  - "Un plugin qui crash 3 fois consécutives est désactivé jusqu'au prochain redémarrage."
+  - "Le hot-reload des plugins est actif en dev uniquement (watchdog sur config_dir/plugins/)."
+  - "Aucun plugin ne peut accéder aux cookies chiffrés sans la permission 'cookies'."
+  - "L'API plugin est documentée dans docs/source/development/plugins.md (Phase 20)."
+  - "Le format exact des payloads de hooks est défini dans hooks.py — c'est la source de vérité."
+
+# ----------------------------------------------------------------------------
+#  Outils associés
+# ----------------------------------------------------------------------------
+tooling:
+  validate:
+    - "python -m nexusdl plugins validate          # via CLI"
+    - "python -c 'from nexusdl.plugins.validators import validate_all; validate_all(...)'"
+    - "make plugins-validate                        # via Makefile"
+  generate:
+    - "python scripts/generate_parser.py new --template minimal  # squelette de plugin"
+    - "cp -r src/nexusdl/plugins/_example plugins/my_plugin"
+  test:
+    - "pytest tests/plugins/ -v"
+    - "pytest tests/plugins/test_validators.py"
+  inspect:
+    - "python -m nexusdl plugins list              # plugins chargés"
+    - "python -m nexusdl plugins info <name>       # détails d'un plugin"
+    - "python -m nexusdl plugins reload <name>     # hot-reload manuel"
+
+# ----------------------------------------------------------------------------
+#  Exports publics
+# ----------------------------------------------------------------------------
+public_api:
+  from_init:
+    - "Plugin"
+    - "PluginLoader"
+    - "PluginContext"
+    - "PluginAPI"
+    - "PLUGIN_API_VERSION"
+    - "HOOK_NAMES"
+    - "HookType"
+    - "validate_plugin"
+    - "validate_all"
+  from_api:
+    - "PluginAPI"
+    - "PluginContext"
+    - "Notifier"
+    - "LibraryAccessor"
+    - "HttpAccessor"
+    - "FilesystemAccessor"
+    - "ConfigAccessor"
+  from_hooks:
+    - "HookType"
+    - "HOOK_NAMES"
+    - "HookPayload"
+    - "HookDispatcher"
+    - "tous les payloads spécifiques"
+  from_loader:
+    - "PluginLoader"
+    - "LoadedPlugin"
+    - "PluginState"
+  from_validators:
+    - "PluginManifest"
+    - "validate_plugin"
+    - "validate_all"
+    - "PluginValidationResult"
+    - "AggregateValidationResult"
+    - "PluginValidationError"
+
+# ----------------------------------------------------------------------------
+#  Références
+# ----------------------------------------------------------------------------
+see_also:
+  - "src/nexusdl/plugins/_example/nexus.dl"
+  - "src/nexusdl/plugins/_example/nexus.plugin.yaml"
+  - "src/nexusdl/core/config.py (section plugins)"
+  - "config/config.example.yaml (section plugins)"
+  - "docs/source/development/plugins.md"
+  - "docs/source/api/python.md"
+  - "scripts/validate_sites.py (invariant plugins)"
+  - "tests/plugins/"
