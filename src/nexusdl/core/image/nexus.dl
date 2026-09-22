@@ -1,0 +1,66 @@
+# ============================================================================
+# NEXUSDL — Module : core/image
+# ============================================================================
+#
+# Rôle :
+#   Traitement et manipulation d'images pour NexusDL. Ce module fournit
+#   tous les outils nécessaires pour télécharger, valider, convertir,
+#   optimiser et filigraner les images scrapées depuis les sites sources.
+#
+# Organisation :
+#   - converter.py    : Moteur de conversion multi-formats (JPEG, PNG, WebP,
+#                       AVIF, GIF, BMP, TIFF). Gère la normalisation des modes
+#                       de couleur, le contrôle de qualité, la préservation
+#                       des profils ICC, et le redimensionnement. Utilise
+#                       Pillow via asyncio.to_thread() pour les opérations
+#                       CPU-bound. Supporte la conversion par lot avec
+#                       concurrence contrôlée.
+#
+#   - downloader.py   : Téléchargeur d'images avec validation, retry et
+#                       streaming. Vérifie le Content-Type, calcule le hash
+#                       SHA256, et délègue au converter si conversion demandée.
+#
+#   - optimizer.py    : Optimiseur d'images pour réduire la taille sans perte
+#                       visible. Utilise des techniques avancées (quantification,
+#                       suppression des métadonnées, optimisation des tables
+#                       Huffman pour JPEG, etc.).
+#
+#   - validator.py    : Validateur d'images (détection de corruption, vérification
+#                       des dimensions, validation du format, détection de fichiers
+#                       HTML déguisés en images — cas courant sur certains sites).
+#
+#   - watermark.py    : Ajout de filigranes (watermarks) sur les images. Supporte
+#                       texte et image, avec positionnement configurable et
+#                       opacité ajustable.
+#
+#   - nexus.dl        : Ce fichier (documentation interne du module).
+#
+# Règles d'or :
+#   1. Toutes les opérations Pillow sont CPU-bound → utiliser asyncio.to_thread().
+#   2. Un sémaphore limite la concurrence pour éviter la surchauffe mémoire.
+#   3. Les images tronquées sont tolérées (LOAD_TRUNCATED_IMAGES = True).
+#   4. Le format AVIF est optionnel (nécessite pillow-heif ou pillow-avif-plugin).
+#   5. Les métadonnées EXIF sont supprimées par défaut (vie privée).
+#   6. Les profils ICC sont préservés par défaut (fidélité des couleurs).
+#   7. La détection de format combine extension + magic bytes (fiable).
+#   8. Les conversions inutiles sont sautées (format identique + pas de transfo).
+#
+# Intégration :
+#   - Le `DownloadWorker` utilise le converter pour convertir les images
+#     si la config le demande (ex: tout convertir en WebP pour économiser).
+#   - Le `optimizer` est appelé après le converter pour une compression
+#     supplémentaire si nécessaire.
+#   - Le `validator` est appelé avant le converter pour rejeter les images
+#     corrompues ou invalides.
+#   - Le `watermark` est appelé en dernier si un filigrane est configuré.
+#
+# ============================================================================
+
+src/nexusdl/core/image/
+├── __init__.py            # Exports publics
+├── converter.py           # Moteur de conversion multi-formats
+├── downloader.py          # Téléchargeur d'images avec validation
+├── optimizer.py           # Optimiseur de taille
+├── validator.py           # Validateur d'intégrité
+├── watermark.py           # Ajout de filigranes
+└── nexus.dl               # Ce fichier
