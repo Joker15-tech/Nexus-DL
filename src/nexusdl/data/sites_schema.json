@@ -1,0 +1,255 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://nexusdl.dev/schemas/sites/v1.json",
+  "title": "NexusDL Sites Configuration Schema",
+  "description": "JSON Schema validating the structure of sites.yaml and user overrides for NexusDL. Enforces strict typing, pattern matching, and enum constraints for all site definitions.",
+  "$defs": {
+    "Language": {
+      "type": "string",
+      "description": "ISO 639-1 language code (2 letters) or 'multi' for multilingual sites.",
+      "enum": [
+        "fr", "en", "de", "es", "it", "pt", "ru", "ja", "ko", "zh",
+        "ar", "pl", "tr", "nl", "sv", "da", "no", "fi", "hu", "cs",
+        "ro", "bg", "el", "he", "th", "vi", "id", "ms", "uk", "multi"
+      ]
+    },
+    "ContentRating": {
+      "type": "string",
+      "description": "Content rating classification following MangaDex/MAL conventions.",
+      "enum": ["safe", "suggestive", "erotica", "pornographic"]
+    },
+    "HttpUrl": {
+      "type": "string",
+      "description": "Absolute HTTP or HTTPS URL.",
+      "format": "uri",
+      "pattern": "^https?://[^\\s/$.?#].[^\\s]*$"
+    },
+    "ParserClass": {
+      "type": "string",
+      "description": "Fully qualified Python parser class reference in the format 'module.path:ClassName'. Example: 'nexusdl.parsers.fr.sushiscan_net:SushiScanNetParser'.",
+      "pattern": "^[a-z_][a-z0-9_.]*:[A-Z][a-zA-Z0-9_]*$"
+    },
+    "SiteId": {
+      "type": "string",
+      "description": "Unique identifier for the site. Must be lowercase snake_case, globally unique across all sites.",
+      "pattern": "^[a-z][a-z0-9_]{1,63}$",
+      "examples": ["mangadex", "sushiscan_net", "nhentai", "asurascans"]
+    },
+    "SiteCapabilities": {
+      "type": "object",
+      "description": "Operational capabilities and limitations of a parser.",
+      "properties": {
+        "supports_search": {
+          "type": "boolean",
+          "default": true,
+          "description": "Whether the parser supports text-based manga search."
+        },
+        "supports_manga_info": {
+          "type": "boolean",
+          "default": true,
+          "description": "Whether the parser can retrieve detailed manga metadata."
+        },
+        "supports_chapters": {
+          "type": "boolean",
+          "default": true,
+          "description": "Whether the parser can list chapters of a manga."
+        },
+        "supports_pages": {
+          "type": "boolean",
+          "default": true,
+          "description": "Whether the parser can retrieve page URLs of a chapter."
+        },
+        "supports_download": {
+          "type": "boolean",
+          "default": true,
+          "description": "Whether the parser allows actual image downloading."
+        },
+        "supports_language_filter": {
+          "type": "boolean",
+          "default": false,
+          "description": "Whether the parser supports filtering search results by language."
+        },
+        "supports_content_rating_filter": {
+          "type": "boolean",
+          "default": false,
+          "description": "Whether the parser supports filtering by content rating (Safe, Suggestive, etc.)."
+        },
+        "requires_auth": {
+          "type": "boolean",
+          "default": false,
+          "description": "Whether the site requires authentication (cookies/login) to access content."
+        },
+        "requires_cloudflare_bypass": {
+          "type": "boolean",
+          "default": false,
+          "description": "Whether the site is protected by Cloudflare or a similar anti-bot system."
+        },
+        "requires_javascript_rendering": {
+          "type": "boolean",
+          "default": false,
+          "description": "Whether the site requires JavaScript execution to display content (e.g., dynamically loaded images)."
+        },
+        "max_concurrent_downloads": {
+          "type": "integer",
+          "default": 4,
+          "minimum": 1,
+          "maximum": 32,
+          "description": "Maximum number of concurrent page downloads allowed for this site."
+        },
+        "rate_limit_per_second": {
+          "type": "number",
+          "default": 2.0,
+          "exclusiveMinimum": 0,
+          "maximum": 10.0,
+          "description": "Maximum number of HTTP requests per second to this site."
+        },
+        "min_delay_between_requests": {
+          "type": "number",
+          "default": 0.5,
+          "minimum": 0.0,
+          "maximum": 30.0,
+          "description": "Minimum delay in seconds between two consecutive requests."
+        }
+      },
+      "required": [
+        "supports_search",
+        "supports_manga_info",
+        "supports_chapters",
+        "supports_pages",
+        "supports_download",
+        "requires_auth",
+        "requires_cloudflare_bypass",
+        "requires_javascript_rendering",
+        "max_concurrent_downloads",
+        "rate_limit_per_second",
+        "min_delay_between_requests"
+      ],
+      "additionalProperties": false
+    },
+    "SiteConfig": {
+      "type": "object",
+      "description": "Complete configuration of a single supported site.",
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/SiteId",
+          "description": "Unique identifier for the site."
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100,
+          "description": "Human-readable display name of the site.",
+          "examples": ["MangaDex", "SushiScan", "nHentai", "Asura Scans"]
+        },
+        "domains": {
+          "type": "array",
+          "description": "List of domains (primary first, then mirrors/alternatives). At least one domain is required.",
+          "items": { "$ref": "#/$defs/HttpUrl" },
+          "minItems": 1,
+          "maxItems": 20,
+          "uniqueItems": true
+        },
+        "parser_class": {
+          "$ref": "#/$defs/ParserClass",
+          "description": "Fully qualified Python class path for the parser implementation."
+        },
+        "language": {
+          "$ref": "#/$defs/Language",
+          "description": "Primary language of the site content (ISO 639-1)."
+        },
+        "adult": {
+          "type": "boolean",
+          "default": false,
+          "description": "Whether the site hosts adult (18+) content."
+        },
+        "content_rating": {
+          "$ref": "#/$defs/ContentRating",
+          "default": "safe",
+          "description": "Default content rating for the site."
+        },
+        "capabilities": {
+          "$ref": "#/$defs/SiteCapabilities",
+          "description": "Operational capabilities and limitations of the parser."
+        },
+        "default_headers": {
+          "type": "object",
+          "description": "Default HTTP headers to send with every request to this site.",
+          "additionalProperties": { "type": "string" },
+          "default": {},
+          "examples": [
+            { "Referer": "https://mangadex.org/", "Origin": "https://mangadex.org" }
+          ]
+        },
+        "cookies_required": {
+          "type": "array",
+          "description": "List of cookie names required for this site to work (e.g., Cloudflare clearance).",
+          "items": { "type": "string", "pattern": "^[a-zA-Z0-9_-]+$" },
+          "default": [],
+          "uniqueItems": true,
+          "examples": [["cf_clearance", "__ddg2_"]]
+        },
+        "region_locked": {
+          "type": "boolean",
+          "default": false,
+          "description": "Whether the site is geo-restricted and requires a proxy/VPN."
+        },
+        "allowed_regions": {
+          "type": "array",
+          "description": "List of ISO 3166-1 alpha-2 country codes where the site is accessible (empty = worldwide).",
+          "items": { "type": "string", "pattern": "^[A-Z]{2}$" },
+          "default": [],
+          "uniqueItems": true
+        },
+        "scanlation_group": {
+          "type": ["string", "null"],
+          "description": "Name of the scanlation group running the site (if applicable).",
+          "default": null
+        },
+        "notes": {
+          "type": ["string", "null"],
+          "description": "Free-form notes about the site (maintenance status, known issues, etc.).",
+          "default": null
+        },
+        "enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Whether the site is enabled by default. Can be overridden by user config."
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "domains",
+        "parser_class",
+        "language",
+        "capabilities"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "type": "object",
+  "description": "Root object containing the version and the list of all supported sites.",
+  "properties": {
+    "version": {
+      "type": "string",
+      "description": "Schema version for forward compatibility. Must follow SemVer.",
+      "pattern": "^\\d+\\.\\d+\\.\\d+(-[a-zA-Z0-9.]+)?(\\+[a-zA-Z0-9.]+)?$",
+      "examples": ["1.0.0", "1.2.3-beta.1"]
+    },
+    "last_updated": {
+      "type": "string",
+      "description": "ISO 8601 date of the last update to the sites configuration.",
+      "format": "date",
+      "examples": ["2026-09-22"]
+    },
+    "sites": {
+      "type": "array",
+      "description": "List of all supported site configurations. Each site must have a unique 'id'.",
+      "items": { "$ref": "#/$defs/SiteConfig" },
+      "minItems": 1,
+      "uniqueItems": true
+    }
+  },
+  "required": ["version", "sites"],
+  "additionalProperties": false
+}
