@@ -1,0 +1,74 @@
+# ============================================================================
+# NEXUSDL — Module : data/translations
+# ============================================================================
+#
+# Rôle :
+#   Fichiers de localisation (i18n) pour les trois interfaces du projet
+#   (CLI Textual, Web Next.js, GUI CustomTkinter). Chaque fichier JSON
+#   contient l'ensemble des chaînes traduites pour une locale donnée,
+#   organisées en sections thématiques (common, status, manga, chapter,
+#   download, library, reader, settings, errors, messages, cli, web, gui,
+#   plugins, validation, accessibility, time, pluralization).
+#
+# Règles d'or :
+#   1. `en.json` est la LOCALE SOURCE DE RÉFÉRENCE. Toute nouvelle clé
+#      doit d'abord être ajoutée dans `en.json`, puis répercutée dans
+#      les autres locales (fr, de, es). Le module `core/i18n.py` utilise
+#      `en` comme fallback pour toute clé manquante dans une locale cible.
+#   2. PARITÉ STRICTE des clés : tous les fichiers JSON doivent avoir
+#      exactement la même structure (mêmes sections, mêmes clés). Un
+#      script de validation (`scripts/validate_sites.py` ou dédié) doit
+#      être exécuté en CI pour détecter les divergences.
+#   3. Placeholders : utiliser la syntaxe `{variable}` pour les valeurs
+#      dynamiques (ex: `{count}`, `{site}`, `{path}`, `{title}`). Ne JAMAIS
+#      concaténer des chaînes traduites — toujours interpoler via `t(key, **kwargs)`.
+#   4. Pluralisation : utiliser les suffixes `_one` / `_other` compatibles
+#      avec ICU MessageFormat et les règles CLDR (ex: `chapter_one`,
+#      `chapter_other`). Le module i18n sélectionne automatiquement la
+#      forme correcte selon la locale et la valeur numérique.
+#   5. Noms propres NON traduits : NexusDL, MangaDex, Cloudflare, Playwright,
+#      FlareSolverr, CBZ, CBR, PDF, ZIP, EPUB, MOBI, JWT, OAuth2, etc.
+#   6. Typographie locale respectée :
+#      - FR : espaces insécables avant `?`, `:`, `!`, `;`
+#      - ES : espaces insécables avant `?`, `!` (pas avant `:` ni `;`)
+#      - DE : espaces insécables avant `?`, `:`, `!`, `;`
+#      - EN : pas d'espaces insécables
+#   7. Pas de HTML/JSX dans les valeurs — le formatage est géré par la
+#      couche consommatrice (composants React, markup Rich, etc.).
+#   8. Immutabilité : une fois une clé publiée dans une version stable,
+#      elle ne doit JAMAIS être supprimée ou renommée (backward compat).
+#      Seule l'ajout de nouvelles clés est autorisé entre versions mineures.
+#
+# Organisation :
+#   - en.json   : Locale source de référence (anglais). ~750+ clés,
+#                 32 sections top-level. DOIT être complète et à jour.
+#   - fr.json   : Traduction française. Parité stricte avec en.json.
+#   - de.json   : Traduction allemande. Parité stricte avec en.json.
+#   - es.json   : Traduction espagnole. Parité stricte avec en.json.
+#
+# Intégration :
+#   - Chargés par `core/i18n.py` via `orjson` au démarrage de l'application.
+#   - Mis en cache en mémoire (dict imbriqué) pour un accès O(1).
+#   - Exposés via la fonction `t(key: str, **kwargs) -> str` utilisée dans :
+#       * `interfaces/cli/` (via Rich markup et Textual widgets)
+#       * `interfaces/web/frontend/` (via next-intl ou hook custom `useT()`)
+#       * `interfaces/gui/` (via CustomTkinter labels et dialogs)
+#   - Le fallback vers `en` est automatique et transparent pour le caller.
+#
+# Ajout d'une nouvelle locale :
+#   1. Copier `en.json` vers `<locale>.json`.
+#   2. Traduire toutes les valeurs (conserver la structure JSON intacte).
+#   3. Mettre à jour `meta.locale`, `meta.name`, `meta.native_name`.
+#   4. Ajouter la locale dans `core/constants.py` (enum `Language`).
+#   5. Ajouter la locale dans `core/i18n.py` (liste `AVAILABLE_LOCALES`).
+#   6. Exécuter le script de validation de parité.
+#   7. Mettre à jour la documentation (`docs/usage/configuration.md`).
+#
+# ============================================================================
+
+src/nexusdl/data/translations/
+├── en.json          # Locale source de référence (anglais) — ~750+ clés, 32 sections
+├── fr.json          # Traduction française — parité stricte avec en.json
+├── de.json          # Traduction allemande — parité stricte avec en.json
+├── es.json          # Traduction espagnole — parité stricte avec en.json
+└── nexus.dl         # Ce fichier (documentation interne du module)
