@@ -15,12 +15,23 @@
 #                           concurrence globale et l'exposition d'API.
 #   - worker.py           : Worker individuel traitant un DownloadTask.
 #                           Pour chaque chapitre : récupère les pages via
-#                           le parser, télécharge les images, empaquette.
-#   - queue.py            : File de tâches prioritaire (PriorityQueue async).
-#                           Supporte pause/resume/cancel par task_id.
-#   - retry.py            : Stratégies de retry intelligentes (tenacity).
-#                           Backoff exponentiel, retry conditionnel selon
-#                           le type d'erreur (réseau vs parser vs disque).
+#                           le parser, télécharge les images avec retry
+#                           et déduplication, empaquette dans le format
+#                           cible, et rapporte la progression. Supporte
+#                           la pause/annulation via vérification périodique.
+#   - queue.py            : File de tâches prioritaire async (PriorityQueue).
+#                           Trie par priorité (URGENT>HIGH>NORMAL>LOW) puis
+#                           FIFO. Supporte pause/resume/cancel par task_id.
+#                           Lazy deletion pour les annulations (O(1)).
+#   - retry.py            : Système de retry intelligent unifié. Classifie
+#                           les erreurs (RETRYABLE / CONDITIONALLY_RETRYABLE
+#                           / NON_RETRYABLE), fournit 8 policies prédéfinies
+#                           (NETWORK, PAGE_DOWNLOAD, CHAPTER_DOWNLOAD, PARSER,
+#                           CRITICAL, DISK_IO, CLOUDFLARE_BYPASS, RATE_LIMIT),
+#                           des décorateurs (@network_retry, @download_retry)
+#                           et un context manager (retry_context). Supporte
+#                           4 stratégies de backoff (FIXED, LINEAR,
+#                           EXPONENTIAL, FIBONACCI) avec jitter.
 #   - progress.py         : Système de suivi de progression temps réel à
 #                           4 niveaux (Page → Chapter → Task → Global).
 #                           Calcule pourcentages, vitesses (EMA lissée),
@@ -42,24 +53,35 @@
 #   8. Le shutdown est GRACEFUL : les workers en cours terminent proprement.
 #   9. La progression est émise avec throttling (250ms min) pour éviter
 #      de saturer l'EventBus et les interfaces (CLI/Web/GUI).
-#  10. Les snapshots de progression sont IMMUABLES (Pydantic frozen=True)
-#      pour garantir la cohérence lors de la sérialisation JSON.
+#  10. La queue utilise la lazy deletion pour les annulations (O(1))
+#      et un dataclass ordonnable pour le tri stable de la min-heap.
+#  11. Les retries sont CLASSIFIÉS : les erreurs non-retryables (404, 403,
+#      parsing) ne sont JAMAIS retryées, même si max_attempts > 1.
+#  12. Le jitter est OBLIGATOIRE pour éviter le thundering herd sur les
+#      sites partagés (rate limit, Cloudflare).
+#  13. Le worker vérifie l'annulation/pause AVANT chaque chapitre et
+#      AVANT chaque page pour une réactivité maximale.
+#  14. Les fichiers temporaires sont TOUJOURS nettoyés dans un bloc finally.
 #
-# Intégration :
-#   - Le `DownloadManager` instancie un `DeduplicationCache` au démarrage.
-#   - Le `DownloadManager` instancie un `ProgressTracker` partagé.
-#   - Le `DownloadWorker` consulte le cache AVANT chaque téléchargement :
-#       * check_page_exists(hash) → skip si déjà présent
-#       * check_chapter_exists(key) → skip si chapitre complet
-#   - Le `DownloadWorker` met à jour le ProgressTracker à chaque étape :
-#       * track_task(task_id) → au début
-#       * track_chapter(chapter_id, pages_count) → par chapitre
-#       * record_page_complete(page_index, bytes) → par page
-#       * record_chapter_complete(chapter_id, bytes, pages) → par chapitre
-#       * emit_task_progress(task_id) → avec throttling automatique
-#   - Les interfaces s'abonnent aux événements EventBus :
-#       * `progress.task.updated` → mise à jour d'une tâche
-#       * `progress.global.updated` → mise à jour globale
+# Flux de données :
+#   Interface (CLI/Web/GUI)
+#       │
+#       ▼ submit(task)
+#   DownloadManager
+#       │
+#       ▼ put(task)
+#   DownloadQueue  ──►  PriorityQueue[(priority, timestamp, seq, task)]
+#       │
+#       ▼ get() → DownloadTask
+#   DownloadWorker
+#       │
+#       ├──► DeduplicationCache.check_chapter_exists()
+#       ├──► Parser.get_pages()  ──►  @retry(CHAPTER_DOWNLOAD_POLICY)
+#       ├──► DeduplicationCache.check_page_exists()
+#       ├──► Session.stream_download()  ──►  @retry(PAGE_DOWNLOAD_POLICY)
+#       ├──► ProgressTracker.record_page_complete()
+#       ├──► Packager.package()  ──►  @retry(DISK_IO_POLICY)
+#       └──► DeduplicationCache.register_chapter()
 #
 # ============================================================================
 
@@ -68,7 +90,7 @@ src/nexusdl/core/downloader/
 ├── manager.py             # Orchestrateur global (DownloadManager)
 ├── worker.py              # Worker individuel (DownloadWorker)
 ├── queue.py               # File prioritaire async (DownloadQueue)
-├── retry.py               # Stratégies de retry (tenacity)
+├── retry.py               # Retry intelligent (8 policies, 4 stratégies, classification)
 ├── progress.py            # Suivi de progression 4 niveaux + EventBus
 ├── deduplication.py       # Cache de déduplication SQLite + LRU
 └── nexus.dl               # Ce fichier
