@@ -1,0 +1,797 @@
+# ============================================================================
+# NEXUSDL — Configuration des sites supportés
+# ============================================================================
+#
+# Ce fichier définit la configuration de tous les sites de manga/webtoon/comics
+# supportés par NexusDL. Il est validé contre le schéma JSON Schema défini
+# dans sites_schema.json (draft 2020-12).
+#
+# Structure :
+#   - version      : Version du schéma (SemVer)
+#   - last_updated : Date de dernière mise à jour (ISO 8601)
+#   - sites        : Liste des configurations de sites
+#
+# Chaque site doit avoir :
+#   - id           : Identifiant unique (snake_case)
+#   - name         : Nom d'affichage
+#   - domains      : Liste des domaines (primaire en premier)
+#   - parser_class : Référence de la classe de parser (module:Class)
+#   - language     : Langue principale (ISO 639-1)
+#   - capabilities : Capacités opérationnelles
+#
+# Pour ajouter un nouveau site :
+#   1. Ajouter une entrée dans la section de langue appropriée
+#   2. Implémenter le parser dans nexusdl/parsers/<lang>/<site_id>.py
+#   3. Valider avec : python scripts/validate_sites.py
+#   4. Tester avec : nexusdl search --site <site_id> "query"
+#
+# ============================================================================
+
+version: "1.0.0"
+last_updated: "2026-09-23"
+
+sites:
+
+  # ==========================================================================
+  # SITES MULTILINGUES
+  # ==========================================================================
+
+  - id: mangadex
+    name: "MangaDex"
+    domains:
+      - "https://mangadex.org"
+      - "https://api.mangadex.org"
+    parser_class: "nexusdl.parsers.en.mangadex:MangaDexParser"
+    language: "multi"
+    content_rating: "safe"
+    adult: false
+    capabilities:
+      supports_search: true
+      supports_manga_info: true
+      supports_chapters: true
+      supports_pages: true
+      supports_download: true
+      supports_language_filter: true
+      supports_content_rating_filter: true
+      requires_auth: false
+      requires_cloudflare_bypass: false
+      requires_javascript_rendering: false
+      max_concurrent_downloads: 8
+      rate_limit_per_second: 4.0
+      min_delay_between_requests: 0.25
+    default_headers:
+      Referer: "https://mangadex.org/"
+      Origin: "https://mangadex.org"
+    cookies_required: []
+    region_locked: false
+    scanlation_group: null
+    notes: "API officielle v5. Supporte le filtrage par langue et content rating."
+    enabled: true
+
+  # ==========================================================================
+  # SITES FRANCOPHONES (FR)
+  # ==========================================================================
+
+  - id: sushiscan_net
+    name: "SushiScan.net"
+    domains:
+      - "https://sushiscan.net"
+      - "https://sushiscan.fr"
+    parser_class: "nexusdl.parsers.fr.sushiscan_net:SushiScanNetParser"
+    language: "fr"
+    content_rating: "safe"
+    adult: false
+    capabilities:
+      supports_search: true
+      supports_manga_info: true
+      supports_chapters: true
+      supports_pages: true
+      supports_download: true
+      supports_language_filter: false
+      supports_content_rating_filter: false
+      requires_auth: false
+      requires_cloudflare_bypass: true
+      requires_javascript_rendering: false
+      max_concurrent_downloads: 4
+      rate_limit_per_second: 2.0
+      min_delay_between_requests: 0.5
+    default_headers:
+      Referer: "https://sushiscan.net/"
+    cookies_required:
+      - "cf_clearance"
+    region_locked: false
+    scanlation_group: "Sushi-Scan"
+    notes: "WordPress/Madara. Cloudflare activé, nécessite bypass."
+    enabled: true
+
+  - id: sushiscan_fr
+    name: "SushiScan.fr"
+    domains:
+      - "https://sushiscan.fr"
+    parser_class: "nexusdl.parsers.fr.sushiscan_fr:SushiScanFrParser"
+    language: "fr"
+    content_rating: "safe"
+    adult: false
+    capabilities:
+      supports_search: true
+      supports_manga_info: true
+      supports_chapters: true
+      supports_pages: true
+      supports_download: true
+      supports_language_filter: false
+      supports_content_rating_filter: false
+      requires_auth: false
+      requires_cloudflare_bypass: true
+      requires_javascript_rendering: false
+      max_concurrent_downloads: 4
+      rate_limit_per_second: 2.0
+      min_delay_between_requests: 0.5
+    default_headers:
+      Referer: "https://sushiscan.fr/"
+    cookies_required:
+      - "cf_clearance"
+    region_locked: false
+    scanlation_group: "Sushi-Scan"
+    notes: "Miroir de SushiScan.net. WordPress/Madara."
+    enabled: true
+
+  - id: mangas_origines
+    name: "Mangas Origines"
+    domains:
+      - "https://mangas-origines.fr"
+    parser_class: "nexusdl.parsers.fr.mangas_origines:MangasOriginesParser"
+    language: "fr"
+    content_rating: "safe"
+    adult: false
+    capabilities:
+      supports_search: true
+      supports_manga_info: true
+      supports_chapters: true
+      supports_pages: true
+      supports_download: true
+      supports_language_filter: false
+      supports_content_rating_filter: false
+      requires_auth: false
+      requires_cloudflare_bypass: false
+      requires_javascript_rendering: false
+      max_concurrent_downloads: 4
+      rate_limit_per_second: 2.0
+      min_delay_between_requests: 0.5
+    default_headers:
+      Referer: "https://mangas-origines.fr/"
+    cookies_required: []
+    region_locked: false
+    scanlation_group: "Mangas Origines"
+    notes: "WordPress/Madara. Pas de Cloudflare."
+    enabled: true
+
+  - id: phenix_scans
+    name: "Phenix Scans"
+    domains:
+      - "https://phenixscans.fr"
+    parser_class: "nexusdl.parsers.fr.phenix_scans:PhenixScansParser"
+    language: "fr"
+    content_rating: "safe"
+    adult: false
+    capabilities:
+      supports_search: true
+      supports_manga_info: true
+      supports_chapters: true
+      supports_pages: true
+      supports_download: true
+      supports_language_filter: false
+      supports_content_rating_filter: false
+      requires_auth: false
+      requires_cloudflare_bypass: false
+      requires_javascript_rendering: false
+      max_concurrent_downloads: 4
+      rate_limit_per_second: 2.0
+      min_delay_between_requests: 0.5
+    default_headers:
+      Referer: "https://phenixscans.fr/"
+    cookies_required: []
+    region_locked: false
+    scanlation_group: "Phenix Scans"
+    notes: "WordPress/Madara."
+    enabled: true
+
+  - id: raijin_scans
+    name: "Raijin Scans"
+    domains:
+      - "https://raijinscans.fr"
+    parser_class: "nexusdl.parsers.fr.raijin_scans:RaijinScansParser"
+    language: "fr"
+    content_rating: "safe"
+    adult: false
+    capabilities:
+      supports_search: true
+      supports_manga_info: true
+      supports_chapters: true
+      supports_pages: true
+      supports_download: true
+      supports_language_filter: false
+      supports_content_rating_filter: false
+      requires_auth: false
+      requires_cloudflare_bypass: false
+      requires_javascript_rendering: false
+      max_concurrent_downloads: 4
+      rate_limit_per_second: 2.0
+      min_delay_between_requests: 0.5
+    default_headers:
+      Referer: "https://raijinscans.fr/"
+    cookies_required: []
+    region_locked: false
+    scanlation_group: "Raijin Scans"
+    notes: "WordPress/Madara."
+    enabled: true
+
+  - id: scan_manga
+    name: "Scan-Manga"
+    domains:
+      - "https://www.scan-manga.com"
+    parser_class: "nexusdl.parsers.fr.scan_manga:ScanMangaParser"
+    language: "fr"
+    content_rating: "safe"
+    adult: false
+    capabilities:
+      supports_search: true
+      supports_manga_info: true
+      supports_chapters: true
+      supports_pages: true
+      supports_download: true
+      supports_language_filter: false
+      supports_content_rating_filter: false
+      requires_auth: false
+      requires_cloudflare_bypass: false
+      requires_javascript_rendering: true
+      max_concurrent_downloads: 3
+      rate_limit_per_second: 1.5
+      min_delay_between_requests: 0.7
+    default_headers:
+      Referer: "https://www.scan-manga.com/"
+    cookies_required: []
+    region_locked: false
+    scanlation_group: null
+    notes: "Site historique français. Nécessite JavaScript pour le chargement des images."
+    enabled: true
+
+  - id: epsilonscan
+    name: "EpsilonScan"
+    domains:
+      - "https://epsilonscan.to"
+    parser_class: "nexusdl.parsers.fr.epsilonscan:EpsilonScanParser"
+    language: "fr"
+    content_rating: "safe"
+    adult: false
+    capabilities:
+      supports_search: true
+      supports_manga_info: true
+      supports_chapters: true
+      supports_pages: true
+      supports_download: true
+      supports_language_filter: false
+      supports_content_rating_filter: false
+      requires_auth: false
+      requires_cloudflare_bypass: true
+      requires_javascript_rendering: false
+      max_concurrent_downloads: 4
+      rate_limit_per_second: 2.0
+      min_delay_between_requests: 0.5
+    default_headers:
+      Referer: "https://epsilonscan.to/"
+    cookies_required:
+      - "cf_clearance"
+    region_locked: false
+    scanlation_group: "EpsilonScan"
+    notes: "WordPress/Madara. Cloudflare activé."
+    enabled: true
+
+  - id: poseidon_scans
+    name: "Poseidon Scans"
+    domains:
+      - "https://poseidonscans.com"
+    parser_class: "nexusdl.parsers.fr.poseidon_scans:PoseidonScansParser"
+    language: "fr"
+    content_rating: "safe"
+    adult: false
+    capabilities:
+      supports_search: true
+      supports_manga_info: true
+      supports_chapters: true
+      supports_pages: true
+      supports_download: true
+      supports_language_filter: false
+      supports_content_rating_filter: false
+      requires_auth: false
+      requires_cloudflare_bypass: false
+      requires_javascript_rendering: false
+      max_concurrent_downloads: 4
+      rate_limit_per_second: 2.0
+      min_delay_between_requests: 0.5
+    default_headers:
+      Referer: "https://poseidonscans.com/"
+    cookies_required: []
+    region_locked: false
+    scanlation_group: "Poseidon Scans"
+    notes: "WordPress/Madara."
+    enabled: true
+
+  - id: shinra_scans
+    name: "Shinra Scans"
+    domains:
+      - "https://shinrascans.com"
+    parser_class: "nexusdl.parsers.fr.shinra_scans:ShinraScansParser"
+    language: "fr"
+    content_rating: "safe"
+    adult: false
+    capabilities:
+      supports_search: true
+      supports_manga_info: true
+      supports_chapters: true
+      supports_pages: true
+      supports_download: true
+      supports_language_filter: false
+      supports_content_rating_filter: false
+      requires_auth: false
+      requires_cloudflare_bypass: false
+      requires_javascript_rendering: false
+      max_concurrent_downloads: 4
+      rate_limit_per_second: 2.0
+      min_delay_between_requests: 0.5
+    default_headers:
+      Referer: "https://shinrascans.com/"
+    cookies_required: []
+    region_locked: false
+    scanlation_group: "Shinra Scans"
+    notes: "WordPress/Madara."
+    enabled: true
+
+  # ==========================================================================
+  # SITES ANGLOPHONES (EN)
+  # ==========================================================================
+
+  - id: asurascans
+    name: "Asura Scans"
+    domains:
+      - "https://asuracomic.net"
+      - "https://asurascans.com"
+    parser_class: "nexusdl.parsers.en.asurascans:AsuraScansParser"
+    language: "en"
+    content_rating: "safe"
+    adult: false
+    capabilities:
+      supports_search: true
+      supports_manga_info: true
+      supports_chapters: true
+      supports_pages: true
+      supports_download: true
+      supports_language_filter: false
+      supports_content_rating_filter: false
+      requires_auth: false
+      requires_cloudflare_bypass: true
+      requires_javascript_rendering: false
+      max_concurrent_downloads: 6
+      rate_limit_per_second: 3.0
+      min_delay_between_requests: 0.35
+    default_headers:
+      Referer: "https://asuracomic.net/"
+    cookies_required:
+      - "cf_clearance"
+    region_locked: false
+    scanlation_group: "Asura Scans"
+    notes: "MangaThemesia. Cloudflare activé. Très populaire pour les manhwas."
+    enabled: true
+
+  - id: flamescans
+    name: "Flame Scans"
+    domains:
+      - "https://flamecomics.me"
+      - "https://flamescans.org"
+    parser_class: "nexusdl.parsers.en.flamescans:FlameScansParser"
+    language: "en"
+    content_rating: "safe"
+    adult: false
+    capabilities:
+      supports_search: true
+      supports_manga_info: true
+      supports_chapters: true
+      supports_pages: true
+      supports_download: true
+      supports_language_filter: false
+      supports_content_rating_filter: false
+      requires_auth: false
+      requires_cloudflare_bypass: true
+      requires_javascript_rendering: false
+      max_concurrent_downloads: 6
+      rate_limit_per_second: 3.0
+      min_delay_between_requests: 0.35
+    default_headers:
+      Referer: "https://flamecomics.me/"
+    cookies_required:
+      - "cf_clearance"
+    region_locked: false
+    scanlation_group: "Flame Scans"
+    notes: "MangaThemesia. Cloudflare activé."
+    enabled: true
+
+  - id: mangafire
+    name: "MangaFire"
+    domains:
+      - "https://mangafire.to"
+    parser_class: "nexusdl.parsers.en.mangafire:MangaFireParser"
+    language: "en"
+    content_rating: "safe"
+    adult: false
+    capabilities:
+      supports_search: true
+      supports_manga_info: true
+      supports_chapters: true
+      supports_pages: true
+      supports_download: true
+      supports_language_filter: true
+      supports_content_rating_filter: false
+      requires_auth: false
+      requires_cloudflare_bypass: true
+      requires_javascript_rendering: false
+      max_concurrent_downloads: 6
+      rate_limit_per_second: 3.0
+      min_delay_between_requests: 0.35
+    default_headers:
+      Referer: "https://mangafire.to/"
+    cookies_required:
+      - "cf_clearance"
+    region_locked: false
+    scanlation_group: null
+    notes: "Agrégateur. Cloudflare activé. Supporte le filtrage par langue."
+    enabled: true
+
+  - id: mangakakalot
+    name: "MangaKakalot"
+    domains:
+      - "https://mangakakalot.com"
+      - "https://chapmanganato.to"
+    parser_class: "nexusdl.parsers.en.mangakakalot:MangaKakalotParser"
+    language: "en"
+    content_rating: "safe"
+    adult: false
+    capabilities:
+      supports_search: true
+      supports_manga_info: true
+      supports_chapters: true
+      supports_pages: true
+      supports_download: true
+      supports_language_filter: false
+      supports_content_rating_filter: false
+      requires_auth: false
+      requires_cloudflare_bypass: false
+      requires_javascript_rendering: false
+      max_concurrent_downloads: 6
+      rate_limit_per_second: 3.0
+      min_delay_between_requests: 0.35
+    default_headers:
+      Referer: "https://mangakakalot.com/"
+    cookies_required: []
+    region_locked: false
+    scanlation_group: null
+    notes: "Agrégateur historique. Pas de Cloudflare. Très rapide."
+    enabled: true
+
+  - id: mangasee123
+    name: "MangaSee"
+    domains:
+      - "https://mangasee123.com"
+      - "https://manga4life.com"
+    parser_class: "nexusdl.parsers.en.mangasee123:MangaSee123Parser"
+    language: "en"
+    content_rating: "safe"
+    adult: false
+    capabilities:
+      supports_search: true
+      supports_manga_info: true
+      supports_chapters: true
+      supports_pages: true
+      supports_download: true
+      supports_language_filter: false
+      supports_content_rating_filter: false
+      requires_auth: false
+      requires_cloudflare_bypass: true
+      requires_javascript_rendering: true
+      max_concurrent_downloads: 4
+      rate_limit_per_second: 2.0
+      min_delay_between_requests: 0.5
+    default_headers:
+      Referer: "https://mangasee123.com/"
+    cookies_required:
+      - "cf_clearance"
+    region_locked: false
+    scanlation_group: null
+    notes: "Nécessite JavaScript pour le chargement des images. Cloudflare activé."
+    enabled: true
+
+  - id: reaperscans
+    name: "Reaper Scans"
+    domains:
+      - "https://reaperscans.com"
+    parser_class: "nexusdl.parsers.en.reaperscans:ReaperScansParser"
+    language: "en"
+    content_rating: "safe"
+    adult: false
+    capabilities:
+      supports_search: true
+      supports_manga_info: true
+      supports_chapters: true
+      supports_pages: true
+      supports_download: true
+      supports_language_filter: false
+      supports_content_rating_filter: false
+      requires_auth: false
+      requires_cloudflare_bypass: true
+      requires_javascript_rendering: false
+      max_concurrent_downloads: 4
+      rate_limit_per_second: 2.0
+      min_delay_between_requests: 0.5
+    default_headers:
+      Referer: "https://reaperscans.com/"
+    cookies_required:
+      - "cf_clearance"
+    region_locked: false
+    scanlation_group: "Reaper Scans"
+    notes: "WordPress/Madara. Cloudflare activé."
+    enabled: true
+
+  - id: tcbscans
+    name: "TCB Scans"
+    domains:
+      - "https://tcbscans.me"
+    parser_class: "nexusdl.parsers.en.tcbscans:TcbScansParser"
+    language: "en"
+    content_rating: "safe"
+    adult: false
+    capabilities:
+      supports_search: false
+      supports_manga_info: true
+      supports_chapters: true
+      supports_pages: true
+      supports_download: true
+      supports_language_filter: false
+      supports_content_rating_filter: false
+      requires_auth: false
+      requires_cloudflare_bypass: false
+      requires_javascript_rendering: false
+      max_concurrent_downloads: 4
+      rate_limit_per_second: 2.0
+      min_delay_between_requests: 0.5
+    default_headers:
+      Referer: "https://tcbscans.me/"
+    cookies_required: []
+    region_locked: false
+    scanlation_group: "TCB Scans"
+    notes: "Pas de recherche. Site minimaliste. Très rapide pour les mangas populaires."
+    enabled: true
+
+  - id: comick
+    name: "Comick"
+    domains:
+      - "https://comick.io"
+      - "https://api.comick.io"
+    parser_class: "nexusdl.parsers.en.comick:ComickParser"
+    language: "en"
+    content_rating: "safe"
+    adult: false
+    capabilities:
+      supports_search: true
+      supports_manga_info: true
+      supports_chapters: true
+      supports_pages: true
+      supports_download: true
+      supports_language_filter: true
+      supports_content_rating_filter: true
+      requires_auth: false
+      requires_cloudflare_bypass: false
+      requires_javascript_rendering: false
+      max_concurrent_downloads: 8
+      rate_limit_per_second: 4.0
+      min_delay_between_requests: 0.25
+    default_headers:
+      Referer: "https://comick.io/"
+    cookies_required: []
+    region_locked: false
+    scanlation_group: null
+    notes: "API REST publique. Très rapide. Supporte le filtrage par langue et rating."
+    enabled: true
+
+  - id: mangabuddy
+    name: "MangaBuddy"
+    domains:
+      - "https://mangabuddy.com"
+    parser_class: "nexusdl.parsers.en.mangabuddy:MangaBuddyParser"
+    language: "en"
+    content_rating: "suggestive"
+    adult: false
+    capabilities:
+      supports_search: true
+      supports_manga_info: true
+      supports_chapters: true
+      supports_pages: true
+      supports_download: true
+      supports_language_filter: false
+      supports_content_rating_filter: false
+      requires_auth: false
+      requires_cloudflare_bypass: false
+      requires_javascript_rendering: true
+      max_concurrent_downloads: 4
+      rate_limit_per_second: 2.0
+      min_delay_between_requests: 0.5
+    default_headers:
+      Referer: "https://mangabuddy.com/"
+    cookies_required: []
+    region_locked: false
+    scanlation_group: null
+    notes: "Nécessite JavaScript. Contenu parfois suggestif."
+    enabled: true
+
+  - id: toonily
+    name: "Toonily"
+    domains:
+      - "https://toonily.com"
+    parser_class: "nexusdl.parsers.en.toonily:ToonilyParser"
+    language: "en"
+    content_rating: "suggestive"
+    adult: false
+    capabilities:
+      supports_search: true
+      supports_manga_info: true
+      supports_chapters: true
+      supports_pages: true
+      supports_download: true
+      supports_language_filter: false
+      supports_content_rating_filter: false
+      requires_auth: false
+      requires_cloudflare_bypass: true
+      requires_javascript_rendering: false
+      max_concurrent_downloads: 4
+      rate_limit_per_second: 2.0
+      min_delay_between_requests: 0.5
+    default_headers:
+      Referer: "https://toonily.com/"
+    cookies_required:
+      - "cf_clearance"
+    region_locked: false
+    scanlation_group: null
+    notes: "WordPress/Madara. Spécialisé manhwa/webtoon. Cloudflare activé."
+    enabled: true
+
+  # ==========================================================================
+  # SITES CORÉENS (KR)
+  # ==========================================================================
+
+  - id: manhwaclub
+    name: "ManhwaClub"
+    domains:
+      - "https://manhwaclub.net"
+    parser_class: "nexusdl.parsers.kr.manhwaclub:ManhwaClubParser"
+    language: "ko"
+    content_rating: "suggestive"
+    adult: false
+    capabilities:
+      supports_search: true
+      supports_manga_info: true
+      supports_chapters: true
+      supports_pages: true
+      supports_download: true
+      supports_language_filter: false
+      supports_content_rating_filter: false
+      requires_auth: false
+      requires_cloudflare_bypass: false
+      requires_javascript_rendering: false
+      max_concurrent_downloads: 4
+      rate_limit_per_second: 2.0
+      min_delay_between_requests: 0.5
+    default_headers:
+      Referer: "https://manhwaclub.net/"
+    cookies_required: []
+    region_locked: false
+    scanlation_group: null
+    notes: "Spécialisé manhwa coréens."
+    enabled: true
+
+  # ==========================================================================
+  # SITES ADULTES (18+)
+  # ==========================================================================
+
+  - id: nhentai
+    name: "nHentai"
+    domains:
+      - "https://nhentai.net"
+      - "https://nhentai.to"
+    parser_class: "nexusdl.parsers.adult.nhentai:NHentaiParser"
+    language: "multi"
+    content_rating: "pornographic"
+    adult: true
+    capabilities:
+      supports_search: true
+      supports_manga_info: true
+      supports_chapters: true
+      supports_pages: true
+      supports_download: true
+      supports_language_filter: true
+      supports_content_rating_filter: false
+      requires_auth: false
+      requires_cloudflare_bypass: true
+      requires_javascript_rendering: false
+      max_concurrent_downloads: 4
+      rate_limit_per_second: 2.0
+      min_delay_between_requests: 0.5
+    default_headers:
+      Referer: "https://nhentai.net/"
+    cookies_required:
+      - "cf_clearance"
+    region_locked: false
+    scanlation_group: null
+    notes: "Site adulte (18+). Cloudflare activé. Supporte les tags et la recherche avancée."
+    enabled: false
+
+  - id: pururin
+    name: "Pururin"
+    domains:
+      - "https://pururin.to"
+    parser_class: "nexusdl.parsers.adult.pururin:PururinParser"
+    language: "multi"
+    content_rating: "pornographic"
+    adult: true
+    capabilities:
+      supports_search: true
+      supports_manga_info: true
+      supports_chapters: true
+      supports_pages: true
+      supports_download: true
+      supports_language_filter: false
+      supports_content_rating_filter: false
+      requires_auth: false
+      requires_cloudflare_bypass: false
+      requires_javascript_rendering: false
+      max_concurrent_downloads: 4
+      rate_limit_per_second: 2.0
+      min_delay_between_requests: 0.5
+    default_headers:
+      Referer: "https://pururin.to/"
+    cookies_required: []
+    region_locked: false
+    scanlation_group: null
+    notes: "Site adulte (18+). Pas de Cloudflare."
+    enabled: false
+
+  # ==========================================================================
+  # SITES DÉSACTIVÉS / EN MAINTENANCE
+  # ==========================================================================
+
+  - id: batoto
+    name: "Bato.to"
+    domains:
+      - "https://bato.to"
+    parser_class: "nexusdl.parsers.en.batoto:BatoToParser"
+    language: "multi"
+    content_rating: "safe"
+    adult: false
+    capabilities:
+      supports_search: true
+      supports_manga_info: true
+      supports_chapters: true
+      supports_pages: true
+      supports_download: true
+      supports_language_filter: true
+      supports_content_rating_filter: false
+      requires_auth: false
+      requires_cloudflare_bypass: true
+      requires_javascript_rendering: false
+      max_concurrent_downloads: 4
+      rate_limit_per_second: 2.0
+      min_delay_between_requests: 0.5
+    default_headers:
+      Referer: "https://bato.to/"
+    cookies_required:
+      - "cf_clearance"
+    region_locked: false
+    scanlation_group: null
+    notes: "Site instable. Domaines changent fréquemment. Désactivé par défaut."
+    enabled: false
