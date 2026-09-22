@@ -1,7 +1,7 @@
 """Module public du traitement d'images NexusDL.
 
 Ce module constitue le point d'entrée de la couche de traitement d'images
-dans l'architecture hexagonale. Il expose l'API publique stable utilisée
+dans l'architecture hexagonale. Il expose l'API   publique stable utilisée
 par le `DownloadWorker` et les interfaces pour télécharger, valider,
 convertir, optimiser et filigraner les images scrapées depuis les sites.
 
