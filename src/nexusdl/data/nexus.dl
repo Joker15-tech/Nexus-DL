@@ -1,0 +1,118 @@
+# ============================================================================
+# NEXUSDL — Module : data
+# ============================================================================
+#
+# Rôle :
+#   Contient toutes les DONNÉES EMBARQUÉES (assets statiques) du package
+#   Python NexusDL. Ces fichiers sont distribués avec le wheel/sdist via
+#   `importlib.resources` et ne doivent JAMAIS être modifiés par l'utilisateur
+#   final. Ils constituent la "source de vérité" des configurations, templates,
+#   schémas et ressources statiques utilisées par le `core/` au runtime.
+#
+# Règles d'or :
+#   1. IMMUTABILITÉ AU RUNTIME : ces fichiers sont lus uniquement. Aucune
+#      écriture n'est autorisée. Les données modifiables par l'utilisateur
+#      doivent aller dans `~/.config/nexusdl/` ou `~/.local/share/nexusdl/`
+#      (gérés par `core/paths.py` via `platformdirs`).
+#   2. ACCÈS VIA `importlib.resources` : ne JAMAIS utiliser `__file__` ni
+#      `Path(__file__).parent`. Toujours utiliser :
+#        >>> from importlib.resources import files
+#        >>> content = files("nexusdl.data").joinpath("default_config.yaml").read_text()
+#      Cela garantit la compatibilité avec les wheels, les zipapps et les
+#      environnements frozen (PyInstaller, Nuitka).
+#   3. ENCODAGE UTF-8 : tous les fichiers texte DOIVENT être en UTF-8 sans BOM.
+#      Les fichiers binaires (images) ne sont PAS autorisés dans `data/` —
+#      ils vont dans `assets/` à la racine du projet.
+#   4. VALIDATION AU BUILD : chaque fichier doit être validé en CI avant
+#      publication (JSON Schema, YAML lint, XML well-formed, etc.).
+#   5. PARITÉ DES LOCALES : tous les fichiers `translations/*.json` doivent
+#      avoir exactement les mêmes clés (voir `translations/nexus.dl`).
+#   6. PAS DE SECRETS : aucun mot de passe, token, clé API en dur. Les
+#      valeurs sensibles sont à `null` ou placeholders (voir `default_config.yaml`).
+#   7. TAILLE RAISONNABLE : éviter les fichiers > 1 Mo. Les grosses données
+#      (ex: liste exhaustive de sites) doivent être chargées paresseusement.
+#   8. VERSIONNAGE : les fichiers avec un champ `version` (ex: `sites_schema.json`,
+#      `default_config.yaml`) doivent suivre SemVer pour la forward compatibility.
+#
+# Organisation :
+#   - comic_info_template.xml  : Template Jinja2 pour générer ComicInfo.xml
+#                                (standard ComicRack v2.1) injecté dans les
+#                                archives CBZ/CBR/PDF. Variables documentées
+#                                dans le commentaire d'en-tête du fichier.
+#
+#   - default_config.yaml      : Source de vérité des valeurs par défaut de
+#                                l'application. 17 sections thématiques (app,
+#                                paths, download, library, reader, network,
+#                                cloudflare, cookies, packaging, image, sites,
+#                                search, logging, web, gui, cli, plugins,
+#                                notifications, advanced). Chargé par
+#                                `core/config.py` via Pydantic Settings v2.
+#
+#   - sites_schema.json        : JSON Schema (draft 2020-12) validant la
+#                                structure de `core/registry/sites.yaml` et
+#                                des overrides utilisateur. 7 sous-schémas
+#                                réutilisables ($defs) : Language, ContentRating,
+#                                HttpUrl, ParserClass, SiteId, SiteCapabilities,
+#                                SiteConfig. Consommé par `core/registry/validator.py`.
+#
+#   - user_agents.txt          : Banque de ~100 User-Agents réels et à jour
+#                                (septembre 2026) répartis en 12 catégories
+#                                (Desktop Chrome/Firefox/Safari/Edge/Opera/Brave/
+#                                Vivaldi, Mobile Android/iOS, Tablettes, Crawlers).
+#                                Utilisé par `core/session/user_agents.py` pour
+#                                la rotation automatique anti-fingerprinting.
+#
+#   - translations/            : Fichiers de localisation (i18n) pour les 3
+#                                interfaces (CLI Textual, Web Next.js, GUI
+#                                CustomTkinter). 4 locales supportées :
+#                                en (source), fr, de, es. ~750+ clés par locale,
+#                                32 sections top-level. Voir `translations/nexus.dl`.
+#
+# Intégration :
+#   - Chargés au runtime via `importlib.resources.files("nexusdl.data")`
+#   - Mis en cache en mémoire par les modules consommateurs :
+#       * `core/config.py` → default_config.yaml
+#       * `core/i18n.py` → translations/*.json
+#       * `core/registry/validator.py` → sites_schema.json
+#       * `core/session/user_agents.py` → user_agents.txt
+#       * `core/packaging/comic_info.py` → comic_info_template.xml
+#   - Embarqués dans le wheel via `pyproject.toml` :
+#       [tool.hatch.build.targets.wheel]
+#       packages = ["src/nexusdl"]
+#       [tool.hatch.build.targets.wheel.shared-data]
+#       "src/nexusdl/data" = "nexusdl/data"
+#   - Inclus dans le sdist via `MANIFEST.in` :
+#       recursive-include src/nexusdl/data *.yaml *.json *.xml *.txt
+#
+# Ajout d'une nouvelle donnée embarquée :
+#   1. Créer le fichier dans `src/nexusdl/data/` (ou sous-dossier).
+#   2. Valider le format (JSON Schema, YAML lint, XML well-formed, etc.).
+#   3. Documenter le rôle et les variables attendues dans un commentaire
+#      d'en-tête (voir `comic_info_template.xml` pour l'exemple).
+#   4. Ajouter le consommateur dans `core/` (ex: `core/session/user_agents.py`).
+#   5. Mettre à jour `MANIFEST.in` si l'extension n'est pas déjà couverte.
+#   6. Ajouter un test de validation dans `tests/unit/data/`.
+#   7. Mettre à jour ce fichier `nexus.dl` avec la description du nouveau fichier.
+#
+# Fichiers EXCLUS de ce dossier (à ne PAS mettre ici) :
+#   - Configuration utilisateur modifiable → `~/.config/nexusdl/`
+#   - Données runtime (BDD, cookies, logs) → `~/.local/share/nexusdl/`
+#   - Cache temporaire → `~/.cache/nexusdl/`
+#   - Assets graphiques (PNG, SVG, ICO) → `assets/` à la racine
+#   - Documentation utilisateur → `docs/` à la racine
+#   - Exemples de configuration → `config/` à la racine
+#
+# ============================================================================
+
+src/nexusdl/data/
+├── comic_info_template.xml    # Template Jinja2 pour ComicInfo.xml (standard ComicRack v2.1)
+├── default_config.yaml        # Configuration par défaut (17 sections, source de vérité)
+├── sites_schema.json          # JSON Schema draft 2020-12 pour sites.yaml
+├── user_agents.txt            # Banque de ~100 User-Agents (12 catégories, septembre 2026)
+├── translations/              # Fichiers i18n (4 locales, ~750+ clés chacune)
+│   ├── en.json                # Locale source de référence (anglais)
+│   ├── fr.json                # Traduction française
+│   ├── de.json                # Traduction allemande
+│   ├── es.json                # Traduction espagnole
+│   └── nexus.dl               # Documentation du sous-module translations
+└── nexus.dl                   # Ce fichier (documentation interne du module)
