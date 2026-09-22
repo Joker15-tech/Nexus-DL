@@ -1,0 +1,931 @@
+# ============================================================================
+# NEXUSDL — Configuration par défaut (default_config.yaml)
+# ============================================================================
+#
+# Rôle :
+#   Ce fichier contient TOUTES les valeurs par défaut de l'application.
+#   Il est embarqué dans le package Python (via `importlib.resources`) et
+#   chargé au démarrage par `core/config.py`. Il est JAMAIS modifié par
+#   l'utilisateur — celui-ci doit copier `config/config.example.yaml` vers
+#   `~/.config/nexusdl/config.yaml` pour personnaliser son installation.
+#
+# Hiérarchie de configuration (ordre de priorité croissant) :
+#   1. Ce fichier (default_config.yaml) — valeurs par défaut
+#   2. ~/.config/nexusdl/config.yaml — configuration utilisateur
+#   3. Variables d'environnement (NEXUSDL_*) — override env
+#   4. Arguments CLI (--option) — override runtime
+#
+# Règles :
+#   - Toutes les clés sont en snake_case
+#   - Les valeurs doivent être compatibles avec Pydantic v2
+#   - Les commentaires expliquent chaque option (utilisables pour la doc)
+#   - Les valeurs sensibles (mots de passe, tokens) sont TOUJOURS à null
+#     ou à des placeholders (l'utilisateur doit les définir explicitement)
+#   - Les chemins utilisent des variables spéciales :
+#       ${XDG_CONFIG_HOME}  → ~/.config (Linux), ~/Library/Application Support (macOS), %APPDATA% (Windows)
+#       ${XDG_DATA_HOME}    → ~/.local/share
+#       ${XDG_CACHE_HOME}   → ~/.cache
+#       ${HOME}             → répertoire utilisateur
+#
+# ============================================================================
+
+
+# ----------------------------------------------------------------------------
+# APPLICATION
+# ----------------------------------------------------------------------------
+app:
+  # Langue de l'interface (fr, en, de, es, etc.)
+  # Utilise les fichiers de src/nexusdl/data/translations/
+  language: "en"
+
+  # Thème de l'interface (light, dark, system, auto)
+  # - light : thème clair
+  # - dark : thème sombre
+  # - system : suit les préférences OS
+  # - auto : clair le jour, sombre la nuit
+  theme: "system"
+
+  # Fuseau horaire (auto = détection automatique via tzlocal)
+  timezone: "auto"
+
+  # Format de date (ISO 8601 par défaut)
+  date_format: "YYYY-MM-DD"
+
+  # Format d'heure (24h par défaut)
+  time_format: "HH:mm"
+
+  # Région (utilisé pour la localisation des nombres, devises, etc.)
+  region: "auto"
+
+  # Mode premier lancement (affiche le wizard de configuration)
+  first_run_wizard: true
+
+  # Vérification automatique des mises à jour au démarrage
+  auto_update_check: true
+
+  # Canal de mise à jour (stable, beta, dev)
+  update_channel: "stable"
+
+  # Télémétrie anonyme (statistiques d'usage uniquement, jamais de contenu)
+  # Respecte la vie privée : aucune donnée personnelle n'est collectée
+  telemetry:
+    enabled: false
+    send_crash_reports: true
+    send_usage_stats: false
+
+  # Niveau de contenu autorisé (safe, suggestive, erotica, pornographic)
+  # Définit le contenu maximum visible dans les recherches et la bibliothèque
+  # L'utilisateur peut restreindre davantage par site ou par recherche
+  content_rating_filter: "safe"
+
+  # Inclure le contenu adulte (18+) dans les recherches par défaut
+  # Peut être activé/désactivé par recherche individuellement
+  include_adult_by_default: false
+
+
+# ----------------------------------------------------------------------------
+# CHEMINS
+# ----------------------------------------------------------------------------
+paths:
+  # Répertoire de téléchargement des mangas/comics
+  # Les fichiers finaux (CBZ, PDF, etc.) sont placés ici
+  downloads: "${HOME}/NexusDL/Downloads"
+
+  # Répertoire de la bibliothèque locale (base de données SQLite + métadonnées)
+  library: "${HOME}/NexusDL/Library"
+
+  # Répertoire de cache (images temporaires, HTML parsé, cookies)
+  cache: "${XDG_CACHE_HOME}/nexusdl"
+
+  # Répertoire temporaire (téléchargements en cours, extraction ZIP)
+  temp: "${XDG_CACHE_HOME}/nexusdl/tmp"
+
+  # Répertoire de configuration utilisateur
+  config: "${XDG_CONFIG_HOME}/nexusdl"
+
+  # Répertoire des données (logs, bases de données, cookies chiffrés)
+  data: "${XDG_DATA_HOME}/nexusdl"
+
+  # Répertoire des plugins installés
+  plugins: "${XDG_DATA_HOME}/nexusdl/plugins"
+
+  # Répertoire des logs
+  logs: "${XDG_DATA_HOME}/nexusdl/logs"
+
+  # Créer automatiquement les répertoires s'ils n'existent pas
+  auto_create_directories: true
+
+
+# ----------------------------------------------------------------------------
+# TÉLÉCHARGEMENT
+# ----------------------------------------------------------------------------
+download:
+  # Nombre maximum de tâches de téléchargement simultanées
+  # Chaque tâche = 1 manga ou 1 chapitre
+  max_concurrent_tasks: 3
+
+  # Nombre maximum de pages téléchargées simultanément par tâche
+  max_concurrent_pages: 8
+
+  # Format d'empaquetage par défaut (cbz, cbr, pdf, zip, folder)
+  # - cbz : Comic Book ZIP (standard, recommandé)
+  # - cbr : Comic Book RAR (compatibilité ancienne)
+  # - pdf : Document PDF (lecture sur tablette)
+  # - zip : Archive ZIP standard
+  # - folder : Dossier d'images brutes (non empaqueté)
+  default_format: "cbz"
+
+  # Qualité des images téléchargées (original, high, medium, low)
+  # - original : qualité source (pas de conversion)
+  # - high : conversion WebP/AVIF qualité 90%
+  # - medium : conversion WebP/AVIF qualité 75%
+  # - low : conversion WebP/AVIF qualité 50%
+  default_quality: "original"
+
+  # Nombre maximum de tentatives en cas d'échec d'une page
+  max_retries: 3
+
+  # Délai entre les tentatives (secondes, backoff exponentiel)
+  retry_delay: 2.0
+
+  # Délai maximum entre les tentatives (plafond du backoff)
+  retry_max_delay: 30.0
+
+  # Timeout global d'une requête HTTP (secondes)
+  timeout: 30.0
+
+  # Timeout de connexion TCP (secondes)
+  connect_timeout: 10.0
+
+  # Timeout de lecture d'une réponse (secondes)
+  read_timeout: 60.0
+
+  # Tentative automatique en cas d'échec réseau transitoire
+  auto_retry: true
+
+  # Vérification de l'intégrité des fichiers téléchargés (SHA256)
+  verify_checksum: true
+
+  # Comportement si le fichier de destination existe déjà
+  # - skip : ignore et passe au suivant
+  # - overwrite : écrase le fichier existant
+  # - rename : ajoute un suffixe (-1, -2, etc.)
+  existing_file_behavior: "skip"
+
+  # Créer un sous-dossier par manga (ex: Downloads/One Piece/Chapitre 001.cbz)
+  create_subfolder_per_manga: true
+
+  # Créer un sous-dossier par volume (ex: Downloads/One Piece/Vol. 01/)
+  create_subfolder_per_volume: false
+
+  # Modèle de nom de fichier (variables : {title}, {manga}, {chapter}, {volume}, {site})
+  filename_pattern: "{manga} - Chapitre {chapter}"
+
+  # Supprimer les fichiers temporaires après empaquetage réussi
+  cleanup_temp_files: true
+
+  # Taille maximum d'un fichier temporaire avant alerte (Mo)
+  max_temp_file_size_mb: 500
+
+  # Espace disque minimum requis avant de lancer un téléchargement (Mo)
+  min_free_disk_space_mb: 100
+
+  # Priorité par défaut des nouvelles tâches (low, normal, high, urgent)
+  default_priority: "normal"
+
+  # Pause automatique si la batterie est faible (laptops)
+  pause_on_low_battery: false
+
+  # Pause automatique si la connexion est mesurée (mobile)
+  pause_on_metered_connection: false
+
+
+# ----------------------------------------------------------------------------
+# BIBLIOTHÈQUE
+# ----------------------------------------------------------------------------
+library:
+  # Mise à jour automatique de la bibliothèque au démarrage
+  auto_update_on_start: true
+
+  # Intervalle de mise à jour automatique (heures, 0 = désactivé)
+  update_interval_hours: 6
+
+  # Scanner le répertoire de téléchargement au démarrage pour détecter les nouveaux fichiers
+  scan_on_start: true
+
+  # Intervalle de scan du répertoire (heures, 0 = désactivé)
+  scan_interval_hours: 1
+
+  # Inclure les sous-dossiers lors du scan
+  scan_subdirectories: true
+
+  # Extensions de fichiers reconnues lors du scan
+  recognized_extensions:
+    - ".cbz"
+    - ".cbr"
+    - ".pdf"
+    - ".zip"
+    - ".rar"
+    - ".jpg"
+    - ".jpeg"
+    - ".png"
+    - ".webp"
+    - ".avif"
+
+  # Notifications lors de la découverte de nouveaux chapitres
+  notify_new_chapters: true
+
+  # Téléchargement automatique des nouveaux chapitres des mangas suivis
+  auto_download_new_chapters: false
+
+  # Nombre maximum de chapitres à conserver par manga (0 = illimité)
+  max_chapters_per_manga: 0
+
+  # Supprimer les chapitres après lecture (mode "streaming")
+  delete_after_reading: false
+
+  # Conserver les couvertures même si le manga est supprimé
+  keep_covers_after_delete: true
+
+  # Mode d'affichage par défaut dans l'interface (grid, list, compact, detailed, cover)
+  default_view_mode: "grid"
+
+  # Tri par défaut (title, last_updated, date_added, author, status)
+  default_sort_by: "last_updated"
+
+  # Ordre de tri par défaut (asc, desc)
+  default_sort_order: "desc"
+
+  # Nombre de mangas par page dans l'interface
+  items_per_page: 50
+
+  # Charger les métadonnées depuis ComicInfo.xml lors du scan
+  read_comicinfo_on_scan: true
+
+  # Écrire les métadonnées dans ComicInfo.xml lors du téléchargement
+  write_comicinfo_on_download: true
+
+  # Base de données : activer le WAL mode pour de meilleures performances
+  sqlite_wal_mode: true
+
+  # Base de données : taille du cache SQLite (Mo)
+  sqlite_cache_size_mb: 64
+
+  # Activer la recherche plein texte (FTS5)
+  enable_fts5: true
+
+  # Nombre maximum de résultats de recherche retournés
+  search_results_limit: 100
+
+
+# ----------------------------------------------------------------------------
+# LECTEUR
+# ----------------------------------------------------------------------------
+reader:
+  # Mode de lecture par défaut (single, double, scroll_vertical, scroll_horizontal, webtoon)
+  default_reading_mode: "scroll_vertical"
+
+  # Sens de lecture (right_to_left pour manga japonais, left_to_right pour webtoon/comic)
+  reading_direction: "right_to_left"
+
+  # Transition entre les pages (none, fade, slide, zoom)
+  page_transition: "fade"
+
+  # Couleur d'arrière-plan (white, black, gray, sepia, custom)
+  background_color: "black"
+
+  # Couleur personnalisée (hex, utilisé si background_color = "custom")
+  custom_background_color: "#1a1a1a"
+
+  # Luminosité (0.0 à 2.0, 1.0 = normal)
+  brightness: 1.0
+
+  # Contraste (0.0 à 2.0, 1.0 = normal)
+  contrast: 1.0
+
+  # Saturation (0.0 à 2.0, 1.0 = normal)
+  saturation: 1.0
+
+  # Inverser les couleurs (mode nuit)
+  invert_colors: false
+
+  # Mode niveaux de gris
+  grayscale: false
+
+  # Ajustement de l'image (fit_width, fit_height, fit_screen, original)
+  image_fit: "fit_width"
+
+  # Afficher les numéros de page
+  show_page_numbers: true
+
+  # Afficher la barre de progression
+  show_progress_bar: true
+
+  # Masquer automatiquement l'interface après inactivité (secondes, 0 = désactivé)
+  auto_hide_ui_seconds: 3
+
+  # Navigation par tapotement (mobile/tactile)
+  tap_zones_enabled: true
+
+  # Navigation par balayage (swipe)
+  swipe_navigation: true
+
+  # Précharger les pages adjacentes pour une lecture fluide
+  preload_adjacent_pages: true
+
+  # Nombre de pages à précharger
+  preload_count: 2
+
+  # Mettre en cache les pages déjà affichées
+  cache_displayed_pages: true
+
+  # Taille du cache de pages en mémoire (Mo)
+  page_cache_size_mb: 256
+
+
+# ----------------------------------------------------------------------------
+# RÉSEAU
+# ----------------------------------------------------------------------------
+network:
+  # User-Agent par défaut (roté automatiquement si rotate_user_agent = true)
+  user_agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+
+  # Rotation automatique du User-Agent pour éviter le blocage
+  rotate_user_agent: true
+
+  # Liste de User-Agents à utiliser pour la rotation (fichier src/nexusdl/data/user_agents.txt)
+  user_agents_file: "builtin"
+
+  # Délai minimum entre deux requêtes vers le même site (secondes)
+  request_delay: 0.5
+
+  # Délai maximum entre deux requêtes (randomisation pour éviter le fingerprinting)
+  request_delay_max: 1.5
+
+  # Activer HTTP/2 si supporté par le serveur
+  http2_enabled: true
+
+  # Activer la compression des réponses (gzip, brotli)
+  compression_enabled: true
+
+  # Vérifier les certificats SSL (NE JAMAIS désactiver en production)
+  verify_ssl: true
+
+  # Nombre maximum de connexions keep-alive par hôte
+  max_connections_per_host: 10
+
+  # Nombre maximum de connexions keep-alive totales
+  max_connections_total: 100
+
+  # Utiliser un proxy
+  use_proxy: false
+
+  # Configuration du proxy (voir config/proxy.example.yaml)
+  proxy:
+    enabled: false
+    type: "http"  # http, https, socks5, socks5h
+    host: ""
+    port: 8080
+    username: null
+    password: null
+    bypass_local: true  # Ne pas utiliser le proxy pour localhost/127.0.0.1
+
+  # DNS over HTTPS (pour contourner les blocages DNS)
+  dns_over_https: false
+  dns_over_https_url: "https://cloudflare-dns.com/dns-query"
+
+
+# ----------------------------------------------------------------------------
+# CLOUDFLARE / ANTI-BOT
+# ----------------------------------------------------------------------------
+cloudflare:
+  # Mode de contournement Cloudflare (auto, flaresolverr, playwright, none)
+  # - auto : détection automatique du meilleur mode
+  # - flaresolverr : utilise un service FlareSolverr externe
+  # - playwright : utilise un navigateur headless local
+  # - none : désactivé
+  bypass_mode: "auto"
+
+  # URL du service FlareSolverr (si bypass_mode = flaresolverr)
+  flaresolverr_url: "http://localhost:8191"
+
+  # Timeout pour FlareSolverr (secondes)
+  flaresolverr_timeout: 60.0
+
+  # Activer Playwright pour les sites nécessitant JavaScript
+  playwright_enabled: true
+
+  # Nombre maximum de contextes de navigateur simultanés
+  playwright_max_contexts: 4
+
+  # Timeout pour Playwright (secondes)
+  playwright_timeout: 30.0
+
+  # Utiliser le mode headless pour Playwright (false = afficher le navigateur)
+  playwright_headless: true
+
+  # Navigateur à utiliser (chromium, firefox, webkit)
+  playwright_browser: "chromium"
+
+  # Chemin vers les binaires Playwright (auto = utiliser ceux installés)
+  playwright_binaries_path: "auto"
+
+
+# ----------------------------------------------------------------------------
+# COOKIES
+# ----------------------------------------------------------------------------
+cookies:
+  # Chiffrer les cookies stockés localement (recommandé)
+  encrypt_cookies: true
+
+  # Algorithme de chiffrement (fernet, aes256)
+  encryption_algorithm: "fernet"
+
+  # Clé de chiffrement (auto = générée automatiquement et stockée dans le keyring OS)
+  encryption_key_source: "auto"  # auto, env, file
+
+  # Variable d'environnement contenant la clé (si encryption_key_source = env)
+  encryption_key_env_var: "NEXUSDL_COOKIE_KEY"
+
+  # Fichier contenant la clé (si encryption_key_source = file)
+  encryption_key_file: null
+
+  # Rafraîchir automatiquement les cookies expirés
+  auto_refresh_expired: true
+
+  # Intervalle de vérification des cookies expirés (heures)
+  refresh_check_interval_hours: 1
+
+  # Durée de vie maximum des cookies (jours, 0 = illimité)
+  max_cookie_age_days: 30
+
+  # Supprimer les cookies des sites désactivés
+  cleanup_disabled_sites: true
+
+
+# ----------------------------------------------------------------------------
+# EMPAQUETAGE
+# ----------------------------------------------------------------------------
+packaging:
+  # Niveau de compression ZIP (0 = stockage, 9 = compression maximale)
+  zip_compression_level: 6
+
+  # Inclure ComicInfo.xml dans les archives CBZ/CBR
+  include_comicinfo: true
+
+  # Template ComicInfo.xml à utiliser (builtin = src/nexusdl/data/comic_info_template.xml)
+  comicinfo_template: "builtin"
+
+  # Inclure la couverture comme première page de l'archive
+  include_cover_as_first_page: true
+
+  # Nom du fichier de couverture dans l'archive
+  cover_filename: "000_cover.jpg"
+
+  # Nom du fichier ComicInfo.xml dans l'archive
+  comicinfo_filename: "ComicInfo.xml"
+
+  # Préfixe des noms de pages dans l'archive (ex: "page_001.jpg")
+  page_filename_prefix: "page_"
+
+  # Nombre de chiffres dans le nom de page (3 = page_001, page_002, etc.)
+  page_filename_digits: 3
+
+  # Extension des pages dans l'archive (auto = conserver l'extension source)
+  page_filename_extension: "auto"
+
+  # Ajouter un filigrane (watermark) aux images
+  add_watermark: false
+
+  # Texte du filigrane
+  watermark_text: "NexusDL"
+
+  # Position du filigrane (top-left, top-right, bottom-left, bottom-right, center)
+  watermark_position: "bottom-right"
+
+  # Opacité du filigrane (0.0 à 1.0)
+  watermark_opacity: 0.3
+
+  # Taille du filigrane (pixels)
+  watermark_font_size: 24
+
+  # Couleur du filigrane (hex)
+  watermark_color: "#ffffff"
+
+
+# ----------------------------------------------------------------------------
+# IMAGES
+# ----------------------------------------------------------------------------
+image:
+  # Convertir automatiquement les images en WebP pour réduire la taille
+  convert_to_webp: false
+
+  # Qualité de conversion WebP (0 à 100)
+  webp_quality: 85
+
+  # Convertir automatiquement les images en AVIF (meilleure compression que WebP)
+  convert_to_avif: false
+
+  # Qualité de conversion AVIF (0 à 100)
+  avif_quality: 75
+
+  # Résolution maximum (largeur, 0 = illimité)
+  max_width: 0
+
+  # Résolution maximum (hauteur, 0 = illimité)
+  max_height: 0
+
+  # Redimensionner les images trop grandes
+  resize_large_images: false
+
+  # Algorithme de redimensionnement (lanczos, bilinear, bicubic, nearest)
+  resize_algorithm: "lanczos"
+
+  # Supprimer les métadonnées EXIF des images (vie privée)
+  strip_exif: true
+
+  # Corriger automatiquement l'orientation des images (rotation EXIF)
+  auto_rotate: true
+
+  # Valider les images téléchargées (détecter les fichiers corrompus)
+  validate_images: true
+
+  # Réessayer le téléchargement si l'image est invalide
+  retry_on_invalid_image: true
+
+
+# ----------------------------------------------------------------------------
+# SITES
+# ----------------------------------------------------------------------------
+sites:
+  # Fichier de définition des sites (builtin = src/nexusdl/data/sites.yaml)
+  sites_file: "builtin"
+
+  # Fichier d'overrides utilisateur (voir config/sites_overrides.example.yaml)
+  overrides_file: "${XDG_CONFIG_HOME}/nexusdl/sites_overrides.yaml"
+
+  # Activer tous les sites par défaut
+  enable_all_by_default: true
+
+  # Liste des sites désactivés (site_id)
+  disabled_sites: []
+
+  # Liste des sites favoris (affichés en premier dans l'interface)
+  favorite_sites: []
+
+  # Timeout spécifique par site (secondes, null = utiliser le timeout global)
+  per_site_timeout: {}
+
+  # Nombre maximum de téléchargements simultanés par site
+  per_site_max_concurrent: {}
+
+  # Délai entre les requêtes par site (secondes)
+  per_site_request_delay: {}
+
+
+# ----------------------------------------------------------------------------
+# RECHERCHE
+# ----------------------------------------------------------------------------
+search:
+  # Nombre maximum de sites à interroger simultanément
+  max_concurrent_sites: 8
+
+  # Nombre de résultats par page
+  results_per_page: 20
+
+  # Nombre maximum de pages de résultats à récupérer
+  max_pages: 5
+
+  # Tri par défaut des résultats (relevance, popularity, latest, az, za, rating, views)
+  default_sort: "relevance"
+
+  # Inclure les résultats partiels (titres similaires, pas exacts)
+  include_partial_matches: true
+
+  # Seuil de similarité minimum pour les résultats partiels (0.0 à 1.0)
+  partial_match_threshold: 0.6
+
+  # Mettre en cache les résultats de recherche (secondes, 0 = désactivé)
+  cache_results_seconds: 300
+
+  # Afficher les résultats au fur et à mesure (streaming)
+  stream_results: true
+
+  # Historique des recherches (nombre maximum d'entrées)
+  history_size: 50
+
+  # Recherches sauvegardées (nombre maximum)
+  saved_searches_limit: 20
+
+
+# ----------------------------------------------------------------------------
+# LOGGING
+# ----------------------------------------------------------------------------
+logging:
+  # Niveau de log global (TRACE, DEBUG, INFO, WARNING, ERROR, CRITICAL)
+  level: "INFO"
+
+  # Niveau de log pour la console
+  console_level: "INFO"
+
+  # Niveau de log pour le fichier
+  file_level: "DEBUG"
+
+  # Activer la journalisation dans un fichier
+  file_enabled: true
+
+  # Chemin du fichier de log
+  file_path: "${XDG_DATA_HOME}/nexusdl/logs/nexusdl.log"
+
+  # Rotation du fichier de log (size, time, daily, midnight)
+  rotation: "daily"
+
+  # Taille maximum d'un fichier de log avant rotation (Mo, si rotation = size)
+  max_size_mb: 10
+
+  # Nombre de fichiers de log à conserver
+  retention: 7
+
+  # Compresser les anciens fichiers de log (gzip)
+  compression: "gz"
+
+  # Format des logs (colorized, json, plain)
+  format: "colorized"
+
+  # Inclure les timestamps dans les logs
+  timestamps: true
+
+  # Format des timestamps (ISO 8601)
+  timestamp_format: "YYYY-MM-DD HH:mm:ss.SSS"
+
+  # Inclure le nom du module dans les logs
+  show_module: true
+
+  # Inclure le nom de la fonction dans les logs
+  show_function: false
+
+  # Inclure la ligne de code dans les logs
+  show_line: false
+
+  # Logs spécifiques par module (override du niveau global)
+  module_levels:
+    nexusdl.core.session: "WARNING"
+    nexusdl.parsers: "INFO"
+    nexusdl.core.downloader: "DEBUG"
+
+
+# ----------------------------------------------------------------------------
+# SERVEUR WEB
+# ----------------------------------------------------------------------------
+web:
+  # Activer le serveur web
+  enabled: false
+
+  # Hôte d'écoute (0.0.0.0 = toutes les interfaces, 127.0.0.1 = local uniquement)
+  host: "127.0.0.1"
+
+  # Port d'écoute
+  port: 8000
+
+  # Utiliser HTTPS
+  https_enabled: false
+
+  # Chemin vers le certificat SSL
+  ssl_cert: null
+
+  # Chemin vers la clé privée SSL
+  ssl_key: null
+
+  # Origines CORS autorisées (liste, "*" = toutes)
+  cors_origins:
+    - "http://localhost:3000"
+    - "http://127.0.0.1:3000"
+
+  # Activer l'authentification JWT
+  auth_enabled: true
+
+  # Algorithme JWT (HS256, RS256)
+  jwt_algorithm: "HS256"
+
+  # Clé secrète JWT (OBLIGATOIRE si auth_enabled = true)
+  # Générer avec : python -c "import secrets; print(secrets.token_urlsafe(32))"
+  jwt_secret_key: null
+
+  # Durée de vie des tokens d'accès (minutes)
+  jwt_access_token_expire_minutes: 30
+
+  # Durée de vie des tokens de rafraîchissement (jours)
+  jwt_refresh_token_expire_days: 7
+
+  # Rate limiting (requêtes par minute par IP)
+  rate_limit_per_minute: 100
+
+  # Rate limiting pour les endpoints sensibles (login, register)
+  rate_limit_auth_per_minute: 10
+
+  # Activer les WebSocket pour la progression en temps réel
+  websocket_enabled: true
+
+  # Ouvrir automatiquement le navigateur au démarrage
+  open_browser_on_start: false
+
+
+# ----------------------------------------------------------------------------
+# INTERFACE GRAPHIQUE (GUI)
+# ----------------------------------------------------------------------------
+gui:
+  # Activer l'interface graphique
+  enabled: true
+
+  # Thème de l'interface (blue, green, dark-blue, sweetkind, etc.)
+  customtkinter_theme: "blue"
+
+  # Apparence (light, dark, system)
+  appearance: "system"
+
+  # Largeur par défaut de la fenêtre (pixels)
+  default_width: 1200
+
+  # Hauteur par défaut de la fenêtre (pixels)
+  default_height: 800
+
+  # Démarrer en mode plein écran
+  start_fullscreen: false
+
+  # Démarrer minimisé dans la barre des tâches
+  start_minimized: false
+
+  # Fermer dans la zone de notification (system tray) au lieu de quitter
+  close_to_tray: true
+
+  # Minimiser dans la zone de notification
+  minimize_to_tray: true
+
+  # Afficher un icône dans la zone de notification
+  show_tray_icon: true
+
+  # Lancer au démarrage du système
+  run_on_startup: false
+
+  # Échelle de l'interface (1.0 = normal, 1.25 = 125%, etc.)
+  ui_scale: 1.0
+
+  # Police de caractères (null = police système)
+  font_family: null
+
+  # Taille de police (null = taille système)
+  font_size: null
+
+
+# ----------------------------------------------------------------------------
+# INTERFACE CLI
+# ----------------------------------------------------------------------------
+cli:
+  # Activer les couleurs dans la sortie terminal
+  colors: true
+
+  # Activer les caractères Unicode (icônes, bordures)
+  unicode: true
+
+  # Thème Rich/Textual (monokai, dracula, solarized, etc.)
+  rich_theme: "monokai"
+
+  # Nombre maximum de lignes de log affichées simultanément
+  log_lines: 50
+
+  # Afficher la barre de progression
+  show_progress_bar: true
+
+  # Afficher le spinner lors des opérations longues
+  show_spinner: true
+
+  # Mode interactif par défaut (true = TUI Textual, false = Typer classique)
+  interactive: true
+
+  # Confirmer avant les actions destructives
+  confirm_destructive: true
+
+
+# ----------------------------------------------------------------------------
+# PLUGINS
+# ----------------------------------------------------------------------------
+plugins:
+  # Activer le système de plugins
+  enabled: true
+
+  # Répertoire des plugins
+  directory: "${XDG_DATA_HOME}/nexusdl/plugins"
+
+  # Charger automatiquement les plugins au démarrage
+  auto_load: true
+
+  # Vérifier la signature des plugins (recommandé pour la sécurité)
+  verify_signatures: false
+
+  # Liste des plugins désactivés (noms de plugin)
+  disabled_plugins: []
+
+  # Liste blanche des plugins autorisés (vide = tous autorisés)
+  allowed_plugins: []
+
+  # Liste noire des plugins bloqués
+  blocked_plugins: []
+
+  # Mettre à jour automatiquement les plugins
+  auto_update: false
+
+  # Canal de mise à jour des plugins (stable, beta, dev)
+  update_channel: "stable"
+
+
+# ----------------------------------------------------------------------------
+# NOTIFICATIONS
+# ----------------------------------------------------------------------------
+notifications:
+  # Activer les notifications globales
+  enabled: true
+
+  # Notifications de bureau (OS)
+  desktop:
+    enabled: true
+    on_download_complete: true
+    on_new_chapter: true
+    on_error: true
+    sound: true
+
+  # Notifications sonores
+  sound:
+    enabled: true
+    volume: 0.5
+    on_download_complete: true
+    on_error: true
+
+  # Notifications WebSocket (pour l'interface web)
+  websocket:
+    enabled: true
+    on_download_progress: true
+    on_download_complete: true
+    on_error: true
+
+  # Notifications email (optionnel)
+  email:
+    enabled: false
+    smtp_host: null
+    smtp_port: 587
+    smtp_username: null
+    smtp_password: null
+    smtp_tls: true
+    from_address: null
+    to_addresses: []
+    on_download_complete: false
+    on_error: true
+
+
+# ----------------------------------------------------------------------------
+# AVANCÉ
+# ----------------------------------------------------------------------------
+advanced:
+  # Mode débogage (active les logs TRACE et désactive certaines optimisations)
+  debug_mode: false
+
+  # Profiling des performances (désactivé en production)
+  profiling_enabled: false
+
+  # Nombre de workers asyncio (0 = auto, basé sur le nombre de CPU)
+  asyncio_workers: 0
+
+  # Taille de la boucle d'événements asyncio
+  event_loop_debug: false
+
+  # Activer le garbage collector manuel
+  manual_gc: false
+
+  # Intervalle du garbage collector (secondes)
+  gc_interval: 60
+
+  # Mémoire maximum utilisée par l'application (Mo, 0 = illimité)
+  max_memory_mb: 0
+
+  # Activer le mode sans échec (désactive les plugins, le bypass Cloudflare, etc.)
+  safe_mode: false
+
+  # Exporter les métriques Prometheus (pour monitoring)
+  prometheus_enabled: false
+
+  # Port Prometheus
+  prometheus_port: 9090
+
+  # Activer le endpoint de santé (/health)
+  health_endpoint: true
+
+  # Activer le endpoint de métriques (/metrics)
+  metrics_endpoint: false
+
+  # Timeout de shutdown gracieux (secondes)
+  shutdown_timeout: 30
+
+  # Sauvegarder l'état avant shutdown
+  save_state_on_shutdown: true
+
+  # Restaurer l'état au démarrage (téléchargements en cours, etc.)
+  restore_state_on_start: true
