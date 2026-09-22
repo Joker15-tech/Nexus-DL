@@ -1,0 +1,118 @@
+# ============================================================================
+# NEXUSDL — Module : parsers
+# ============================================================================
+#
+# Rôle :
+#   Couche d'adaptateurs secondaires (ports) de l'architecture hexagonale.
+#   Chaque sous-module implémente l'extraction de données depuis une source
+#   externe (site web, API REST, etc.) en respectant le contrat défini par
+#   `BaseParser`. Le `core/` ne connaît que cette interface abstraite et
+#   ignore totalement les spécificités de chaque site.
+#
+# Règles d'or :
+#   1. Les parsers NE dépendent JAMAIS de `interfaces/` ni de `core.downloader/`.
+#   2. Ils peuvent dépendre de `core.session/`, `core.models/`, `core.utils/`.
+#   3. Tout parser doit hériter de `BaseParser` et implémenter les 4 méthodes
+#      abstraites : search, get_manga, get_chapters, get_pages.
+#   4. Les comportements réutilisables (Madara, MangaThemesia, Cloudflare, etc.)
+#      sont factorisés dans le sous-module `mixins/`.
+#
+# Organisation :
+#   - base.py            : Contrat abstrait (ABC) + utilitaires communs
+#   - capabilities.py    : Modèle Pydantic des capacités/limitations d'un parser
+#   - exceptions.py      : Hiérarchie d'exceptions spécifiques aux parsers
+#   - adult/             : Parseurs de sites pour adultes (18+)
+#   - custom/            : Template pour parsers personnalisés (plugins)
+#   - en/                : Parseurs de sites anglophones
+#   - fr/                : Parseurs de sites francophones
+#   - kr/                : Parseurs de sites coréens
+#   - mixins/            : Comportements réutilisables (thèmes WordPress, API, etc.)
+#
+# ============================================================================
+
+src/nexusdl/parsers/
+├── __init__.py              # Exports publics du module (BaseParser, ParserCapabilities, etc.)
+├── base.py                  # Interface abstraite BaseParser + utilitaires (download_page, normalize_url)
+├── capabilities.py          # Modèle Pydantic ParserCapabilities (rate limit, bypass, auth, etc.)
+├── exceptions.py            # Hiérarchie d'exceptions (ParserError, ParsingError, SiteUnavailableError, etc.)
+│
+├── adult/                   # Sites pour adultes (18+)
+│   ├── __init__.py
+│   ├── hentaizone.py        # HentaiZone (Playwright complet)
+│   ├── nhentai.py           # nHentai (API non officielle + bypass)
+│   ├── pururin.py           # Pururin
+│   ├── scan_hentai.py       # Scan-Hentai
+│   ├── x_manga_net.py       # X-Manga.net
+│   └── x_manga_org.py       # X-Manga.org
+│
+├── custom/                  # Parsers personnalisés (plugins utilisateur)
+│   ├── __init__.py
+│   └── _template.py         # Template de base pour créer un parser custom
+│
+├── en/                      # Sites anglophones
+│   ├── __init__.py
+│   ├── asurascans.py        # AsuraScans (MangaThemesia)
+│   ├── batoto.py            # Bato.to
+│   ├── comick.py            # Comick.io (API REST)
+│   ├── crunchyscan_org.py   # CrunchyScan.org
+│   ├── disasterscans.py     # Disaster Scans
+│   ├── flamescans.py        # Flame Scans (MangaThemesia)
+│   ├── galaxy_scans.py      # Galaxy Scans
+│   ├── kireicake.py         # Kirei Cake
+│   ├── leviathanscans.py    # Leviathan Scans
+│   ├── luminousscans.py     # Luminous Scans
+│   ├── mangabuddy.py        # MangaBuddy
+│   ├── mangadex.py          # MangaDex (API officielle — référence)
+│   ├── mangafire.py         # MangaFire
+│   ├── mangakakalot.py      # MangaKakalot
+│   ├── mangasee123.py       # MangaSee123
+│   ├── reaperscans.py       # Reaper Scans
+│   ├── scyllascans.py       # Scylla Scans
+│   ├── tcbscans.py          # TCB Scans
+│   ├── toongod.py           # ToonGod
+│   ├── toonily.py           # Toonily
+│   ├── void_scans.py        # Void Scans
+│   └── zenith_scans.py      # Zenith Scans
+│
+├── fr/                      # Sites francophones
+│   ├── __init__.py
+│   ├── anime_scans.py       # Anime Scans
+│   ├── blossom_scans.py     # Blossom Scans
+│   ├── crunchyscan_fr.py    # CrunchyScan.fr
+│   ├── epsilonscan.py       # EpsilonScan
+│   ├── fandub_scans.py      # FanDub Scans
+│   ├── genkan_scans.py      # Genkan Scans
+│   ├── hentai_origines.py   # Hentai Origines
+│   ├── karma_scans.py       # Karma Scans
+│   ├── mangas_origines.py   # Mangas Origines
+│   ├── mangas_origines_fr.py# Mangas Origines FR
+│   ├── nekohouse.py         # Nekohouse
+│   ├── ortegascans_com.py   # OrtegaScans.com
+│   ├── ortegascans_fr.py    # OrtegaScans.fr
+│   ├── phenix_scans.py      # Phenix Scans
+│   ├── poseidon_scans.py    # Poseidon Scans
+│   ├── raijin_scans.py      # Raijin Scans
+│   ├── rimuscan.py          # RimuScan
+│   ├── scan_manga.py        # Scan-Manga (FoolSlide)
+│   ├── shinra_scans.py      # Shinra Scans
+│   ├── sushiscan_fr.py      # SushiScan.fr
+│   ├── sushiscan_net.py     # SushiScan.net (WordPress/Madara — référence FR)
+│   ├── taisei_scans.py      # Taisei Scans
+│   ├── toonfr.py            # ToonFR
+│   ├── urano_scans.py       # Urano Scans
+│   └── xanadu_scans.py      # Xanadu Scans
+│
+├── kr/                      # Sites coréens
+│   ├── __init__.py
+│   ├── asura_scans_kr.py    # Asura Scans KR
+│   ├── manhwa_raw.py        # ManhwaRaw
+│   └── manhwaclub.py        # ManhwaClub
+│
+└── mixins/                  # Comportements réutilisables (héritage multiple)
+    ├── __init__.py
+    ├── api_based.py         # Mixin pour sites avec API REST (MangaDex, Comick)
+    ├── cloudflare.py        # Mixin pour bypass Cloudflare via PlaywrightPool
+    ├── foolslide.py         # Mixin pour sites basés sur FoolSlide
+    ├── js_rendered.py       # Mixin pour sites nécessitant rendu JavaScript
+    ├── mangathemesia.py     # Mixin pour sites MangaThemesia (Asura, Flame, etc.)
+    └── wordpress_madara.py  # Mixin pour sites WordPress/Madara (SushiScan, etc.)
