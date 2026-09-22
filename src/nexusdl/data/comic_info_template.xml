@@ -1,0 +1,128 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  ============================================================================
+  NEXUSDL — ComicInfo.xml Template (Jinja2)
+  ============================================================================
+  
+  Rôle :
+    Template XML généré par `core/packaging/comic_info.py` et injecté dans
+    les archives CBZ/CBR/PDF pour fournir les métadonnées du chapitre selon
+    le standard ComicInfo (https://anansi-project.github.io/docs/comicinfo/schema/v2.1).
+  
+  Variables Jinja2 attendues :
+    - title: str                    # Titre du chapitre (ex: "Chapitre 001 - Début")
+    - series: str                   # Titre de la série (ex: "One Piece")
+    - number: str                   # Numéro du chapitre (ex: "001", "12.5", "Extra")
+    - volume: int | None            # Numéro du volume (ex: 1)
+    - summary: str | None           # Synopsis/description du manga
+    - year: int | None              # Année de publication
+    - month: int | None             # Mois de publication
+    - day: int | None               # Jour de publication
+    - writer: str | None            # Auteur (mangaka)
+    - penciller: str | None         # Dessinateur (si différent de l'auteur)
+    - inker: str | None             # Encreur
+    - colorist: str | None          # Coloriste
+    - letterer: str | None          # Lettriste
+    - cover_artist: str | None      # Artiste de couverture
+    - editor: str | None            # Éditeur
+    - translator: str | None        # Traducteur (scanlation group)
+    - genre: str                    # Genres séparés par des virgules (ex: "Action, Adventure, Comedy")
+    - tags: str                     # Tags séparés par des virgules (ex: "shounen, pirate, fantasy")
+    - page_count: int               # Nombre total de pages
+    - language_iso: str             # Code langue ISO 639-1 (ex: "fr", "en", "ja")
+    - age_rating: str               # Classification (ex: "Everyone", "Teen", "Mature 18+")
+    - manga: str                    # "Yes" ou "No" (indique si c'est un manga)
+    - web: str | None               # URL source du chapitre
+    - publisher: str | None         # Groupe de scanlation
+    - community_rating: float | None # Note communautaire (0.0 à 5.0)
+    - characters: str | None        # Personnages principaux (séparés par virgules)
+    - teams: str | None             # Équipes/organisations (séparées par virgules)
+    - story_arc: str | None         # Arc narratif
+    - format: str | None            # Format (ex: "Manga", "Webtoon", "Manhwa")
+    - notes: str | None             # Notes additionnelles
+    - pages: list[dict]             # Liste des pages avec métadonnées
+        - image: int                # Numéro de page (1-based)
+        - type: str                 # Type (FrontCover, InnerCover, Story, etc.)
+        - image_size: int | None    # Taille en bytes (optionnel)
+        - image_width: int | None   # Largeur en pixels (optionnel)
+        - image_height: int | None  # Hauteur en pixels (optionnel)
+  
+  Génération :
+    >>> from jinja2 import Template
+    >>> from pathlib import Path
+    >>> template_path = Path("src/nexusdl/data/comic_info_template.xml")
+    >>> template = Template(template_path.read_text(encoding="utf-8"))
+    >>> xml_content = template.render(
+    ...     title="Chapitre 001",
+    ...     series="One Piece",
+    ...     number="001",
+    ...     volume=1,
+    ...     writer="Eiichiro Oda",
+    ...     genre="Action, Adventure, Comedy",
+    ...     page_count=20,
+    ...     language_iso="fr",
+    ...     age_rating="Teen",
+    ...     manga="Yes",
+    ...     pages=[{"image": 1, "type": "FrontCover"}, {"image": 2, "type": "Story"}],
+    ... )
+  
+  ============================================================================
+-->
+<ComicInfo xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+  {# === Identification === #}
+  <Title>{{ title }}</Title>
+  <Series>{{ series }}</Series>
+  <Number>{{ number }}</Number>
+  {% if volume is not none %}<Volume>{{ volume }}</Volume>{% endif %}
+  
+  {# === Résumé === #}
+  {% if summary %}<Summary>{{ summary }}</Summary>{% endif %}
+  
+  {# === Date de publication === #}
+  {% if year is not none %}<Year>{{ year }}</Year>{% endif %}
+  {% if month is not none %}<Month>{{ month }}</Month>{% endif %}
+  {% if day is not none %}<Day>{{ day }}</Day>{% endif %}
+  
+  {# === Équipe créative === #}
+  {% if writer %}<Writer>{{ writer }}</Writer>{% endif %}
+  {% if penciller %}<Penciller>{{ penciller }}</Penciller>{% endif %}
+  {% if inker %}<Inker>{{ inker }}</Inker>{% endif %}
+  {% if colorist %}<Colorist>{{ colorist }}</Colorist>{% endif %}
+  {% if letterer %}<Letterer>{{ letterer }}</Letterer>{% endif %}
+  {% if cover_artist %}<CoverArtist>{{ cover_artist }}</CoverArtist>{% endif %}
+  {% if editor %}<Editor>{{ editor }}</Editor>{% endif %}
+  {% if translator %}<Translator>{{ translator }}</Translator>{% endif %}
+  
+  {# === Genres et tags === #}
+  {% if genre %}<Genre>{{ genre }}</Genre>{% endif %}
+  {% if tags %}<Tags>{{ tags }}</Tags>{% endif %}
+  
+  {# === Métadonnées techniques === #}
+  <PageCount>{{ page_count }}</PageCount>
+  <LanguageISO>{{ language_iso }}</LanguageISO>
+  <AgeRating>{{ age_rating }}</AgeRating>
+  <Manga>{{ manga }}</Manga>
+  
+  {# === Liens et éditeur === #}
+  {% if web %}<Web>{{ web }}</Web>{% endif %}
+  {% if publisher %}<Publisher>{{ publisher }}</Publisher>{% endif %}
+  
+  {# === Évaluation === #}
+  {% if community_rating is not none %}<CommunityRating>{{ community_rating }}</CommunityRating>{% endif %}
+  
+  {# === Personnages et arcs === #}
+  {% if characters %}<Characters>{{ characters }}</Characters>{% endif %}
+  {% if teams %}<Teams>{{ teams }}</Teams>{% endif %}
+  {% if story_arc %}<StoryArc>{{ story_arc }}</StoryArc>{% endif %}
+  
+  {# === Format et notes === #}
+  {% if format %}<Format>{{ format }}</Format>{% endif %}
+  {% if notes %}<Notes>{{ notes }}</Notes>{% endif %}
+  
+  {# === Pages === #}
+  <Pages>
+    {% for page in pages %}
+    <Page Image="{{ page.image }}" Type="{{ page.type }}"{% if page.image_size is not none %} ImageSize="{{ page.image_size }}"{% endif %}{% if page.image_width is not none %} ImageWidth="{{ page.image_width }}"{% endif %}{% if page.image_height is not none %} ImageHeight="{{ page.image_height }}"{% endif %} />
+    {% endfor %}
+  </Pages>
+</ComicInfo>
