@@ -1,0 +1,1252 @@
+/* ============================================================================
+   NEXUSDL — Thème Cyberpunk Neon / Hacker Futurist
+   ============================================================================
+   
+   Style: Neon, Futurist, Hacker, Cyberpunk
+   Palette: Vert néon, cyan, magenta, fond noir profond
+   Ambiance: Terminal hacker futuriste avec effets glow
+   
+   ============================================================================ */
+
+/* ============================================================================
+   VARIABLES GLOBALES — Palette de couleurs néon
+   ============================================================================ */
+
+/* Couleurs primaires néon */
+$primary: #00ff41;
+$primary-dim: #00cc33;
+$primary-glow: #39ff14;
+
+/* Couleurs secondaires */
+$secondary: #00ffff;
+$secondary-dim: #00cccc;
+$secondary-glow: #0ff;
+
+/* Couleur d'accent */
+$accent: #ff00ff;
+$accent-dim: #cc00cc;
+$accent-glow: #ff009d;
+
+/* Couleurs de statut */
+$success: #00ff41;
+$warning: #ffff00;
+$error: #ff0040;
+$info: #00ffff;
+
+/* Couleurs de fond — noir profond */
+$background: #000000;
+$background-alt: #0a0e27;
+$surface: #0d1117;
+$surface-alt: #161b22;
+$surface-hover: #1a1f2e;
+
+/* Couleurs de fond avec teinte */
+$primary-background: #001a0d;
+$success-background: #001a0d;
+$warning-background: #1a1a00;
+$error-background: #1a000d;
+$info-background: #001a1a;
+
+/* Couleurs de texte */
+$text: #00ff41;
+$text-bright: #ffffff;
+$text-muted: #00aaaa;
+$text-dim: #006666;
+$text-disabled: #004444;
+$text-accent: #ff00ff;
+
+/* Bordures */
+$border: #00ff41;
+$border-dim: #006622;
+$border-focus: #00ffff;
+$border-hover: #ff00ff;
+
+/* Ombres néon (simulées via border) */
+$shadow-primary: #00ff41;
+$shadow-secondary: #00ffff;
+$shadow-accent: #ff00ff;
+
+/* ============================================================================
+   ÉCRAN PRINCIPAL — Fond noir profond avec grille
+   ============================================================================ */
+
+Screen {
+    background: $background;
+    color: $text;
+    text-style: none;
+}
+
+/* Effet de scan lines subtil */
+Screen > * {
+    opacity: 1.0;
+}
+
+/* ============================================================================
+   HEADER — Barre supérieure avec effet néon
+   ============================================================================ */
+
+Header {
+    background: $surface;
+    color: $primary;
+    dock: top;
+    height: 3;
+    border-bottom: heavy $primary;
+    text-style: bold;
+    padding: 0 2;
+}
+
+Header > .header--title {
+    color: $primary-glow;
+    text-style: bold;
+}
+
+Header > .header--clock {
+    color: $secondary;
+    text-style: italic;
+}
+
+/* ============================================================================
+   FOOTER — Barre inférieure avec raccourcis
+   ============================================================================ */
+
+Footer {
+    background: $surface;
+    color: $text-muted;
+    dock: bottom;
+    height: 1;
+    border-top: heavy $primary-dim;
+    padding: 0 1;
+}
+
+Footer > .footer--key {
+    color: $primary;
+    background: $primary-background;
+    border: tall $primary-dim;
+    padding: 0 1;
+    text-style: bold;
+}
+
+Footer > .footer--description {
+    color: $text-muted;
+    padding: 0 1;
+}
+
+/* ============================================================================
+   BOUTONS — Style néon avec effet glow au hover
+   ============================================================================ */
+
+Button {
+    background: $surface;
+    color: $primary;
+    border: tall $primary;
+    padding: 0 2;
+    margin: 0 1;
+    text-style: bold;
+    min-width: 12;
+}
+
+Button:hover {
+    background: $primary-background;
+    color: $primary-glow;
+    border: tall $primary-glow;
+    text-style: bold;
+}
+
+Button:focus {
+    background: $primary;
+    color: $background;
+    border: heavy $primary-glow;
+    text-style: bold;
+}
+
+Button:active {
+    background: $primary-glow;
+    color: $background;
+}
+
+/* Variantes de boutons */
+Button.-primary {
+    background: $primary-background;
+    color: $primary;
+    border: heavy $primary;
+}
+
+Button.-primary:hover {
+    background: $primary;
+    color: $background;
+    border: heavy $primary-glow;
+}
+
+Button.-secondary {
+    background: $info-background;
+    color: $secondary;
+    border: heavy $secondary;
+}
+
+Button.-secondary:hover {
+    background: $secondary;
+    color: $background;
+    border: heavy $secondary-glow;
+}
+
+Button.-success {
+    background: $success-background;
+    color: $success;
+    border: heavy $success;
+}
+
+Button.-success:hover {
+    background: $success;
+    color: $background;
+    border: heavy $primary-glow;
+}
+
+Button.-warning {
+    background: $warning-background;
+    color: $warning;
+    border: heavy $warning;
+}
+
+Button.-warning:hover {
+    background: $warning;
+    color: $background;
+    border: heavy $warning;
+}
+
+Button.-error {
+    background: $error-background;
+    color: $error;
+    border: heavy $error;
+}
+
+Button.-error:hover {
+    background: $error;
+    color: $background;
+    border: heavy $error;
+}
+
+/* Bouton désactivé */
+Button.-disabled {
+    background: $surface;
+    color: $text-disabled;
+    border: tall $border-dim;
+    opacity: 0.5;
+}
+
+/* ============================================================================
+   INPUTS — Champs de saisie avec bordure néon
+   ============================================================================ */
+
+Input {
+    background: $surface;
+    color: $primary;
+    border: tall $primary-dim;
+    padding: 0 1;
+}
+
+Input:focus {
+    background: $surface-alt;
+    color: $primary-glow;
+    border: heavy $secondary;
+}
+
+Input:hover {
+    border: tall $secondary-dim;
+}
+
+/* Placeholder */
+Input > .input--placeholder {
+    color: $text-dim;
+    text-style: italic;
+}
+
+/* Curseur */
+Input > .input--cursor {
+    background: $primary;
+    color: $background;
+}
+
+/* ============================================================================
+   SELECT — Menus déroulants
+   ============================================================================ */
+
+Select {
+    background: $surface;
+    color: $primary;
+    border: tall $primary-dim;
+    padding: 0 1;
+}
+
+Select:focus {
+    background: $surface-alt;
+    color: $primary-glow;
+    border: heavy $secondary;
+}
+
+Select:hover {
+    border: tall $secondary-dim;
+}
+
+/* Options du select */
+Select > .select--option {
+    background: $surface;
+    color: $text;
+}
+
+Select > .select--option:hover {
+    background: $primary-background;
+    color: $primary-glow;
+}
+
+Select > .select--option.-selected {
+    background: $primary;
+    color: $background;
+    text-style: bold;
+}
+
+/* ============================================================================
+   SWITCH — Interrupteurs on/off
+   ============================================================================ */
+
+Switch {
+    background: $surface;
+    color: $text-dim;
+    border: tall $border-dim;
+}
+
+Switch > .switch--slider {
+    background: $text-dim;
+}
+
+Switch.-on {
+    background: $success-background;
+    color: $success;
+    border: tall $success;
+}
+
+Switch.-on > .switch--slider {
+    background: $success;
+}
+
+/* ============================================================================
+   CHECKBOX — Cases à cocher
+   ============================================================================ */
+
+Checkbox {
+    background: transparent;
+    color: $text;
+}
+
+Checkbox > .checkbox--check {
+    color: $text-dim;
+}
+
+Checkbox.-checked > .checkbox--check {
+    color: $primary-glow;
+    text-style: bold;
+}
+
+Checkbox:focus {
+    color: $primary-glow;
+}
+
+/* ============================================================================
+   LISTVIEW — Listes avec items sélectionnables
+   ============================================================================ */
+
+ListView {
+    background: $surface;
+    border: tall $border-dim;
+}
+
+ListView:focus {
+    border: heavy $secondary;
+}
+
+/* Items de la liste */
+ListItem {
+    background: transparent;
+    color: $text;
+    padding: 0 1;
+    border-left: tall transparent;
+}
+
+ListItem:hover {
+    background: $surface-hover;
+    color: $primary-glow;
+    border-left: tall $secondary-dim;
+}
+
+ListItem > .list-item--highlight {
+    background: $primary-background;
+    color: $primary-glow;
+    border-left: heavy $primary;
+    text-style: bold;
+}
+
+ListItem:focus {
+    background: $primary-background;
+    color: $primary-glow;
+    border-left: heavy $primary;
+}
+
+/* ============================================================================
+   LABELS ET STATIC — Texte
+   ============================================================================ */
+
+Label {
+    color: $text;
+    text-style: none;
+}
+
+Label.-bold {
+    text-style: bold;
+    color: $primary-glow;
+}
+
+Label.-muted {
+    color: $text-muted;
+}
+
+Label.-accent {
+    color: $accent;
+    text-style: bold;
+}
+
+Static {
+    color: $text;
+}
+
+Static.-title {
+    color: $primary-glow;
+    text-style: bold;
+}
+
+Static.-subtitle {
+    color: $secondary;
+    text-style: italic;
+}
+
+Static.-muted {
+    color: $text-muted;
+}
+
+Static.-accent {
+    color: $accent;
+    text-style: bold;
+}
+
+Static.-error {
+    color: $error;
+    text-style: bold;
+}
+
+Static.-warning {
+    color: $warning;
+}
+
+Static.-success {
+    color: $success;
+}
+
+/* ============================================================================
+   NOTIFICATIONS — Messages popup avec bordure colorée
+   ============================================================================ */
+
+Notification {
+    background: $surface;
+    border: heavy $primary;
+    padding: 1 2;
+    text-style: bold;
+}
+
+Notification.-information {
+    background: $info-background;
+    border: heavy $info;
+    color: $info;
+}
+
+Notification.-warning {
+    background: $warning-background;
+    border: heavy $warning;
+    color: $warning;
+}
+
+Notification.-error {
+    background: $error-background;
+    border: heavy $error;
+    color: $error;
+}
+
+Notification.-success {
+    background: $success-background;
+    border: heavy $success;
+    color: $success;
+}
+
+/* ============================================================================
+   PROGRESSBAR — Barres de progression néon
+   ============================================================================ */
+
+ProgressBar {
+    background: $surface;
+    border: tall $border-dim;
+}
+
+ProgressBar > .progress-bar--bar {
+    background: $primary;
+    color: $background;
+}
+
+ProgressBar > .progress-bar--complete {
+    background: $primary-glow;
+    color: $background;
+    text-style: bold;
+}
+
+ProgressBar > .progress-bar--remaining {
+    background: $surface-alt;
+    color: $text-dim;
+}
+
+/* ============================================================================
+   TABLEAU — Tables de données
+   ============================================================================ */
+
+DataTable {
+    background: $surface;
+    border: tall $border-dim;
+}
+
+DataTable:focus {
+    border: heavy $secondary;
+}
+
+DataTable > .datatable--header {
+    background: $primary-background;
+    color: $primary-glow;
+    text-style: bold;
+    border-bottom: heavy $primary;
+}
+
+DataTable > .datatable--cursor {
+    background: $primary-background;
+    color: $primary-glow;
+    border: tall $primary;
+}
+
+DataTable > .datatable--hover {
+    background: $surface-hover;
+    color: $primary;
+}
+
+/* ============================================================================
+   ONGLETS — Tabs pour navigation
+   ============================================================================ */
+
+TabbedContent {
+    background: $surface;
+}
+
+Tabs {
+    background: $surface;
+    border-bottom: heavy $border-dim;
+}
+
+Tab {
+    background: transparent;
+    color: $text-muted;
+    padding: 0 2;
+    border-bottom: tall transparent;
+}
+
+Tab:hover {
+    color: $primary;
+    background: $surface-hover;
+}
+
+Tab.-active {
+    color: $primary-glow;
+    background: $primary-background;
+    border-bottom: heavy $primary;
+    text-style: bold;
+}
+
+/* ============================================================================
+   WIDGETS CUSTOM — MangaCard
+   ============================================================================ */
+
+MangaCard {
+    background: $surface;
+    border: tall $border-dim;
+    padding: 1;
+}
+
+MangaCard:hover {
+    background: $surface-hover;
+    border: heavy $secondary;
+}
+
+MangaCard.state-selected {
+    background: $primary-background;
+    border: heavy $primary-glow;
+}
+
+MangaCard.state-focused {
+    border: heavy $accent;
+}
+
+MangaCard.state-disabled {
+    opacity: 0.4;
+    border: tall $border-dim;
+}
+
+MangaCard > .manga-title {
+    color: $primary-glow;
+    text-style: bold;
+}
+
+MangaCard > .manga-author {
+    color: $text-muted;
+}
+
+MangaCard > .manga-meta {
+    color: $text-dim;
+}
+
+MangaCard > .manga-status {
+    color: $secondary;
+}
+
+MangaCard > .manga-progress {
+    color: $accent;
+    text-style: bold;
+}
+
+/* ============================================================================
+   WIDGETS CUSTOM — DownloadProgressBar
+   ============================================================================ */
+
+DownloadProgressBar {
+    background: $surface;
+    border: tall $border-dim;
+    padding: 1;
+}
+
+DownloadProgressBar.state-running {
+    border: heavy $primary;
+}
+
+DownloadProgressBar.state-completed {
+    border: heavy $success;
+    background: $success-background;
+}
+
+DownloadProgressBar.state-failed {
+    border: heavy $error;
+    background: $error-background;
+}
+
+DownloadProgressBar.state-paused {
+    border: heavy $warning;
+    background: $warning-background;
+}
+
+DownloadProgressBar > #progress-track > .bar-fill {
+    color: $primary-glow;
+    background: $primary;
+}
+
+DownloadProgressBar > #progress-track > .bar-empty {
+    color: $text-dim;
+    background: $surface-alt;
+}
+
+/* ============================================================================
+   WIDGETS CUSTOM — SiteSelector
+   ============================================================================ */
+
+SiteSelector {
+    background: $surface;
+    border: tall $border-dim;
+}
+
+SiteSelector:focus {
+    border: heavy $secondary;
+}
+
+SiteSelector > .site-item {
+    background: transparent;
+    color: $text;
+    padding: 0 1;
+}
+
+SiteSelector > .site-item:hover {
+    background: $surface-hover;
+    color: $primary-glow;
+}
+
+SiteSelector > .site-item.selected {
+    background: $primary-background;
+    color: $primary-glow;
+    border-left: heavy $primary;
+    text-style: bold;
+}
+
+SiteSelector > .site-item.disabled {
+    color: $text-disabled;
+    opacity: 0.5;
+}
+
+/* ============================================================================
+   WIDGETS CUSTOM — ChapterList
+   ============================================================================ */
+
+ChapterList {
+    background: $surface;
+    border: tall $border-dim;
+}
+
+ChapterList > .chapter-item {
+    background: transparent;
+    color: $text;
+    padding: 1;
+    border-left: tall transparent;
+}
+
+ChapterList > .chapter-item:hover {
+    background: $surface-hover;
+    color: $primary-glow;
+    border-left: tall $secondary-dim;
+}
+
+ChapterList > .chapter-item.selected {
+    background: $primary-background;
+    color: $primary-glow;
+    border-left: heavy $primary;
+}
+
+ChapterList > .chapter-item.read {
+    opacity: 0.7;
+    color: $text-muted;
+}
+
+ChapterList > .chapter-item.downloaded {
+    border-left: heavy $success;
+}
+
+ChapterList > .chapter-number {
+    color: $secondary;
+    text-style: bold;
+}
+
+ChapterList > .chapter-title {
+    color: $text;
+}
+
+ChapterList > .chapter-meta {
+    color: $text-dim;
+}
+
+/* ============================================================================
+   WIDGETS CUSTOM — LogViewer
+   ============================================================================ */
+
+LogViewer {
+    background: $background;
+    border: tall $border-dim;
+}
+
+LogViewer > .log-line {
+    padding: 0 1;
+}
+
+LogViewer > .log-line.level-trace {
+    color: $text-dim;
+    opacity: 0.6;
+}
+
+LogViewer > .log-line.level-debug {
+    color: $text-muted;
+    opacity: 0.8;
+}
+
+LogViewer > .log-line.level-info {
+    color: $primary;
+}
+
+LogViewer > .log-line.level-success {
+    color: $success;
+    text-style: bold;
+}
+
+LogViewer > .log-line.level-warning {
+    color: $warning;
+    background: $warning-background;
+}
+
+LogViewer > .log-line.level-error {
+    color: $error;
+    background: $error-background;
+    text-style: bold;
+}
+
+LogViewer > .log-line.level-critical {
+    color: $error;
+    background: $error-background;
+    text-style: bold;
+    border-left: heavy $error;
+}
+
+/* ============================================================================
+   ÉCRANS SPÉCIFIQUES — MainScreen (Dashboard)
+   ============================================================================ */
+
+MainScreen {
+    background: $background;
+}
+
+MainScreen > #dashboard-container {
+    background: $background;
+}
+
+MainScreen > #stats-section {
+    background: $surface;
+    border: tall $border-dim;
+}
+
+MainScreen > #stats-section > .stat-card {
+    background: $surface-alt;
+    border: tall $border-dim;
+    padding: 1;
+}
+
+MainScreen > #stats-section > .stat-card:hover {
+    background: $surface-hover;
+    border: heavy $secondary;
+}
+
+MainScreen > #stats-section > .stat-icon {
+    color: $primary-glow;
+    text-style: bold;
+}
+
+MainScreen > #stats-section > .stat-value {
+    color: $primary;
+    text-style: bold;
+}
+
+MainScreen > #stats-section > .stat-label {
+    color: $text-muted;
+}
+
+/* Sections du dashboard */
+MainScreen > #continue-reading-section,
+MainScreen > #recent-downloads-section,
+MainScreen > #active-tasks-section {
+    background: $surface;
+    border: tall $border-dim;
+    padding: 1;
+}
+
+MainScreen > .section-title {
+    color: $primary-glow;
+    text-style: bold;
+    border-bottom: tall $primary-dim;
+    padding: 0 0 1 0;
+}
+
+/* ============================================================================
+   ÉCRANS SPÉCIFIQUES — SearchScreen
+   ============================================================================ */
+
+SearchScreen {
+    background: $background;
+}
+
+SearchScreen > #search-container {
+    background: $surface;
+    border: tall $border-dim;
+    padding: 1;
+}
+
+SearchScreen > #search-input {
+    background: $surface-alt;
+    color: $primary-glow;
+    border: heavy $primary;
+}
+
+SearchScreen > #search-input:focus {
+    border: heavy $secondary;
+}
+
+SearchScreen > #results-container {
+    background: $surface;
+    border: tall $border-dim;
+}
+
+SearchScreen > .result-item {
+    background: transparent;
+    border-left: tall transparent;
+    padding: 1;
+}
+
+SearchScreen > .result-item:hover {
+    background: $surface-hover;
+    border-left: tall $secondary-dim;
+}
+
+SearchScreen > .result-item.selected {
+    background: $primary-background;
+    border-left: heavy $primary;
+}
+
+SearchScreen > .result-title {
+    color: $primary-glow;
+    text-style: bold;
+}
+
+SearchScreen > .result-meta {
+    color: $text-muted;
+}
+
+SearchScreen > .result-site {
+    color: $secondary;
+}
+
+/* ============================================================================
+   ÉCRANS SPÉCIFIQUES — LibraryScreen
+   ============================================================================ */
+
+LibraryScreen {
+    background: $background;
+}
+
+LibraryScreen > #sidebar {
+    background: $surface;
+    border-right: heavy $border-dim;
+}
+
+LibraryScreen > #sidebar > .sidebar-title {
+    color: $primary-glow;
+    text-style: bold;
+    border-bottom: tall $primary-dim;
+    padding: 1;
+}
+
+LibraryScreen > #filter-bar {
+    background: $surface;
+    border-bottom: heavy $border-dim;
+}
+
+LibraryScreen > #manga-grid-container {
+    background: $background;
+}
+
+LibraryScreen > #details-panel {
+    background: $surface;
+    border-left: heavy $border-dim;
+}
+
+LibraryScreen > #details-panel.visible {
+    background: $surface-alt;
+}
+
+/* ============================================================================
+   ÉCRANS SPÉCIFIQUES — DownloadScreen
+   ============================================================================ */
+
+DownloadScreen {
+    background: $background;
+}
+
+DownloadScreen > #filter-bar {
+    background: $surface;
+    border-bottom: heavy $border-dim;
+}
+
+DownloadScreen > #tasks-list-container {
+    background: $surface;
+    border: tall $border-dim;
+}
+
+DownloadScreen > #details-panel {
+    background: $surface-alt;
+    border-left: heavy $border-dim;
+}
+
+DownloadScreen > #stats-bar {
+    background: $surface;
+    border-top: heavy $border-dim;
+    color: $text-muted;
+}
+
+DownloadScreen > #actions-bar {
+    background: $surface;
+    border-top: heavy $border-dim;
+}
+
+/* ============================================================================
+   ÉCRANS SPÉCIFIQUES — SettingsScreen
+   ============================================================================ */
+
+SettingsScreen {
+    background: $background;
+}
+
+SettingsScreen > #settings-sidebar {
+    background: $surface;
+    border-right: heavy $border-dim;
+}
+
+SettingsScreen > #settings-sidebar > .section-title {
+    color: $primary-glow;
+    text-style: bold;
+    border-bottom: tall $primary-dim;
+    padding: 1;
+}
+
+SettingsScreen > #settings-content {
+    background: $background;
+}
+
+SettingsScreen > .setting-item {
+    background: $surface;
+    border: tall $border-dim;
+    padding: 1;
+    margin: 1 0;
+}
+
+SettingsScreen > .setting-item:hover {
+    background: $surface-hover;
+    border: heavy $secondary-dim;
+}
+
+SettingsScreen > .setting-item.modified {
+    border: heavy $warning;
+}
+
+SettingsScreen > .setting-label {
+    color: $primary;
+    text-style: bold;
+}
+
+SettingsScreen > .setting-description {
+    color: $text-muted;
+}
+
+/* ============================================================================
+   ÉCRANS SPÉCIFIQUES — LogsScreen
+   ============================================================================ */
+
+LogsScreen {
+    background: $background;
+}
+
+LogsScreen > #filter-bar {
+    background: $surface;
+    border-bottom: heavy $border-dim;
+}
+
+LogsScreen > #logs-list-container {
+    background: $background;
+    border: tall $border-dim;
+}
+
+LogsScreen > #status-bar {
+    background: $surface;
+    border-top: heavy $border-dim;
+    color: $text-muted;
+}
+
+LogsScreen > .stat-paused {
+    color: $warning;
+    text-style: bold;
+}
+
+LogsScreen > .stat-running {
+    color: $success;
+    text-style: bold;
+}
+
+/* ============================================================================
+   ÉCRANS SPÉCIFIQUES — HelpScreen
+   ============================================================================ */
+
+HelpScreen {
+    background: $background;
+}
+
+HelpScreen > #help-sidebar {
+    background: $surface;
+    border-right: heavy $border-dim;
+}
+
+HelpScreen > #help-sidebar > .sidebar-title {
+    color: $primary-glow;
+    text-style: bold;
+    border-bottom: tall $primary-dim;
+    padding: 1;
+}
+
+HelpScreen > #help-content {
+    background: $background;
+}
+
+HelpScreen > .section-title {
+    color: $primary-glow;
+    text-style: bold;
+    border-bottom: tall $primary-dim;
+    padding: 1 0;
+}
+
+HelpScreen > .info-block {
+    background: $surface;
+    border: tall $border-dim;
+    padding: 1;
+    margin: 1 0;
+}
+
+HelpScreen > .shortcut-keys {
+    background: $primary-background;
+    color: $primary-glow;
+    border: tall $primary-dim;
+    padding: 0 1;
+    text-style: bold;
+}
+
+HelpScreen > .link-label {
+    color: $secondary;
+    text-style: underline;
+}
+
+HelpScreen > .link-url {
+    color: $text-muted;
+}
+
+/* ============================================================================
+   EFFETS SPÉCIAUX — Animations et transitions
+   ============================================================================ */
+
+/* Transition douce pour les changements d'état */
+* {
+    transition: background 200ms, color 200ms, border 200ms;
+}
+
+/* Effet de pulse pour les éléments importants */
+@keyframes pulse {
+    0% { opacity: 1.0; }
+    50% { opacity: 0.7; }
+    100% { opacity: 1.0; }
+}
+
+/* Effet de glow pour les bordures actives */
+@keyframes glow {
+    0% { border-color: $primary; }
+    50% { border-color: $primary-glow; }
+    100% { border-color: $primary; }
+}
+
+/* ============================================================================
+   UTILITAIRES — Classes helpers
+   ============================================================================ */
+
+.-text-primary {
+    color: $primary;
+}
+
+.-text-secondary {
+    color: $secondary;
+}
+
+.-text-accent {
+    color: $accent;
+}
+
+.-text-success {
+    color: $success;
+}
+
+.-text-warning {
+    color: $warning;
+}
+
+.-text-error {
+    color: $error;
+}
+
+.-text-muted {
+    color: $text-muted;
+}
+
+.-text-dim {
+    color: $text-dim;
+}
+
+.-text-bright {
+    color: $text-bright;
+}
+
+.-bg-surface {
+    background: $surface;
+}
+
+.-bg-surface-alt {
+    background: $surface-alt;
+}
+
+.-bg-primary {
+    background: $primary-background;
+}
+
+.-bg-success {
+    background: $success-background;
+}
+
+.-bg-warning {
+    background: $warning-background;
+}
+
+.-bg-error {
+    background: $error-background;
+}
+
+.-border-primary {
+    border: tall $primary;
+}
+
+.-border-secondary {
+    border: tall $secondary;
+}
+
+.-border-accent {
+    border: tall $accent;
+}
+
+.-border-heavy {
+    border: heavy $primary;
+}
+
+.-bold {
+    text-style: bold;
+}
+
+.-italic {
+    text-style: italic;
+}
+
+.-underline {
+    text-style: underline;
+}
+
+.-center {
+    text-align: center;
+}
+
+.-right {
+    text-align: right;
+}
+
+/* ============================================================================
+   FIN DU THÈME
+   ============================================================================ */
