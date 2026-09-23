@@ -1,0 +1,158 @@
+# ============================================================================
+# NEXUSDL — Module : interfaces/cli
+# ============================================================================
+#
+# Rôle :
+#   Interface en ligne de commande (CLI) de NexusDL basée sur Textual.
+#   Ce module fournit une interface utilisateur terminal complète avec
+#   navigation clavier, écrans multiples, widgets réutilisables, et
+#   intégration avec tous les composants du core.
+#
+# Organisation :
+#   - app.py           : Application principale Textual. Orchestre tous les
+#                        écrans, initialise les composants du core (paths,
+#                        config, logger, i18n, events, registry), gère le
+#                        cycle de vie, définit les bindings globaux (F1, s,
+#                        l, d, p, g, r, q), et fournit le thème CSS global.
+#                        Classe NexusDLApp avec lifecycle async (on_mount,
+#                        on_ready, on_unmount). Fonctions publiques :
+#                        run_app(), get_app(), is_textual_available().
+#
+#   - cli_entry.py     : Point d'entrée CLI avec argparse. Parse les arguments
+#                        et dispatch vers les commandes. Supporte les options
+#                        globales (--config, --language, --log-level, etc.)
+#                        et les sous-commandes (tui, search, download, etc.).
+#                        Fonction main() comme entry point.
+#
+#   - commands.py      : Commandes CLI basées sur le pattern Command. Classe
+#                        de base BaseCommand avec lifecycle (validate, setup,
+#                        execute, teardown). CommandRegistry pour enregistrer
+#                        et exécuter les commandes dynamiquement. 10 commandes
+#                        concrètes : TuiCommand, SearchCommand, DownloadCommand,
+#                        ListSitesCommand, ConfigCommand, ValidateCommand,
+#                        VersionCommand, DoctorCommand, CacheCommand,
+#                        CompletionCommand.
+#
+#   - config.py        : Configuration spécifique à l'interface CLI. Séparée
+#                        de core/config.py. Modèles Pydantic : CLIConfig,
+#                        ThemeConfig, KeybindingsConfig, ScreensConfig,
+#                        WidgetConfig, DisplayConfig. Thèmes CSS : dark et
+#                        light. Instance globale cli_config. Fonctions helpers
+#                        : get_theme_css(), get_keybinding(), etc.
+#
+#   - theme.tcss       : Thème Cyberpunk Neon / Hacker Futurist. Palette :
+#                        vert néon (#00ff41), cyan (#00ffff), magenta (#ff00ff),
+#                        fond noir profond (#000000). Style terminal hacker
+#                        futuriste avec effets glow. Composants stylisés :
+#                        Header/Footer, Buttons, Inputs, ListView, Notifications,
+#                        ProgressBar, DataTable, Tabs, tous les widgets custom,
+#                        tous les écrans.
+#
+#   - __init__.py      : Exports publics du module CLI. Agrège app, cli_entry,
+#                        commands, config, screens, widgets. Expose ~100 symboles
+#                        publics. Fonctions principales : run_app(), main().
+#                        Classes : NexusDLApp, CommandRegistry, CLIConfig.
+#
+#   - nexus.dl         : Ce fichier (documentation interne).
+#
+#   SOUS-MODULES :
+#   - screens/         : Écrans de l'interface (7 écrans)
+#       - main.py      : Dashboard avec statistiques, continue reading, etc.
+#       - search.py    : Recherche multi-sites avec filtrage et tri.
+#       - library.py   : Bibliothèque avec vue grille/liste/compact.
+#       - download.py  : Gestion des téléchargements avec progression.
+#       - settings.py  : Paramètres avec 9 sections.
+#       - logs.py      : Visualisation des logs en temps réel.
+#       - help.py      : Aide avec raccourcis et liens.
+#       - __init__.py  : Exports des écrans.
+#
+#   - widgets/         : Widgets réutilisables (5 widgets)
+#       - site_selector.py  : Sélection de sites (multi-mode, groupement).
+#       - progress_bar.py   : Barre de progression (5 styles, 4 modes).
+#       - manga_card.py     : Carte manga (4 layouts, 5 états).
+#       - log_viewer.py     : Viewer de logs (3 modes).
+#       - chapter_list.py   : Liste de chapitres (filtrage, tri, actions).
+#       - __init__.py       : Exports des widgets.
+#
+# Règles d'or :
+#   1. L'application est le SEUL point d'entrée de l'interface CLI.
+#   2. Tous les composants du core sont initialisés dans on_mount().
+#   3. Tous les composants sont nettoyés dans on_unmount().
+#   4. Les bindings globaux sont définis dans BINDINGS.
+#   5. Le thème CSS est défini dans theme.tcss.
+#   6. Les erreurs non capturées sont loguées et affichées.
+#   7. Les signaux système (SIGINT, SIGTERM) sont gérés gracieusement.
+#   8. L'EventBus est utilisé pour la communication inter-écrans.
+#   9. Les traductions i18n sont utilisées pour tous les labels.
+#  10. Le fallback TEXTUAL_AVAILABLE permet un usage sans Textual.
+#  11. Les écrans sont poussés/pop via push_screen/pop_screen.
+#  12. Les widgets sont réutilisables dans plusieurs écrans.
+#  13. Les callbacks permettent la personnalisation des widgets.
+#  14. Les modèles Pydantic sont utilisés pour la configuration.
+#  15. Les enums sont utilisés pour les choix discrets.
+#  16. Les commandes suivent le pattern Command avec lifecycle complète.
+#  17. Le CommandRegistry permet l'ajout dynamique de commandes.
+#  18. La configuration CLI est séparée de la configuration globale.
+#  19. Le thème est cohérent sur tous les composants (cyberpunk néon).
+#  20. Les codes de sortie sont standardisés (EXIT_SUCCESS, EXIT_ERROR, etc.).
+#
+# Cycle de vie de l'application :
+#   1. main() est appelée (cli_entry.py)
+#   2. Parsing des arguments avec argparse
+#   3. Initialisation minimale (paths, config, logger, i18n)
+#   4. Dispatch vers la commande appropriée
+#   5. Si commande TUI :
+#       a. run_app() est appelée
+#       b. NexusDLApp est instanciée
+#       c. on_mount() initialise tous les composants
+#       d. on_ready() pousse MainScreen
+#       e. L'utilisateur navigue entre les écrans
+#       f. on_unmount() nettoie les ressources
+#   6. Si commande CLI (search, download, etc.) :
+#       a. La commande est exécutée directement
+#       b. Résultat affiché dans le terminal
+#   7. Code de sortie retourné
+#
+# Thème Cyberpunk Neon :
+#   - Palette : vert néon, cyan, magenta, noir profond
+#   - Style : terminal hacker futuriste
+#   - Effets : glow, transitions fluides, bordures néon
+#   - Composants : tous stylisés de manière cohérente
+#   - Ambiance : cyberpunk, science-fiction, high-tech
+#
+# Intégration :
+#   - core/*             : Tous les composants du core
+#   - interfaces/cli/screens/* : Tous les écrans
+#   - interfaces/cli/widgets/* : Tous les widgets
+#   - textual            : Framework TUI
+#   - signal             : Gestion des signaux système
+#   - argparse           : Parsing des arguments CLI
+#
+# ============================================================================
+
+src/nexusdl/interfaces/cli/
+├── __init__.py            # Exports publics du module CLI — COMPLET
+├── app.py                 # Application principale Textual — COMPLET
+├── cli_entry.py           # Point d'entrée CLI (argparse) — COMPLET
+├── commands.py            # Commandes CLI (pattern Command) — COMPLET
+├── config.py              # Configuration spécifique à la CLI — COMPLET
+├── theme.tcss             # Thème Cyberpunk Neon / Hacker Futurist — COMPLET
+├── nexus.dl               # Ce fichier
+├── screens/               # Écrans de l'application — COMPLET
+│   ├── __init__.py
+│   ├── main.py
+│   ├── search.py
+│   ├── library.py
+│   ├── download.py
+│   ├── settings.py
+│   ├── logs.py
+│   ├── help.py
+│   └── nexus.dl
+└── widgets/               # Widgets réutilisables — COMPLET
+    ├── __init__.py
+    ├── site_selector.py
+    ├── progress_bar.py
+    ├── manga_card.py
+    ├── log_viewer.py
+    ├── chapter_list.py
+    └── nexus.dl
