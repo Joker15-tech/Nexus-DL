@@ -1,0 +1,99 @@
+# ============================================================================
+# NEXUSDL — Module : interfaces/cli/widgets
+# ============================================================================
+#
+# Rôle :
+#   Widgets Textual réutilisables pour l'interface CLI NexusDL. Ces widgets
+#   sont utilisés dans plusieurs écrans pour fournir des composants UI
+#   cohérents et interactifs.
+#
+# Organisation :
+#   - site_selector.py : Widget de sélection de sites. Permet de choisir
+#                        un ou plusieurs sites parmi les sites supportés.
+#                        3 modes (SINGLE, MULTIPLE, NONE), 4 critères de
+#                        groupement, 4 critères de tri. Badges visuels,
+#                        drapeaux de langue, indicateurs de capacités.
+#                        Helpers : create_site_selector(), get_site_language_label().
+#
+#   - progress_bar.py  : Widget de barre de progression pour les téléchargements.
+#                        5 styles visuels (BLOCK, LINE, DOTS, BRAILLE, TEXT).
+#                        4 modes d'affichage (COMPACT, NORMAL, DETAILED, MINIMAL).
+#                        7 états (PENDING, RUNNING, PAUSED, COMPLETED, FAILED,
+#                        CANCELLED, INDETERMINATE). Animation spinner pour
+#                        progression indéterminée. Affichage vitesse, ETA, taille.
+#                        Helpers : render_bar(), format_progress_line().
+#
+#   - manga_card.py    : Widget de carte manga. 4 layouts (VERTICAL, HORIZONTAL,
+#                        COMPACT, DETAILED). Affichage de la couverture (URL,
+#                        local, placeholder ASCII), badges (langue, statut,
+#                        contenu adulte, tags), barre de progression de lecture,
+#                        description tronquée. 5 états visuels (NORMAL, SELECTED,
+#                        FOCUSED, DISABLED, HOVER). Détection double-clic.
+#                        Helpers : create_manga_card(), get_status_badge().
+#
+#   - log_viewer.py    : Widget de visualisation des logs en temps réel.
+#                        Intégrable dans d'autres écrans (contrairement à
+#                        l'écran complet logs.py). 3 modes (COMPACT, NORMAL,
+#                        DETAILED). Filtrage par niveau, auto-scroll, pause,
+#                        clear. Coloration syntaxique par niveau. Troncature
+#                        des messages longs. Intégration avec LogsBuffer.
+#                        Helpers : create_log_viewer().
+#
+#   - chapter_list.py  : Widget de liste de chapitres. 3 modes (COMPACT, NORMAL,
+#                        DETAILED). Sélection simple/multiple. Filtrage par
+#                        statut (tous, lus, non-lus, téléchargés, non-téléchargés).
+#                        Tri par numéro, date, titre, statut. Recherche texte.
+#                        Actions : télécharger, marquer lu/non-lu. Indicateurs
+#                        visuels (icônes, couleurs, bordures).
+#                        Helpers : create_chapter_list(), format_chapter_number().
+#
+#   - __init__.py      : Exports publics du module. Agrège les 5 widgets en
+#                        un point d'entrée unique. Résout les conflits de noms
+#                        (render_progress_bar, LogLevelFilter) via des aliases.
+#                        Expose ~80 symboles publics.
+#
+#   - nexus.dl         : Ce fichier (documentation interne du module).
+#
+# Règles d'or :
+#   1. Tous les widgets héritent de textual.widget.Widget ou dérivés.
+#   2. Tous les widgets ont un CSS intégré (DEFAULT_CSS).
+#   3. Tous les labels utilisent t() pour i18n.
+#   4. Tous les widgets émettent des messages Textual pour communication.
+#   5. Les modèles Pydantic sont utilisés pour la configuration et l'état.
+#   6. Les enums sont utilisés pour les choix discrets.
+#   7. Fallback TEXTUAL_AVAILABLE si Textual n'est pas installé.
+#   8. Les widgets sont réutilisables dans plusieurs écrans.
+#   9. Les callbacks permettent la personnalisation du comportement.
+#  10. Les bindings clavier sont documentés dans l'écran d'aide.
+#  11. Les conflits de noms sont résolus par des aliases explicites.
+#  12. Les helpers publics facilitent la création rapide de widgets.
+#
+# Conflits de noms résolus :
+#   - render_progress_bar : progress_bar.render_progress_bar (défaut) vs
+#                           manga_card.render_progress_bar (alias: render_manga_progress_bar)
+#   - LogLevelFilter      : log_viewer.LogLevelFilter (alias: LogViewerLevelFilter) vs
+#                           screens/logs.LogLevelFilter (pas importé ici)
+#
+# Intégration :
+#   - interfaces/cli/screens/library.py : utilise MangaCard, ChapterList
+#   - interfaces/cli/screens/search.py : utilise SiteSelector, MangaCard
+#   - interfaces/cli/screens/download.py : utilise DownloadProgressBar, ChapterList
+#   - interfaces/cli/screens/main.py : utilise DownloadProgressBar, LogViewer
+#   - interfaces/cli/screens/settings.py : utilise SiteSelector
+#   - core/models/manga.py : modèles Manga, Chapter
+#   - core/models/site.py : modèle SiteConfig
+#   - core/events.py : émission d'événements
+#   - core/i18n.py : traductions
+#   - core/utils/text.py : formatage, troncature
+#   - core/utils/time.py : formatage des dates
+#
+# ============================================================================
+
+src/nexusdl/interfaces/cli/widgets/
+├── __init__.py            # Exports publics (agrégation des 5 widgets) — COMPLET
+├── site_selector.py       # Widget de sélection de sites — COMPLET
+├── progress_bar.py        # Widget de barre de progression — COMPLET
+├── manga_card.py          # Widget de carte manga — COMPLET
+├── log_viewer.py          # Widget de visualisation des logs — COMPLET
+├── chapter_list.py        # Widget de liste de chapitres — COMPLET
+└── nexus.dl               # Ce fichier
