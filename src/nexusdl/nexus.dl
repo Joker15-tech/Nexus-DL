@@ -1,0 +1,267 @@
+# ============================================================================
+# NEXUSDL — Package principal
+# ============================================================================
+#
+# Rôle :
+#   NexusDL est un téléchargeur avancé pour mangas, webtoons et comics.
+#   Il supporte plus de 60 sites, fournit une gestion complète de bibliothèque
+#   locale, et offre des interfaces modernes (CLI, Web, GUI).
+#
+#   Ce package constitue le point d'entrée principal de l'application.
+#   Il expose la version, les métadonnées du projet, et agrège tous les
+#   sous-modules (core, parsers, downloader, interfaces, etc.).
+#
+# Organisation du package :
+#
+#   src/nexusdl/
+#   │
+#   ├── __init__.py            # Exports publics du package
+#   ├── version.py             # Informations de version et métadonnées
+#   ├── py.typed               # Marker PEP 561 (support type checking)
+#   ├── nexus.dl               # Ce fichier (documentation racine)
+#   │
+#   ├── core/                  # Couche centrale (fondations)
+#   │   ├── __init__.py        # Exports publics du core
+#   │   ├── paths.py           # Gestionnaire des chemins (XDG-compliant)
+#   │   ├── config.py          # Configuration globale (Pydantic Settings v2)
+#   │   ├── logger.py          # Système de logging (Loguru)
+#   │   ├── i18n.py            # Internationalisation (traductions JSON)
+#   │   ├── exceptions.py      # Hiérarchie d'exceptions (NexusDLError)
+#   │   ├── events.py          # EventBus (Observer pattern, pub/sub)
+#   │   ├── constants.py       # Constantes globales (~300 constantes)
+#   │   ├── nexus.dl           # Documentation du module core
+#   │   │
+#   │   ├── models/            # Modèles de domaine Pydantic
+#   │   │   ├── __init__.py
+#   │   │   ├── manga.py       # Manga, Chapter, Page, SearchResult
+#   │   │   ├── download.py    # DownloadTask, DownloadResult, Priority
+#   │   │   ├── library.py     # ReadingProgress, ReadingList, LibraryStats
+#   │   │   ├── site.py        # SiteConfig, SiteCapabilities, SiteHealth
+#   │   │   ├── user.py        # User, UserProfile, AuthToken, Session
+#   │   │   └── nexus.dl
+#   │   │
+#   │   ├── packaging/         # Empaquetage (CBZ, CBR, PDF, ZIP, FOLDER)
+#   │   │   ├── __init__.py
+#   │   │   ├── base.py        # BasePackager (ABC) + PackagerFactory
+#   │   │   ├── comic_info.py  # Modèle ComicInfo (standard ComicRack v2.1)
+#   │   │   ├── cbz_packager.py
+#   │   │   ├── cbr_packager.py
+#   │   │   ├── pdf_packager.py
+#   │   │   ├── zip_packager.py
+#   │   │   ├── folder_packager.py
+#   │   │   └── nexus.dl
+#   │   │
+#   │   ├── registry/          # Registre des sites supportés
+#   │   │   ├── __init__.py
+#   │   │   ├── site_registry.py  # SiteRegistry (cache, index, lazy loading)
+#   │   │   ├── loader.py      # ConfigLoader (YAML + overrides)
+#   │   │   ├── validator.py   # SchemaValidator (JSON Schema)
+#   │   │   ├── sites.yaml     # Configuration des ~20 sites
+#   │   │   ├── sites_schema.json
+#   │   │   └── nexus.dl
+#   │   │
+#   │   ├── session/           # Sessions HTTP et réseau
+#   │   │   ├── __init__.py
+#   │   │   ├── http_session.py      # HttpSession (retry, streaming)
+#   │   │   ├── cookie_manager.py    # Cookies chiffrés (Fernet)
+#   │   │   ├── playwright_pool.py   # Pool navigateurs headless
+#   │   │   ├── rate_limiter.py      # Limiteur de débit (token bucket)
+#   │   │   ├── user_agents.py       # Rotation des User-Agents
+#   │   │   ├── proxy_manager.py     # Gestionnaire de proxies
+#   │   │   ├── flaresolverr.py      # Client FlareSolverr (CF bypass)
+#   │   │   └── nexus.dl
+#   │   │
+#   │   └── utils/             # Utilitaires généraux
+#   │       ├── __init__.py
+#   │       ├── url.py         # Manipulation d'URLs
+#   │       ├── time.py        # Gestion du temps
+#   │       ├── text.py        # Manipulation de texte
+#   │       ├── hash.py        # Fonctions de hachage
+#   │       ├── filesystem.py  # Opérations filesystem
+#   │       ├── async_helpers.py  # Utilitaires asyncio
+#   │       └── nexus.dl
+#   │
+#   ├── parsers/               # Parsers de sites (à implémenter)
+#   │   ├── __init__.py
+#   │   ├── base.py            # BaseParser (ABC)
+#   │   ├── capabilities.py    # ParserCapabilities
+#   │   ├── exceptions.py      # Exceptions des parsers
+#   │   ├── en/                # Parsers anglophones
+#   │   │   ├── mangadex.py
+#   │   │   ├── asurascans.py
+#   │   │   └── ...
+#   │   ├── fr/                # Parsers francophones
+#   │   │   ├── sushiscan_net.py
+#   │   │   ├── mangas_origines.py
+#   │   │   └── ...
+#   │   └── nexus.dl
+#   │
+#   ├── downloader/            # Orchestration des téléchargements (à implémenter)
+#   │   ├── __init__.py
+#   │   ├── manager.py         # DownloadManager (orchestration)
+#   │   ├── worker.py          # DownloadWorker (exécution)
+#   │   ├── queue.py           # DownloadQueue (file prioritaire)
+#   │   ├── progress.py        # ProgressTracker (suivi)
+#   │   ├── deduplication.py   # DeduplicationCache (dédup)
+#   │   └── nexus.dl
+#   │
+#   ├── image/                 # Traitement d'images (à implémenter)
+#   │   ├── __init__.py
+#   │   ├── converter.py       # ImageConverter (conversions)
+#   │   ├── optimizer.py       # ImageOptimizer (compression)
+#   │   ├── validator.py       # ImageValidator (validation)
+#   │   └── nexus.dl
+#   │
+#   └── interfaces/            # Interfaces utilisateur (à implémenter)
+#       ├── __init__.py
+#       ├── cli/               # Interface CLI (Textual)
+#       │   ├── app.py
+#       │   ├── screens/
+#       │   └── widgets/
+#       ├── web/               # Interface Web (FastAPI)
+#       │   ├── backend/
+#       │   │   ├── main.py
+#       │   │   ├── routers/
+#       │   │   └── websocket.py
+#       │   └── frontend/
+#       └── gui/               # Interface GUI (PyQt6)
+#           ├── app.py
+#           └── views/
+#
+# Architecture hexagonale :
+#
+#   ┌─────────────────────────────────────────────────────────────┐
+#   │                    INTERFACES (Adapters)                     │
+#   │  CLI (Textual)  │  Web (FastAPI)  │  GUI (PyQt6)            │
+#   └─────────────────────────────────────────────────────────────┘
+#                              │
+#                              ▼
+#   ┌─────────────────────────────────────────────────────────────┐
+#   │                    APPLICATION (Core)                        │
+#   │  DownloadManager  │  LibraryManager  │  SearchEngine         │
+#   └─────────────────────────────────────────────────────────────┘
+#                              │
+#                              ▼
+#   ┌─────────────────────────────────────────────────────────────┐
+#   │                    DOMAIN (Models)                           │
+#   │  Manga  │  Chapter  │  DownloadTask  │  ReadingProgress      │
+#   └─────────────────────────────────────────────────────────────┘
+#                              │
+#                              ▼
+#   ┌─────────────────────────────────────────────────────────────┐
+#   │                INFRASTRUCTURE (Adapters)                     │
+#   │  Parsers  │  HttpSession  │  Database  │  Packaging          │
+#   └─────────────────────────────────────────────────────────────┘
+#
+# Flux de données :
+#
+#   1. Interface utilisateur (CLI/Web/GUI)
+#       │
+#       ▼
+#   2. Application (DownloadManager, LibraryManager)
+#       │
+#       ├──► EventBus (communication inter-modules)
+#       │
+#       ▼
+#   3. Domaine (Modèles Pydantic : Manga, Chapter, DownloadTask)
+#       │
+#       ▼
+#   4. Infrastructure
+#       ├──► Parsers (scraping des sites)
+#       ├──► HttpSession (requêtes HTTP)
+#       ├──► Database (persistance SQLite)
+#       └──► Packaging (CBZ, PDF, etc.)
+#
+# Règles d'or :
+#
+#   1. L'architecture est HEXAGONALE (ports and adapters).
+#   2. Le domaine (models) ne dépend d'aucun autre module.
+#   3. L'application (core) orchestre mais ne contient pas de logique métier.
+#   4. Les interfaces et l'infrastructure sont des adapters interchangeables.
+#   5. La communication inter-modules se fait UNIQUEMENT via l'EventBus.
+#   6. Les exceptions héritent toutes de NexusDLError.
+#   7. Les chemins sont gérés par paths.py (XDG-compliant).
+#   8. La configuration est validée via Pydantic v2.
+#   9. Le logging est centralisé via Loguru.
+#  10. L'i18n supporte le fallback chaîné (fr → en → clé brute).
+#  11. Les constantes sont immuables (typing.Final).
+#  12. Les modèles Pydantic sont immuables (frozen=True) sauf si nécessaire.
+#  13. Les opérations I/O sont async (asyncio).
+#  14. Le rate limiting est OBLIGATOIRE pour respecter les sites.
+#  15. Les cookies sont chiffrés (Fernet) avant stockage.
+#  16. Les User-Agents sont rotés pour éviter le fingerprinting.
+#  17. Les proxies sont optionnels mais recommandés pour les sites géo-lockés.
+#  18. Playwright est utilisé uniquement si nécessaire (Cloudflare, JS).
+#  19. Les erreurs sont retryées avec backoff exponentiel.
+#  20. Les sessions HTTP sont réutilisables (keep-alive).
+#  21. Les statistiques sont exposées pour monitoring.
+#  22. Les fingerprints de navigateur sont rotés pour éviter la détection.
+#  23. Le token bucket limite le débit moyen tout en autorisant des bursts.
+#  24. Le cache est invalidé automatiquement (LRU + TTL).
+#  25. Les fichiers temporaires sont nettoyés automatiquement.
+#  26. Les permissions restrictives (0o600) sont appliquées aux fichiers sensibles.
+#  27. Les opérations atomiques garantissent l'intégrité des fichiers.
+#  28. Les path traversal attacks sont détectées et bloquées.
+#  29. Les validations sont strictes (types, ranges, patterns).
+#  30. La documentation est exhaustive (docstrings Google-style).
+#
+# Intégration :
+#
+#   - Les interfaces importent depuis nexusdl.core
+#   - Les parsers héritent de BaseParser (core/parsers/base.py)
+#   - Le downloader utilise HttpSession, RateLimiter, Packaging
+#   - La bibliothèque utilise Database, Scanner, Search
+#   - Tous les modules utilisent l'EventBus pour communiquer
+#   - Tous les modules utilisent paths.py pour les chemins
+#   - Tous les modules utilisent config.py pour la configuration
+#   - Tous les modules utilisent logger.py pour le logging
+#   - Tous les modules utilisent i18n.py pour les traductions
+#   - Tous les modules utilisent exceptions.py pour les erreurs
+#   - Tous les modules utilisent constants.py pour les constantes
+#
+# Dépendances externes :
+#
+#   Obligatoires :
+#     - httpx          : Client HTTP async
+#     - pydantic       : Validation de données
+#     - loguru         : Logging
+#     - pyyaml         : Parsing YAML
+#     - orjson         : JSON rapide
+#     - pillow         : Traitement d'images
+#     - aiosqlite      : SQLite async
+#     - jsonschema     : Validation JSON Schema
+#     - tenacity       : Retry automatique
+#     - platformdirs   : Chemins XDG
+#     - cryptography   : Chiffrement Fernet
+#
+#   Optionnelles :
+#     - playwright     : Navigateurs headless (Cloudflare bypass)
+#     - img2pdf        : Conversion images → PDF
+#     - rarfile        : Lecture archives RAR
+#     - pikepdf        : Manipulation PDF
+#     - rich           : Affichage terminal riche
+#     - textual        : Framework CLI
+#     - fastapi        : Framework Web
+#     - uvicorn        : Serveur ASGI
+#     - pyqt6          : Framework GUI
+#
+# Versioning :
+#
+#   - Format SemVer 2.0.0 (MAJOR.MINOR.PATCH)
+#   - Version actuelle : 0.1.0
+#   - Informations complètes dans version.py
+#   - Compatibilité Python : 3.11+
+#   - Licence : MIT
+#
+# ============================================================================
+
+src/nexusdl/
+├── __init__.py            # Exports publics du package
+├── version.py             # Informations de version et métadonnées
+├── py.typed               # Marker PEP 561 (support type checking)
+├── nexus.dl               # Ce fichier (documentation racine)
+├── core/                  # Couche centrale (fondations) — COMPLET
+├── parsers/               # Parsers de sites (à implémenter)
+├── downloader/            # Orchestration des téléchargements (à implémenter)
+├── image/                 # Traitement d'images (à implémenter)
+└── interfaces/            # Interfaces utilisateur (à implémenter)
