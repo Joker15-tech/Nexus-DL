@@ -1,0 +1,265 @@
+{
+  "$schema": "https://json.schemastore.org/package.json",
+  "name": "@nexusdl/frontend",
+  "version": "0.1.0",
+  "description": "NexusDL Web Frontend - Cyberpunk Manga Downloader & Library Manager",
+  "longDescription": "A modern, feature-rich web interface for NexusDL, providing a cyberpunk-themed experience for searching, downloading, and managing manga collections across 20+ sources. Built with Next.js 14, TypeScript, and Tailwind CSS.",
+  "keywords": [
+    "manga",
+    "downloader",
+    "library",
+    "manager",
+    "webtoon",
+    "comics",
+    "reader",
+    "cyberpunk",
+    "nexusdl",
+    "nextjs",
+    "react",
+    "typescript",
+    "tailwindcss"
+  ],
+  "homepage": "https://nexusdl.dev",
+  "bugs": {
+    "url": "https://github.com/NEXUS-QUANTUM/nexusdl/issues",
+    "email": "support@nexusdl.dev"
+  },
+  "license": "GPL-3.0-only",
+  "author": {
+    "name": "NexusDL Team",
+    "email": "contact@nexusdl.dev",
+    "url": "https://nexusdl.dev"
+  },
+  "contributors": [
+    {
+      "name": "NexusDL Core Team",
+      "email": "team@nexusdl.dev"
+    }
+  ],
+  "funding": [
+    {
+      "type": "github",
+      "url": "https://github.com/sponsors/nexusdl"
+    },
+    {
+      "type": "patreon",
+      "url": "https://patreon.com/nexusdl"
+    }
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/NEXUS-QUANTUM/nexusdl.git",
+    "directory": "src/nexusdl/interfaces/web/frontend"
+  },
+  "private": true,
+  "sideEffects": [
+    "./src/styles/globals.css",
+    "./src/app/providers.tsx"
+  ],
+  "type": "module",
+  "scripts": {
+    "dev": "next dev --turbopack",
+    "dev:debug": "NODE_OPTIONS='--inspect' next dev",
+    "dev:https": "next dev --experimental-https",
+    "build": "next build",
+    "build:analyze": "cross-env ANALYZE=true next build",
+    "build:docker": "cross-env DOCKER=true next build",
+    "build:production": "cross-env NODE_ENV=production next build",
+    "start": "next start",
+    "start:production": "cross-env NODE_ENV=production next start -p ${PORT:-3000}",
+    "lint": "next lint",
+    "lint:fix": "next lint --fix",
+    "lint:strict": "next lint --max-warnings=0",
+    "format": "prettier --write \"src/**/*.{ts,tsx,js,jsx,json,css,md}\"",
+    "format:check": "prettier --check \"src/**/*.{ts,tsx,js,jsx,json,css,md}\"",
+    "type-check": "tsc --noEmit",
+    "type-check:watch": "tsc --noEmit --watch",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
+    "test:ci": "jest --ci --coverage --maxWorkers=2",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
+    "test:e2e:debug": "playwright test --debug",
+    "storybook": "storybook dev -p 6006",
+    "build-storybook": "storybook build",
+    "analyze": "cross-env ANALYZE=true next build",
+    "clean": "rimraf .next out node_modules/.cache",
+    "clean:all": "rimraf .next out node_modules coverage",
+    "preinstall": "npx only-allow pnpm",
+    "postinstall": "prisma generate || true",
+    "prepare": "husky install",
+    "check": "npm run type-check && npm run lint && npm run format:check",
+    "check:all": "npm run check && npm run test:ci",
+    "deps:update": "npx npm-check-updates -u",
+    "deps:audit": "npm audit",
+    "deps:audit:fix": "npm audit fix",
+    "i18n:extract": "next-intl extract",
+    "i18n:compile": "next-intl compile",
+    "icons:generate": "node scripts/generate-icons.js",
+    "pwa:generate": "next-pwa generate"
+  },
+  "dependencies": {
+    "@tanstack/react-query": "^5.59.0",
+    "@tanstack/react-query-devtools": "^5.59.0",
+    "clsx": "^2.1.1",
+    "date-fns": "^3.6.0",
+    "framer-motion": "^11.11.0",
+    "lucide-react": "^0.453.0",
+    "next": "^14.2.15",
+    "next-intl": "^3.22.0",
+    "next-themes": "^0.3.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-hook-form": "^7.53.0",
+    "sonner": "^1.5.0",
+    "tailwind-merge": "^2.5.4",
+    "zustand": "^5.0.0"
+  },
+  "devDependencies": {
+    "@commitlint/cli": "^19.5.0",
+    "@commitlint/config-conventional": "^19.5.0",
+    "@next/bundle-analyzer": "^14.2.15",
+    "@playwright/test": "^1.48.0",
+    "@storybook/addon-essentials": "^8.3.5",
+    "@storybook/addon-interactions": "^8.3.5",
+    "@storybook/addon-links": "^8.3.5",
+    "@storybook/nextjs": "^8.3.5",
+    "@storybook/react": "^8.3.5",
+    "@tailwindcss/aspect-ratio": "^0.4.2",
+    "@tailwindcss/forms": "^0.5.9",
+    "@tailwindcss/typography": "^0.5.15",
+    "@testing-library/jest-dom": "^6.5.0",
+    "@testing-library/react": "^16.0.1",
+    "@testing-library/user-event": "^14.5.2",
+    "@types/jest": "^29.5.13",
+    "@types/node": "^22.7.5",
+    "@types/react": "^18.3.11",
+    "@types/react-dom": "^18.3.1",
+    "@typescript-eslint/eslint-plugin": "^8.8.1",
+    "@typescript-eslint/parser": "^8.8.1",
+    "autoprefixer": "^10.4.20",
+    "cross-env": "^7.0.3",
+    "eslint": "^8.57.1",
+    "eslint-config-next": "^14.2.15",
+    "eslint-config-prettier": "^9.1.0",
+    "eslint-plugin-import": "^2.31.0",
+    "eslint-plugin-jsx-a11y": "^6.10.0",
+    "eslint-plugin-react": "^7.37.1",
+    "eslint-plugin-react-hooks": "^4.6.2",
+    "eslint-plugin-storybook": "^0.9.0",
+    "eslint-plugin-tailwindcss": "^3.17.5",
+    "husky": "^9.1.6",
+    "jest": "^29.7.0",
+    "jest-environment-jsdom": "^29.7.0",
+    "lint-staged": "^15.2.10",
+    "postcss": "^8.4.47",
+    "prettier": "^3.3.3",
+    "prettier-plugin-tailwindcss": "^0.6.8",
+    "rimraf": "^6.0.1",
+    "storybook": "^8.3.5",
+    "tailwindcss": "^3.4.13",
+    "tailwindcss-animate": "^1.0.7",
+    "ts-jest": "^29.2.5",
+    "typescript": "^5.6.3"
+  },
+  "peerDependencies": {
+    "react": "^18.0.0",
+    "react-dom": "^18.0.0"
+  },
+  "engines": {
+    "node": ">=18.17.0",
+    "npm": ">=9.0.0",
+    "pnpm": ">=8.0.0"
+  },
+  "packageManager": "pnpm@9.12.0",
+  "os": [
+    "darwin",
+    "linux",
+    "win32"
+  ],
+  "cpu": [
+    "x64",
+    "arm64"
+  ],
+  "browserslist": [
+    "chrome >= 90",
+    "firefox >= 88",
+    "safari >= 14",
+    "edge >= 90"
+  ],
+  "lint-staged": {
+    "*.{ts,tsx,js,jsx}": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "*.{json,css,md}": [
+      "prettier --write"
+    ]
+  },
+  "commitlint": {
+    "extends": [
+      "@commitlint/config-conventional"
+    ],
+    "rules": {
+      "type-enum": [
+        2,
+        "always",
+        [
+          "feat",
+          "fix",
+          "docs",
+          "style",
+          "refactor",
+          "perf",
+          "test",
+          "build",
+          "ci",
+          "chore",
+          "revert"
+        ]
+      ]
+    }
+  },
+  "prettier": {
+    "semi": true,
+    "trailingComma": "es5",
+    "singleQuote": true,
+    "printWidth": 100,
+    "tabWidth": 2,
+    "useTabs": false,
+    "arrowParens": "always",
+    "endOfLine": "lf",
+    "plugins": [
+      "prettier-plugin-tailwindcss"
+    ]
+  },
+  "jest": {
+    "testEnvironment": "jsdom",
+    "setupFilesAfterEnv": [
+      "<rootDir>/jest.setup.js"
+    ],
+    "moduleNameMapper": {
+      "^@/(.*)$": "<rootDir>/src/$1",
+      "^@components/(.*)$": "<rootDir>/src/components/$1",
+      "^@hooks/(.*)$": "<rootDir>/src/hooks/$1",
+      "^@store/(.*)$": "<rootDir>/src/store/$1",
+      "^@lib/(.*)$": "<rootDir>/src/lib/$1",
+      "^@types/(.*)$": "<rootDir>/src/types/$1"
+    },
+    "collectCoverageFrom": [
+      "src/**/*.{ts,tsx}",
+      "!src/**/*.d.ts",
+      "!src/**/*.stories.{ts,tsx}",
+      "!src/**/index.ts"
+    ],
+    "coverageThreshold": {
+      "global": {
+        "branches": 70,
+        "functions": 70,
+        "lines": 70,
+        "statements": 70
+      }
+    }
+  }
+}
