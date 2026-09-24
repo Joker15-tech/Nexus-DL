@@ -1,69 +1,84 @@
-# ============================================================================
-# NexusDL API — robots.txt
-# ============================================================================
-#
-# Ce fichier indique aux crawlers web comment interagir avec l'API REST
-# de NexusDL. Par défaut, l'API est destinée aux clients légitimes
-# (applications, intégrations) et non aux crawlers publics.
-#
-# Documentation : https://developers.google.com/search/docs/crawling-indexing/robots/intro
-# ============================================================================
+/* ============================================================================
+   NexusDL — humans.txt
+   ============================================================================
+   Ce fichier rend hommage aux humains qui ont contribué au projet NexusDL.
+   Standard : http://humanstxt.org/
+   ============================================================================ */
 
-# Règle par défaut : interdire l'indexation de l'API
-User-agent: *
-Disallow: /api/
-Disallow: /ws
-Disallow: /static/
-Disallow: /docs
-Disallow: /redoc
-Disallow: /openapi.json
-Allow: /health
-Allow: /health/live
-Allow: /health/ready
-Allow: /static/robots.txt
+/* TEAM */
 
-# Crawl-delay pour éviter de surcharger l'API
-Crawl-delay: 10
+Project:        NexusDL
+Tagline:        Your manga, your library, your way
+Site:           https://nexusdl.dev
+Contact:        contact@nexusdl.dev
+Location:       Earth, Solar System, Milky Way
 
-# ============================================================================
-# Crawlers spécifiques
-# ============================================================================
+/* FOUNDERS */
 
-# Google
-User-agent: Googlebot
-Disallow: /api/
-Disallow: /ws
-Allow: /health
-Allow: /
+Lead Developer: NexusDL Team
+Role:           Architecture, Core, API
+From:           Earth
 
-# Bing
-User-agent: Bingbot
-Disallow: /api/
-Disallow: /ws
-Allow: /health
+/* CONTRIBUTORS */
 
-# Bad bots / scrapers agressifs
-User-agent: AhrefsBot
-Disallow: /
+Thanks to all the contributors who helped build NexusDL:
+- Parser maintainers (sites support)
+- Translators (i18n)
+- Beta testers
+- Documentation writers
+- Bug reporters
 
-User-agent: SemrushBot
-Disallow: /
+/* THANKS */
 
-User-agent: MJ12bot
-Disallow: /
+Open Source Projects:
+- FastAPI        : https://fastapi.tiangolo.com/
+- Textual        : https://textual.textualize.io/
+- PyQt6          : https://www.riverbankcomputing.com/software/pyqt/
+- Pydantic       : https://docs.pydantic.dev/
+- Loguru         : https://github.com/Delgan/loguru
+- httpx          : https://www.python-httpx.org/
+- Pillow         : https://python-pillow.org/
+- aiosqlite      : https://github.com/omnilib/aiosqlite
+- platformdirs   : https://github.com/platformdirs/platformdirs
 
-User-agent: DotBot
-Disallow: /
+Manga Sources:
+- MangaDex       : https://mangadex.org/
+- And all the scanlation groups who make manga accessible worldwide
 
-# ============================================================================
-# Sitemaps
-# ============================================================================
-# L'API n'expose pas de sitemap car elle n'est pas destinée à l'indexation.
-# Sitemap: https://nexusdl.dev/sitemap.xml
+/* SITE */
 
-# ============================================================================
-# Contact
-# ============================================================================
-# Pour toute question concernant le crawling de notre API :
-# Contact: api@nexusdl.dev
-# Documentation: https://nexusdl.dev/docs/api
+Last update:      2026/09/24
+Standards:        Python 3.11+, HTTP/2, WebSocket, REST
+Components:       FastAPI, Textual, PyQt6, Pydantic, Loguru
+Software:         Python, VS Code, Git, Linux
+
+/* TECHNOLOGY */
+
+Backend:
+- Language:       Python 3.11+
+- Framework:      FastAPI (REST API), Textual (CLI), PyQt6 (GUI)
+- Database:       SQLite (via aiosqlite)
+- Validation:     Pydantic v2
+- Logging:        Loguru
+- HTTP Client:    httpx
+- Async:          asyncio
+
+Frontend (Web UI):
+- Style:          Cyberpunk Neon / Hacker Futurist
+- Colors:         #00ff41 (green), #00ffff (cyan), #ff00ff (magenta)
+- Font:           JetBrains Mono, Fira Code
+- Icons:          Unicode emoji + custom SVG
+
+/* PHILOSOPHY */
+
+NexusDL is built on the belief that manga readers deserve
+a powerful, privacy-respecting, and beautiful tool to manage
+their libraries. We support the scanlation community and
+encourage users to support official releases when available.
+
+Open source. Open minds. Open borders.
+
+/* LICENSE */
+
+MIT License — Copyright (c) 2024-2026 NexusDL Team
+See LICENSE file for details.
