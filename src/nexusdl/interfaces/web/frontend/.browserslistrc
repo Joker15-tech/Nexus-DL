@@ -1,0 +1,41 @@
+# ============================================================================
+# Browserslist Configuration for NexusDL Frontend
+# ============================================================================
+#
+# Définit les navigateurs cibles pour Autoprefixer, postcss-preset-env,
+# et les outils de build (Next.js, Babel, etc.).
+#
+# Statistiques globales de compatibilité :
+#   > 0.5%  : Navigateurs avec > 0.5% de part de marché
+#   last 2 versions : 2 dernières versions majeures
+#   not dead : Exclut les navigateurs sans support officiel
+#
+# Cibles spécifiques NexusDL :
+#   - Chrome/Chromium >= 90 (avril 2021)
+#   - Firefox >= 88 (avril 2021)
+#   - Safari >= 14 (septembre 2020)
+#   - Edge >= 90 (avril 2021)
+#   - Samsung Internet >= 14 (avril 2021)
+#   - iOS Safari >= 14 (septembre 2020)
+#
+# @see https://browsersl.ist/
+# @see https://github.com/browserslist/browserslist
+# ============================================================================
+
+# Navigateurs de bureau
+chrome >= 90
+firefox >= 88
+safari >= 14
+edge >= 90
+
+# Navigateurs mobiles
+ios_saf >= 14
+samsung >= 14
+chrome_android >= 90
+firefox_android >= 88
+
+# Exclure les navigateurs obsolètes
+not dead
+not op_mini all
+not ie 11
+not ie_mob 11
