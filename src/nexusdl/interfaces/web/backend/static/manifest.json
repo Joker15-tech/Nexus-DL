@@ -1,0 +1,100 @@
+{
+  "name": "NexusDL",
+  "short_name": "NexusDL",
+  "description": "Your manga, your library, your way — Advanced manga downloader and library manager",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "theme_color": "#000000",
+  "background_color": "#0d1117",
+  "lang": "en",
+  "dir": "ltr",
+  "categories": ["entertainment", "utilities", "books"],
+  "icons": [
+    {
+      "src": "/static/favicon.svg",
+      "sizes": "64x64",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/static/logo.svg",
+      "sizes": "320x80",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ],
+  "screenshots": [],
+  "shortcuts": [
+    {
+      "name": "Search Manga",
+      "short_name": "Search",
+      "description": "Search for manga across supported sites",
+      "url": "/search",
+      "icons": [
+        {
+          "src": "/static/favicon.svg",
+          "sizes": "64x64"
+        }
+      ]
+    },
+    {
+      "name": "My Library",
+      "short_name": "Library",
+      "description": "View your local manga library",
+      "url": "/library",
+      "icons": [
+        {
+          "src": "/static/favicon.svg",
+          "sizes": "64x64"
+        }
+      ]
+    },
+    {
+      "name": "Downloads",
+      "short_name": "Downloads",
+      "description": "Manage your download tasks",
+      "url": "/downloads",
+      "icons": [
+        {
+          "src": "/static/favicon.svg",
+          "sizes": "64x64"
+        }
+      ]
+    }
+  ],
+  "related_applications": [],
+  "prefer_related_applications": false,
+  "iarc_rating_id": "",
+  "serve": [
+    {
+      "user_agent": "*",
+      "src": "/static/manifest.json"
+    }
+  ],
+  "edge_side_panel": {
+    "preferred_width": 480
+  },
+  "handle_links": "auto",
+  "launch_handler": {
+    "client_mode": ["navigate-existing", "auto"]
+  },
+  "protocol_handlers": [
+    {
+      "protocol": "web+nexusdl",
+      "url": "/handle?url=%s"
+    }
+  ],
+  "display_override": ["window-controls-overlay", "standalone", "minimal-ui"],
+  "share_target": {
+    "action": "/share",
+    "method": "GET",
+    "enctype": "application/x-www-form-urlencoded",
+    "params": {
+      "title": "title",
+      "text": "text",
+      "url": "url"
+    }
+  }
+}
