@@ -1,0 +1,69 @@
+# ============================================================================
+# NexusDL API — robots.txt
+# ============================================================================
+#
+# Ce fichier indique aux crawlers web comment interagir avec l'API REST
+# de NexusDL. Par défaut, l'API est destinée aux clients légitimes
+# (applications, intégrations) et non aux crawlers publics.
+#
+# Documentation : https://developers.google.com/search/docs/crawling-indexing/robots/intro
+# ============================================================================
+
+# Règle par défaut : interdire l'indexation de l'API
+User-agent: *
+Disallow: /api/
+Disallow: /ws
+Disallow: /static/
+Disallow: /docs
+Disallow: /redoc
+Disallow: /openapi.json
+Allow: /health
+Allow: /health/live
+Allow: /health/ready
+Allow: /static/robots.txt
+
+# Crawl-delay pour éviter de surcharger l'API
+Crawl-delay: 10
+
+# ============================================================================
+# Crawlers spécifiques
+# ============================================================================
+
+# Google
+User-agent: Googlebot
+Disallow: /api/
+Disallow: /ws
+Allow: /health
+Allow: /
+
+# Bing
+User-agent: Bingbot
+Disallow: /api/
+Disallow: /ws
+Allow: /health
+
+# Bad bots / scrapers agressifs
+User-agent: AhrefsBot
+Disallow: /
+
+User-agent: SemrushBot
+Disallow: /
+
+User-agent: MJ12bot
+Disallow: /
+
+User-agent: DotBot
+Disallow: /
+
+# ============================================================================
+# Sitemaps
+# ============================================================================
+# L'API n'expose pas de sitemap car elle n'est pas destinée à l'indexation.
+# Sitemap: https://nexusdl.dev/sitemap.xml
+
+# ============================================================================
+# Contact
+# ============================================================================
+# Pour toute question concernant le crawling de notre API :
+# Contact: api@nexusdl.dev
+# Documentation: https://nexusdl.dev/docs/api
