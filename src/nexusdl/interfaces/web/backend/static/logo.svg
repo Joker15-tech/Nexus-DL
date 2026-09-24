@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  NexusDL Logo complet — Style Cyberpunk Neon / Hacker
+  Format : 320x80 (horizontal, avec texte)
+-->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 80" width="320" height="80">
+  <defs>
+    <linearGradient id="logoGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#00ff41;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#00ffff;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#ff00ff;stop-opacity:1" />
+    </linearGradient>
+    <filter id="logoGlow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="1.2" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- Fond transparent -->
+  <rect width="320" height="80" fill="transparent"/>
+
+  <!-- Icône à gauche (carré avec N) -->
+  <g transform="translate(10, 10)">
+    <rect width="60" height="60" fill="#000000" rx="8"/>
+    <rect x="1.5" y="1.5" width="57" height="57" fill="none"
+          stroke="#00ff41" stroke-width="1" rx="6" opacity="0.7"/>
+
+    <g filter="url(#logoGlow)">
+      <path d="M 17 17 L 17 43" stroke="#00ff41" stroke-width="3.5"
+            stroke-linecap="round" fill="none"/>
+      <path d="M 17 17 L 43 43" stroke="#00ff41" stroke-width="3.5"
+            stroke-linecap="round" fill="none"/>
+      <path d="M 43 17 L 43 43" stroke="#00ff41" stroke-width="3.5"
+            stroke-linecap="round" fill="none"/>
+    </g>
+
+    <g filter="url(#logoGlow)" opacity="0.9">
+      <path d="M 30 33 L 30 44 M 26 40 L 30 44 L 34 40"
+            stroke="#00ffff" stroke-width="1.8" stroke-linecap="round"
+            stroke-linejoin="round" fill="none"/>
+    </g>
+  </g>
+
+  <!-- Texte "NexusDL" -->
+  <g filter="url(#logoGlow)">
+    <text x="85" y="48" font-family="'JetBrains Mono', 'Fira Code', monospace"
+          font-size="32" font-weight="700" fill="url(#logoGradient)"
+          letter-spacing="1">
+      NexusDL
+    </text>
+  </g>
+
+  <!-- Tagline -->
+  <text x="85" y="66" font-family="'JetBrains Mono', monospace"
+        font-size="9" fill="#00aaaa" letter-spacing="2">
+    YOUR MANGA • YOUR LIBRARY • YOUR WAY
+  </text>
+
+  <!-- Ligne décorative sous le texte -->
+  <line x1="85" y1="72" x2="310" y2="72" stroke="#00ff41"
+        stroke-width="0.5" opacity="0.3"/>
+</svg>
