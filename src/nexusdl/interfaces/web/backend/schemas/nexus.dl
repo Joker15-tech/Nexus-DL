@@ -1,0 +1,77 @@
+# ============================================================================
+# NEXUSDL — Module : interfaces/web/backend/schemas
+# ============================================================================
+#
+# Rôle :
+#   Schémas Pydantic pour l'API REST NexusDL. Ce module centralise tous
+#   les modèles de données utilisés pour la validation des requêtes et la
+#   construction des réponses.
+#
+# Organisation :
+#   - common.py     : Fondations partagées. Types personnalisés (PositiveInt,
+#                     EmailStr, LanguageCode, etc.), constantes (SUPPORTED_LANGUAGES,
+#                     DOWNLOAD_FORMATS, etc.), validateurs (validate_language(),
+#                     validate_url(), etc.), helpers (to_camel_case(),
+#                     sanitize_string(), etc.), modèles de domaine (MangaBase,
+#                     ChapterBase, SiteBase, UserBase, DownloadTaskBase,
+#                     ReadingProgressBase), modèles génériques (IDModel,
+#                     StatusModel, MessageModel, CountModel, TimestampModel).
+#
+#   - requests.py   : Schémas de requête. 34 modèles couvrant l'authentification
+#                     (LoginRequest, RegisterRequest, etc.), la recherche
+#                     (SearchRequest, SearchFilters), les mangas (DownloadMangaRequest,
+#                     UpdateProgressRequest), les téléchargements (CreateDownloadRequest,
+#                     TaskActionRequest), la bibliothèque (UpdateMangaRequest,
+#                     CreateReadingListRequest), les paramètres (UpdateSettingsRequest,
+#                     ExportRequest), et le WebSocket (SubscribeRequest).
+#                     7 enums (DownloadFormat, ImageQuality, Priority, etc.).
+#                     Validation stricte avec validators personnalisés.
+#
+#   - responses.py  : Schémas de réponse. Réponses canoniques (APIResponse,
+#                     APIErrorResponse, APIPaginatedResponse), wrappers génériques
+#                     (SingleResponse[T], ListResponse[T], ActionResponse),
+#                     réponses spécifiques (HealthStatusResponse, AuthTokensResponse,
+#                     etc.), métadonnées (ResponseMeta, PaginationMeta, RateLimitMeta),
+#                     helpers (success_response(), error_response(), paginated_response(),
+#                     etc.). 2 enums (ResponseStatus, ErrorCode).
+#
+#   - __init__.py   : Exports publics. Agrège les 3 sous-modules en un point
+#                     d'entrée unique. ~150 symboles publics. Pas de conflits
+#                     de noms (les enums de requests.py et les frozensets de
+#                     common.py ont des noms différents).
+#
+#   - nexus.dl      : Ce fichier (documentation interne).
+#
+# Règles d'or :
+#   1. Tous les modèles utilisent Pydantic v2 avec ConfigDict(extra="forbid").
+#   2. Les types personnalisés utilisent Annotated pour la réutilisabilité.
+#   3. Les validateurs sont des fonctions pures (pas de side effects).
+#   4. Les helpers de réponse retournent des dict (compatibles FastAPI).
+#   5. Les constantes sont des frozensets (immuables).
+#   6. Les modèles de domaine dans common.py sont les bases pour les
+#      modèles spécifiques dans requests.py et responses.py.
+#   7. Pas de conflits de noms entre les 3 sous-modules.
+#   8. Chaque modèle a une docstring avec exemple.
+#
+# Flux de données :
+#   Client → Requête JSON → requests.py (validation Pydantic) → Routeur
+#   Routeur → Traitement → responses.py (construction réponse) → Client
+#
+#   common.py est utilisé par les deux :
+#   - requests.py importe MangaBase, validate_language, etc.
+#   - responses.py importe format_datetime, etc.
+#
+# Intégration :
+#   - interfaces/web/backend/routers/* : utilise ces schémas
+#   - interfaces/web/backend/middleware/* : utilise ces schémas
+#   - core/models/* : modèles de domaine du core (source de vérité)
+#   - pydantic : framework de validation
+#
+# ============================================================================
+
+src/nexusdl/interfaces/web/backend/schemas/
+├── __init__.py            # Exports publics (agrégation) — COMPLET
+├── common.py              # Types, constantes, validateurs, domaines — COMPLET
+├── requests.py            # Schémas de requête (34 modèles) — COMPLET
+├── responses.py           # Schémas de réponse (helpers inclus) — COMPLET
+└── nexus.dl               # Ce fichier
