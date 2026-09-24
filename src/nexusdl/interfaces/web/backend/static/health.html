@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#000000">
+  <meta name="description" content="NexusDL API Health Status">
+  <title>NexusDL — Health Check</title>
+  <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+  <link rel="stylesheet" href="/static/css/api-docs.css">
+
+  <style>
+    /* Page-specific styles */
+    body {
+      background: #000000;
+      color: #00ff41;
+      font-family: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
+      margin: 0;
+      padding: 0;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .container {
+      max-width: 800px;
+      width: 90%;
+      padding: 40px;
+      background: #0d1117;
+      border: 2px solid #00ff41;
+      border-radius: 8px;
+      box-shadow: 0 0 40px rgba(0, 255, 65, 0.3);
+    }
+
+    .header {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      margin-bottom: 30px;
+      padding-bottom: 20px;
+      border-bottom: 1px solid #006622;
+    }
+
+    .header img {
+      width: 64px;
+      height: 64px;
+    }
+
+    .header h1 {
+      margin: 0;
+      font-size: 32px;
+      color: #00ff41;
+      text-shadow: 0 0 10px rgba(0, 255, 65, 0.5);
+    }
+
+    .header .version {
+      color: #00aaaa;
+      font-size: 14px;
+      margin-top: 4px;
+    }
+
+    .status {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 20px;
+      background: #161b22;
+      border-radius: 6px;
+      margin-bottom: 20px;
+    }
+
+    .status-indicator {
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: #00ff41;
+      box-shadow: 0 0 12px #00ff41;
+      animation: pulse 2s infinite;
+    }
+
+    .status-indicator.degraded {
+      background: #ffff00;
+      box-shadow: 0 0 12px #ffff00;
+    }
+
+    .status-indicator.down {
+      background: #ff0040;
+      box-shadow: 0 0 12px #ff0040;
+      animation: none;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+
+    .status-text {
+      font-size: 20px;
+      font-weight: bold;
+      color: #ffffff;
+    }
+
+    .components {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 12px;
+      margin-bottom: 30px;
+    }
+
+    .component {
+      padding: 16px;
+      background: #161b22;
+      border: 1px solid #006622;
+      border-radius: 6px;
+      transition: all 0.2s ease;
+    }
+
+    .component:hover {
+      border-color: #00ffff;
+      transform: translateY(-2px);
+    }
+
+    .component-name {
+      font-size: 12px;
+      color: #00aaaa;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 8px;
+    }
+
+    .component-status {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 14px;
+    }
+
+    .component-status .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #00ff41;
+    }
+
+    .component-status .dot.degraded { background: #ffff00; }
+    .component-status .dot.down { background: #ff0040; }
+    .component-status .dot.unknown { background: #666666; }
+
+    .metrics {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 12px;
+      margin-bottom: 30px;
+    }
+
+    .metric {
+      padding: 16px;
+      background: #161b22;
+      border-left: 3px solid #00ffff;
+      border-radius: 4px;
+    }
+
+    .metric-label {
+      font-size: 11px;
+      color: #00aaaa;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 6px;
+    }
+
+    .metric-value {
+      font-size: 20px;
+      color: #00ffff;
+      font-weight: bold;
+    }
+
+    .footer {
+      margin-top: 30px;
+      padding-top: 20px;
+      border-top: 1px solid #006622;
+      text-align: center;
+      color: #006666;
+      font-size: 12px;
+    }
+
+    .footer a {
+      color: #00ffff;
+      text-decoration: none;
+    }
+
+    .footer a:hover {
+      text-decoration: underline;
+    }
+
+    .refresh-btn {
+      background: transparent;
+      border: 1px solid #00ff41;
+      color: #00ff41;
+      padding: 8px 16px;
+      border-radius: 4px;
+      font-family: inherit;
+      font-size: 12px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .refresh-btn:hover {
+      background: #00ff41;
+      color: #000000;
+    }
+
+    .loading {
+      color: #00aaaa;
+      font-style: italic;
+    }
+
+    .error {
+      color: #ff0040;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <img src="/static/favicon.svg" alt="NexusDL">
+      <div>
+        <h1>NexusDL API</h1>
+        <div class="version" id="version">Loading...</div>
+      </div>
+    </div>
+
+    <div class="status">
+      <div class="status-indicator" id="status-indicator"></div>
+      <div class="status-text" id="status-text">
+        <span class="loading">Checking status...</span>
+      </div>
+      <div style="margin-left: auto;">
+        <button class="refresh-btn" onclick="refreshStatus()">↻ Refresh</button>
+      </div>
+    </div>
+
+    <div class="components" id="components">
+      <div class="component">
+        <div class="component-name">Loading components...</div>
+      </div>
+    </div>
+
+    <div class="metrics" id="metrics">
+      <div class="metric">
+        <div class="metric-label">Uptime</div>
+        <div class="metric-value" id="uptime">—</div>
+      </div>
+      <div class="metric">
+        <div class="metric-label">Python</div>
+        <div class="metric-value" id="python-version">—</div>
+      </div>
+      <div class="metric">
+        <div class="metric-label">Platform</div>
+        <div class="metric-value" id="platform">—</div>
+      </div>
+      <div class="metric">
+        <div class="metric-label">Last Check</div>
+        <div class="metric-value" id="last-check">—</div>
+      </div>
+    </div>
+
+    <div class="footer">
+      <div>
+        <a href="/docs">API Documentation</a> •
+        <a href="/health/detailed">Detailed Health (JSON)</a> •
+        <a href="/health/metrics">Metrics</a> •
+        <a href="https://nexusdl.dev" target="_blank">Website</a>
+      </div>
+      <div style="margin-top: 10px;">
+        NexusDL v<span id="footer-version">0.1.0</span> —
+        Your manga, your library, your way
+      </div>
+    </div>
+  </div>
+
+  <script>
+    async function refreshStatus() {
+      try {
+        const response = await fetch('/health/detailed');
+        const data = await response.json();
+
+        // Update status
+        const indicator = document.getElementById('status-indicator');
+        const statusText = document.getElementById('status-text');
+
+        indicator.className = 'status-indicator';
+        if (data.status === 'healthy') {
+          statusText.textContent = 'All Systems Operational';
+        } else if (data.status === 'degraded') {
+          indicator.classList.add('degraded');
+          statusText.textContent = 'Some Systems Degraded';
+        } else {
+          indicator.classList.add('down');
+          statusText.textContent = 'System Unavailable';
+        }
+
+        // Update components
+        const componentsDiv = document.getElementById('components');
+        componentsDiv.innerHTML = '';
+
+        if (data.components) {
+          for (const [name, info] of Object.entries(data.components)) {
+            const component = document.createElement('div');
+            component.className = 'component';
+
+            const statusClass = info.status === 'healthy' ? '' :
+                               info.status === 'degraded' ? 'degraded' :
+                               info.status === 'unhealthy' ? 'down' : 'unknown';
+
+            component.innerHTML = `
+              <div class="component-name">${name}</div>
+              <div class="component-status">
+                <div class="dot ${statusClass}"></div>
+                <span>${info.status}</span>
+                ${info.latency_ms ? `<span style="margin-left:auto;color:#00aaaa;font-size:11px;">${info.latency_ms.toFixed(1)}ms</span>` : ''}
+              </div>
+            `;
+            componentsDiv.appendChild(component);
+          }
+        }
+
+        // Update metrics
+        document.getElementById('uptime').textContent = formatUptime(data.uptime_seconds);
+        document.getElementById('python-version').textContent = data.python_version || '—';
+        document.getElementById('platform').textContent = data.platform || '—';
+        document.getElementById('last-check').textContent = new Date(data.timestamp).toLocaleTimeString();
+        document.getElementById('version').textContent = `v${data.version}`;
+        document.getElementById('footer-version').textContent = data.version;
+
+      } catch (error) {
+        document.getElementById('status-text').innerHTML =
+          `<span class="error">Failed to fetch status: ${error.message}</span>`;
+        document.getElementById('status-indicator').classList.add('down');
+      }
+    }
+
+    function formatUptime(seconds) {
+      if (!seconds) return '—';
+      const hours = Math.floor(seconds / 3600);
+      const minutes = Math.floor((seconds % 3600) / 60);
+      if (hours > 24) {
+        const days = Math.floor(hours / 24);
+        return `${days}d ${hours % 24}h`;
+      }
+      if (hours > 0) {
+        return `${hours}h ${minutes}m`;
+      }
+      return `${minutes}m`;
+    }
+
+    // Auto-refresh every 30 seconds
+    refreshStatus();
+    setInterval(refreshStatus, 30000);
+  </script>
+</body>
+</html>
