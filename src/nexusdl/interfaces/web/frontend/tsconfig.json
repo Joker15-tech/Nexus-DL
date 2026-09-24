@@ -1,0 +1,432 @@
+{
+  // ===========================================================================
+  // NEXUSDL FRONTEND - TypeScript Configuration
+  // ===========================================================================
+  //
+  // Configuration TypeScript pour l'application frontend Next.js 14 de NexusDL.
+  // Cette configuration est optimisée pour :
+  //   - Next.js 14+ avec App Router
+  //   - React 18+ avec Server Components
+  //   - Tailwind CSS 3.4+
+  //   - Strict type checking
+  //   - Performance de compilation
+  //   - Compatibilité avec SWC (Next.js compiler)
+  //
+  // Documentation officielle :
+  //   https://www.typescriptlang.org/tsconfig
+  //   https://nextjs.org/docs/app/building-your-application/configuring/typescript
+  //
+  // @license GPL-3.0-only
+  // ===========================================================================
+
+  "$schema": "https://json.schemastore.org/tsconfig",
+  "display": "NexusDL Frontend",
+
+  // ===========================================================================
+  // COMPILER OPTIONS
+  // ===========================================================================
+  "compilerOptions": {
+    // -------------------------------------------------------------------------
+    // LANGUAGE & ENVIRONMENT
+    // -------------------------------------------------------------------------
+    
+    /**
+     * Version de JavaScript cible.
+     * ES2022 pour supporter les fonctionnalités modernes :
+     *   - Top-level await
+     *   - Class fields
+     *   - Private methods
+     *   - Array.at()
+     *   - Object.hasOwn()
+     */
+    "target": "ES2022",
+
+    /**
+     * Bibliothèques TypeScript disponibles.
+     *   - DOM : APIs navigateur (window, document, etc.)
+     *   - DOM.Iterable : Support de l'itération sur les NodeList
+     *   - ES2022 : APIs JavaScript modernes
+     */
+    "lib": ["DOM", "DOM.Iterable", "ES2022"],
+
+    /**
+     * Active le support JSX.
+     * "preserve" laisse Next.js/SWC gérer la compilation JSX.
+     */
+    "jsx": "preserve",
+
+    // -------------------------------------------------------------------------
+    // MODULE SYSTEM
+    // -------------------------------------------------------------------------
+
+    /**
+     * Système de modules.
+     * "ESNext" pour les ESM modernes (Next.js 14+).
+     */
+    "module": "ESNext",
+
+    /**
+     * Stratégie de résolution des modules.
+     * "Bundler" est optimisé pour les bundlers modernes (Webpack, SWC).
+     * Supporte les imports sans extension et les paths aliases.
+     */
+    "moduleResolution": "Bundler",
+
+    /**
+     * Résolution des modules Builtin (node:fs, node:path, etc.).
+     */
+    "resolveBuiltinModule": true,
+
+    /**
+     * Autorise l'import de fichiers JSON.
+     */
+    "resolveJsonModule": true,
+
+    /**
+     * Modules isolés pour une compilation plus rapide.
+     * Chaque fichier est compilé indépendamment.
+     */
+    "isolatedModules": true,
+
+    // -------------------------------------------------------------------------
+    // INTEROPÉRABILITÉ
+    // -------------------------------------------------------------------------
+
+    /**
+     * Interopérabilité avec les modules CommonJS.
+     * Permet d'importer des modules CJS comme des ESM.
+     */
+    "esModuleInterop": true,
+
+    /**
+     * Force la cohérence de la casse dans les imports.
+     * Évite les bugs sur les systèmes de fichiers case-insensitive (Windows/macOS).
+     */
+    "forceConsistentCasingInFileNames": true,
+
+    /**
+     * Saute la vérification des types des fichiers de déclaration (.d.ts).
+     * Améliore les performances de compilation.
+     */
+    "skipLibCheck": true,
+
+    // -------------------------------------------------------------------------
+    // STRICTNESS
+    // -------------------------------------------------------------------------
+
+    /**
+     * Active toutes les vérifications strictes.
+     * Équivalent à activer toutes les options ci-dessous individuellement.
+     */
+    "strict": true,
+
+    /**
+     * Signale les variables locales non utilisées comme erreurs.
+     */
+    "noUnusedLocals": true,
+
+    /**
+     * Signale les paramètres de fonction non utilisés comme erreurs.
+     * Astuce : préfixer avec _ pour ignorer (ex: _unusedParam).
+     */
+    "noUnusedParameters": true,
+
+    /**
+     * Exige que toutes les branches de fonction retournent une valeur.
+     */
+    "noImplicitReturns": true,
+
+    /**
+     * Signale les cases fallthrough dans les switch.
+     */
+    "noFallthroughCasesInSwitch": true,
+
+    /**
+     * Force l'utilisation de `override` pour les méthodes qui écrasent
+     * une méthode de la classe parente.
+     */
+    "noImplicitOverride": true,
+
+    /**
+     * Ajoute `undefined` aux types des accès par index.
+     * Ex: array[0] → T | undefined (plus sûr)
+     */
+    "noUncheckedIndexedAccess": true,
+
+    /**
+     * Désactivé : trop strict pour React (props optionnelles).
+     * Si activé, il faudrait explicitement écrire `prop?: T | undefined`.
+     */
+    "exactOptionalPropertyTypes": false,
+
+    /**
+     * Interdit les types implicites `any`.
+     */
+    "noImplicitAny": true,
+
+    /**
+     * Interdit les this implicites.
+     */
+    "noImplicitThis": true,
+
+    /**
+     * Interdit l'accès aux propriétés via des signatures d'index
+     * sans vérification.
+     */
+    "noPropertyAccessFromIndexSignature": false,
+
+    /**
+     * Utilise les types inconnus plutôt que any pour les données
+     * non typées (ex: JSON.parse).
+     */
+    "useUnknownInCatchVariables": true,
+
+    /**
+     * Vérifie strictement les fonctions de callback.
+     */
+    "strictFunctionTypes": true,
+
+    /**
+     * Vérifie strictement les null et undefined.
+     */
+    "strictNullChecks": true,
+
+    /**
+     * Vérifie les propriétés optionnelles dans les classes.
+     */
+    "strictPropertyInitialization": true,
+
+    /**
+     * Interdit les labels non utilisés.
+     */
+    "allowUnusedLabels": false,
+
+    /**
+     * Interdit le code inaccessible.
+     */
+    "allowUnreachableCode": false,
+
+    // -------------------------------------------------------------------------
+    // EMIT
+    // -------------------------------------------------------------------------
+
+    /**
+     * N'émet pas de fichiers JavaScript.
+     * Next.js utilise SWC pour la compilation, pas tsc.
+     */
+    "noEmit": true,
+
+    /**
+     * Génère les déclarations de types (.d.ts).
+     * Désactivé car noEmit est true.
+     */
+    "declaration": false,
+
+    /**
+     * Génère les source maps pour le debugging.
+     * Désactivé car noEmit est true.
+     */
+    "sourceMap": false,
+
+    /**
+     * Supprime les commentaires dans les fichiers émis.
+     * Désactivé car noEmit est true.
+     */
+    "removeComments": false,
+
+    /**
+     * Importe les helpers de TypeScript depuis tslib.
+     * Réduit la taille du bundle.
+     */
+    "importHelpers": true,
+
+    /**
+     * Génère les source maps pour les déclarations.
+     */
+    "declarationMap": false,
+
+    // -------------------------------------------------------------------------
+    // ADVANCED
+    // -------------------------------------------------------------------------
+
+    /**
+     * Active la compilation incrémentale.
+     * Stocke les informations de compilation dans .tsbuildinfo
+     * pour accélérer les compilations suivantes.
+     */
+    "incremental": true,
+
+    /**
+     * Permet les imports par défaut depuis les modules sans export default.
+     * Utile pour certaines bibliothèques legacy.
+     */
+    "allowSyntheticDefaultImports": true,
+
+    /**
+     * Active les décorateurs (stage 3 proposal).
+     * Nécessaire pour certaines bibliothèques comme MobX ou TypeORM.
+     */
+    "experimentalDecorators": false,
+
+    /**
+     * Émet les métadonnées pour les décorateurs.
+     */
+    "emitDecoratorMetadata": false,
+
+    /**
+     * Utilise les types de Node.js pour les APIs globales.
+     */
+    "types": ["node", "jest", "@testing-library/jest-dom"],
+
+    /**
+     * Autorise les fichiers .js dans le projet.
+     * Utile pour les fichiers de configuration (postcss.config.js, etc.).
+     */
+    "allowJs": true,
+
+    /**
+     * Préserve les directives "use client" et "use server".
+     */
+    "preserveSymlinks": false,
+
+    // -------------------------------------------------------------------------
+    // PATHS ALIASES
+    // -------------------------------------------------------------------------
+    /**
+     * Mapping des chemins absolus pour les imports.
+     * 
+     * Utilisation :
+     *   import { Button } from '@/components/Button';
+     *   import { useAuth } from '@hooks/useAuth';
+     *   import { api } from '@lib/api';
+     * 
+     * Ces aliases doivent être configurés également dans :
+     *   - next.config.js (webpack.resolve.alias)
+     *   - jest.config.js (moduleNameMapper)
+     *   - .eslintrc.json (import/resolver)
+     */
+    "paths": {
+      "@/*": ["./src/*"],
+      "@components/*": ["./src/components/*"],
+      "@hooks/*": ["./src/hooks/*"],
+      "@store/*": ["./src/store/*"],
+      "@lib/*": ["./src/lib/*"],
+      "@types/*": ["./src/types/*"],
+      "@app/*": ["./src/app/*"],
+      "@utils/*": ["./src/lib/utils/*"],
+      "@api/*": ["./src/lib/api/*"],
+      "@assets/*": ["./public/*"]
+    },
+
+    /**
+     * Répertoire de base pour les chemins relatifs.
+     */
+    "baseUrl": ".",
+
+    // -------------------------------------------------------------------------
+    // PLUGINS
+    // -------------------------------------------------------------------------
+    /**
+     * Plugins TypeScript.
+     * Le plugin Next.js ajoute les types pour les Server Components,
+     * Client Components, et les APIs spécifiques à Next.js.
+     */
+    "plugins": [
+      {
+        "name": "next"
+      }
+    ]
+  },
+
+  // ===========================================================================
+  // INCLUDE
+  // ===========================================================================
+  /**
+   * Fichiers et dossiers à inclure dans la compilation TypeScript.
+   */
+  "include": [
+    // Types générés par Next.js
+    "next-env.d.ts",
+    
+    // Types générés pendant le build
+    ".next/types/**/*.ts",
+    ".next/types/**/*.tsx",
+    
+    // Code source
+    "src/**/*.ts",
+    "src/**/*.tsx",
+    "src/**/*.js",
+    "src/**/*.jsx",
+    "src/**/*.mjs",
+    "src/**/*.cjs",
+    
+    // Fichiers de configuration (pour les types)
+    "tailwind.config.js",
+    "postcss.config.js",
+    "next.config.js",
+    "jest.config.js",
+    "jest.setup.js"
+  ],
+
+  // ===========================================================================
+  // EXCLUDE
+  // ===========================================================================
+  /**
+   * Fichiers et dossiers à exclure de la compilation TypeScript.
+   */
+  "exclude": [
+    // Dépendances
+    "node_modules",
+    
+    // Build outputs
+    ".next",
+    "out",
+    "dist",
+    "build",
+    
+    // Tests coverage
+    "coverage",
+    
+    // Storybook build
+    "storybook-static",
+    
+    // Fichiers temporaires
+    ".turbo",
+    ".cache",
+    ".temp",
+    ".tmp",
+    
+    // Fichiers de test (optionnel, peut être inclus si besoin)
+    // "**/*.test.ts",
+    // "**/*.test.tsx",
+    // "**/*.spec.ts",
+    // "**/*.spec.tsx"
+  ],
+
+  // ===========================================================================
+  // REFERENCES (Optionnel - pour les projets monorepo)
+  // ===========================================================================
+  /**
+   * Références de projet TypeScript.
+   * Utile pour les monorepos avec plusieurs packages.
+   * Désactivé ici car NexusDL frontend est un projet standalone.
+   */
+  // "references": [
+  //   { "path": "./tsconfig.node.json" }
+  // ]
+
+  // ===========================================================================
+  // TS-NODE (pour exécuter des scripts TS directement)
+  // ===========================================================================
+  /**
+   * Configuration pour ts-node (scripts TypeScript exécutés directement).
+   * Utilisé par certains outils comme Prisma, Drizzle, etc.
+   */
+  "ts-node": {
+    "compilerOptions": {
+      "module": "CommonJS",
+      "moduleResolution": "Node",
+      "esModuleInterop": true
+    }
+  }
+}
