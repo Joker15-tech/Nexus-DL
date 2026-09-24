@@ -1,0 +1,103 @@
+# ============================================================================
+# NEXUSDL — Module : interfaces/web/frontend/public
+# ============================================================================
+#
+# Rôle :
+#   Assets statiques publics pour l'interface frontend de NexusDL.
+#   Ces fichiers sont servis directement par le serveur web et accessibles
+#   depuis la racine de l'application (ex: /favicon.svg, /logo.svg).
+#
+# Organisation :
+#   - logo.svg        : Logo complet NexusDL (200x200) avec icône "N" stylisée,
+#                       texte "NexusDL" et tagline. Style cyberpunk néon avec
+#                       gradient vert/cyan/magenta. Utilisé dans :
+#                       - Page d'accueil (grand format)
+#                       - Section About
+#                       - Splash screen
+#                       - Documentation
+#
+#   - favicon.svg     : Favicon compact (64x64) avec icône "N" seule + flèche
+#                       de téléchargement. Optimisé pour lisibilité en petite
+#                       taille. Utilisé dans :
+#                       - Onglets de navigateur
+#                       - Barre de favoris
+#                       - PWA icons
+#                       - Notifications
+#
+#   - manifest.json   : Manifest PWA (Progressive Web App). Configure :
+#                       - Nom de l'application
+#                       - Icônes
+#                       - Mode d'affichage (standalone)
+#                       - Couleurs du thème
+#                       - Raccourcis (search, library, downloads)
+#                       - Partage de contenu
+#                       - Gestionnaires de protocole
+#
+#   - robots.txt      : Instructions pour les crawlers web. Configure :
+#                       - Pages autorisées/interdites
+#                       - Crawl-delay
+#                       - Sitemap
+#                       - Crawlers spécifiques (Google, Bing, etc.)
+#
+#   - nexus.dl        : Ce fichier (documentation interne)
+#
+# Style graphique :
+#   - Thème : Cyberpunk Neon / Hacker Futurist
+#   - Palette :
+#       * Vert néon : #00ff41 (primaire)
+#       * Cyan : #00ffff (secondaire)
+#       * Magenta : #ff00ff (accent)
+#       * Noir : #000000 (fond)
+#       * Jaune : #ffff00 (warnings)
+#       * Rouge : #ff0040 (erreurs)
+#   - Polices : JetBrains Mono, Fira Code, Consolas
+#   - Effets : Glow, gradients, animations subtiles
+#
+# Utilisation dans l'application :
+#
+#   # HTML (index.html)
+#   <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+#   <link rel="manifest" href="/manifest.json">
+#   <meta name="theme-color" content="#000000">
+#
+#   # React/Vue/Svelte
+#   <img src="/logo.svg" alt="NexusDL" />
+#   <img src="/favicon.svg" alt="NexusDL" className="favicon" />
+#
+#   # CSS
+#   .favicon {
+#     width: 32px;
+#     height: 32px;
+#     filter: drop-shadow(0 0 8px rgba(0, 255, 65, 0.5));
+#   }
+#
+# Optimisations :
+#   - SVG vectoriels : scalables sans perte de qualité
+#   - Filtres SVG : effets glow natifs (pas d'images raster)
+#   - Gradients : dégradés de couleurs fluides
+#   - Tailles optimisées : favicon 64x64, logo 200x200
+#   - Compression : SVG minifié en production
+#
+# Cohérence avec le backend :
+#   - Même palette de couleurs
+#   - Même style cyberpunk néon
+#   - Même icône "N" stylisée
+#   - Même flèche de téléchargement
+#   - Logo backend : horizontal (320x80) avec texte
+#   - Logo frontend : carré (200x200) avec icône + texte vertical
+#
+# Intégration PWA :
+#   - manifest.json configure l'application comme PWA
+#   - Peut être installée sur mobile/desktop
+#   - Mode standalone (sans barre de navigateur)
+#   - Raccourcis vers les fonctionnalités principales
+#   - Support du partage de contenu
+#
+# ============================================================================
+
+src/nexusdl/interfaces/web/frontend/public/
+├── logo.svg              # Logo complet (200x200) — COMPLET
+├── favicon.svg           # Favicon compact (64x64) — COMPLET
+├── manifest.json         # Manifest PWA — COMPLET
+├── robots.txt            # Instructions crawlers — COMPLET
+└── nexus.dl              # Ce fichier
