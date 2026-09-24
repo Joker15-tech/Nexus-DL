@@ -1,0 +1,318 @@
+# ============================================================================
+# NEXUSDL — Module : interfaces/web/frontend
+# ============================================================================
+#
+# Rôle :
+#   Frontend web de NexusDL basé sur Next.js 14. Interface utilisateur
+#   moderne avec thème cyberpunk néon, permettant de rechercher, télécharger
+#   et gérer des mangas depuis 20+ sources.
+#
+# Organisation :
+#   - package.json        : Dépendances, scripts, métadonnées (GPL-3.0)
+#   - next.config.js      : Configuration Next.js
+#   - tsconfig.json       : Configuration TypeScript
+#   - tailwind.config.js  : Configuration Tailwind CSS
+#   - postcss.config.js   : Configuration PostCSS
+#   - LICENSE             : Licence GNU GPL v3
+#   - README.md           : Documentation du frontend
+#   - nexus.dl            : Ce fichier (documentation interne)
+#
+#   - public/             : Assets statiques
+#       - favicon.svg     : Favicon SVG cyberpunk
+#       - logo.svg        : Logo complet
+#       - manifest.json   : Manifest PWA
+#       - robots.txt      : Instructions crawlers
+#       - icons/          : Icônes PWA (multiple tailles)
+#       - screenshots/    : Captures d'écran
+#
+#   - src/
+#       - app/            : Pages Next.js (App Router)
+#           - layout.tsx  : Layout racine avec providers
+#           - page.tsx    : Page d'accueil (Dashboard)
+#           - globals.css : Styles globaux + thèmes
+#           - providers.tsx : Providers React (Query, Theme, etc.)
+#           - auth/       : Pages d'authentification
+#           - downloads/  : Gestion des téléchargements
+#           - library/    : Bibliothèque locale
+#           - manga/[id]/ : Détail d'un manga
+#           - search/     : Recherche multi-sites
+#           - settings/   : Configuration
+#
+#       - components/     : Composants React réutilisables
+#           - ThemeToggle.tsx     : Sélecteur de thème
+#           - SiteSelector.tsx    : Sélecteur de sites
+#           - Sidebar.tsx         : Navigation latérale
+#           - SearchBar.tsx       : Barre de recherche
+#           - ProgressBar.tsx     : Barre de progression
+#           - MangaCard.tsx       : Carte de manga
+#           - DownloadItem.tsx    : Item de téléchargement
+#           - ChapterList.tsx     : Liste des chapitres
+#           - ConnectionBanner.tsx: Bandeau de connexion
+#
+#       - hooks/          : Hooks React personnalisés
+#           - useDownload.ts   : Gestion des téléchargements
+#           - useSearch.ts     : Recherche avec autocomplétion
+#           - useWebSocket.ts  : Communications temps réel
+#
+#       - lib/            : Utilitaires et clients
+#           - api.ts      : Client API REST
+#           - ws.ts       : Client WebSocket
+#           - utils.ts    : Fonctions utilitaires
+#
+#       - store/          : Stores Zustand
+#           - downloads.ts : État des téléchargements
+#           - settings.ts  : État des paramètres
+#           - index.ts     : Agrégation des stores
+#
+#       - types/          : Types TypeScript
+#           - download.ts  : Types téléchargements
+#           - manga.ts     : Types mangas
+#           - site.ts      : Types sites
+#           - global.d.ts  : Types globaux
+#           - next.d.ts    : Types Next.js
+#
+# Stack Technique :
+#   - Next.js 14.2         : Framework React avec App Router
+#   - React 18.3           : Bibliothèque UI
+#   - TypeScript 5.6       : Typage statique strict
+#   - Tailwind CSS 3.4     : Framework CSS utility-first
+#   - TanStack Query 5     : Cache et gestion des données
+#   - Zustand 5            : State management
+#   - Sonner 1.5           : Notifications toast
+#   - Lucide React 0.453   : Icônes
+#   - Framer Motion 11     : Animations
+#   - date-fns 3.6         : Manipulation de dates
+#   - next-intl 3.22       : Internationalisation
+#   - next-themes 0.3      : Gestion des thèmes
+#
+# Système de Design :
+#   Thème cyberpunk néon avec 4 variantes :
+#     - cyberpunk (défaut) : Vert néon #00ff41
+#     - dark               : Vert classique #22c55e
+#     - light              : Vert sombre #16a34a
+#     - system             : Auto-détection OS
+#
+#   Palette de couleurs :
+#     - Primary   : #00ff41 (vert néon)
+#     - Secondary : #00ffff (cyan)
+#     - Accent    : #ff00ff (magenta)
+#     - Background: #000000 (noir pur)
+#     - Surface   : #0d1117 (gris très sombre)
+#
+#   Polices :
+#     - JetBrains Mono : Code, données, UI cyberpunk
+#     - Inter          : Texte général
+#
+#   Effets visuels :
+#     - Glow néon (drop-shadow)
+#     - Animations fluides (fade, slide, zoom)
+#     - Glass morphism
+#     - Patterns (grille, points, scanlines)
+#     - Skeleton loaders
+#
+# Pages principales :
+#   1. Dashboard (/)
+#      - Hero avec barre de recherche
+#      - Statistiques globales
+#      - Continue Reading
+#      - Recently Added
+#      - Quick Actions
+#
+#   2. Search (/search)
+#      - Recherche multi-sites
+#      - Filtres avancés (langue, statut, tags)
+#      - Autocomplétion
+#      - Historique et tendances
+#      - Progression temps réel (WebSocket)
+#
+#   3. Library (/library)
+#      - Grille/liste/compact
+#      - Filtrage par statut de lecture
+#      - Tri et recherche
+#      - Actions : lire, télécharger, retirer
+#
+#   4. Manga Detail (/manga/[id])
+#      - Informations complètes
+#      - Progression de lecture
+#      - Liste des chapitres
+#      - Actions : lire, télécharger, bibliothèque
+#
+#   5. Downloads (/downloads)
+#      - Liste des tâches
+#      - Actions : pause, resume, cancel, retry
+#      - Statistiques en temps réel
+#      - Sélection multiple
+#
+#   6. Settings (/settings)
+#      - 11 sections de configuration
+#      - Préférences UI locales
+#      - Export/import
+#      - Validation en temps réel
+#
+#   7. Auth (/auth/login)
+#      - Connexion username/password
+#      - Connexion API key
+#      - Validation et erreurs
+#
+# Intégration Backend :
+#   - API REST : http://localhost:8000/api/v1
+#     - 98 endpoints sur 10 routeurs
+#     - Authentification JWT
+#     - Pagination et filtrage
+#
+#   - WebSocket : ws://localhost:8000/ws
+#     - 21 canaux thématiques
+#     - Mises à jour temps réel
+#     - Notifications
+#
+#   - Proxy Next.js :
+#     - /api/* → Backend API
+#     - /ws → WebSocket
+#     - /health/* → Health endpoints
+#
+# State Management :
+#   Zustand stores :
+#     - downloads : Tâches, stats, actions
+#     - settings  : Config backend + préférences UI
+#
+#   React Query :
+#     - Cache des requêtes API
+#     - Stale time : 5 minutes
+#     - GC time : 30 minutes
+#     - Retry automatique
+#
+# Communications :
+#   - API Client (lib/api.ts) :
+#     - Authentification JWT automatique
+#     - Retry avec exponential backoff
+#     - Interceptors
+#     - Gestion d'erreurs typée
+#
+#   - WebSocket Client (lib/ws.ts) :
+#     - Connexion automatique
+#     - Reconnexion avec backoff
+#     - Heartbeat
+#     - 21 canaux typés
+#
+# Hooks personnalisés :
+#   - useDownload : Gestion des téléchargements
+#   - useSearch : Recherche avec autocomplétion
+#   - useWebSocket : Communications temps réel
+#   - useDownloadWebSocket : Événements téléchargements
+#   - useLibraryWebSocket : Événements bibliothèque
+#   - useNotificationWebSocket : Notifications
+#
+# Composants réutilisables :
+#   - ThemeToggle : Sélecteur de thème (4 options)
+#   - SiteSelector : Sélection multi-sites avec filtres
+#   - Sidebar : Navigation latérale (collapsed/expanded)
+#   - SearchBar : Recherche avec autocomplétion
+#   - ProgressBar : Barre de progression (6 variantes)
+#   - MangaCard : Carte de manga (4 variantes)
+#   - DownloadItem : Item de téléchargement (3 variantes)
+#   - ChapterList : Liste des chapitres avec tri/filtre
+#
+# Scripts npm :
+#   - pnpm dev          : Démarrer le serveur de développement
+#   - pnpm build        : Build de production
+#   - pnpm start        : Démarrer le serveur de production
+#   - pnpm lint         : Linter le code
+#   - pnpm lint:fix     : Fix les erreurs ESLint
+#   - pnpm format       : Formater avec Prettier
+#   - pnpm type-check   : Vérification TypeScript
+#   - pnpm test         : Exécuter les tests Jest
+#   - pnpm test:e2e     : Tests end-to-end Playwright
+#   - pnpm storybook    : Démarrer Storybook
+#   - pnpm analyze      : Analyser le bundle
+#   - pnpm clean        : Nettoyer les artefacts
+#
+# Ports :
+#   - 3000 : Frontend (Next.js)
+#   - 6006 : Storybook
+#
+# Variables d'environnement :
+#   - NEXT_PUBLIC_API_URL     : URL de l'API backend
+#   - NEXT_PUBLIC_WS_URL      : URL du WebSocket backend
+#   - NEXT_PUBLIC_APP_NAME    : Nom de l'application
+#   - NEXT_PUBLIC_APP_VERSION : Version de l'application
+#
+# Licence :
+#   GNU General Public License v3.0 (GPL-3.0)
+#   Copyright (C) 2024-2026 NexusDL Team
+#
+#   Ce programme est un logiciel libre ; vous pouvez le redistribuer et/ou
+#   le modifier selon les termes de la Licence Publique Générale GNU telle
+#   que publiée par la Free Software Foundation ; soit la version 3 de la
+#   Licence, soit (à votre discrétion) une version ultérieure.
+#
+# ============================================================================
+
+src/nexusdl/interfaces/web/frontend/
+├── package.json              # Dépendances et scripts (GPL-3.0)
+├── pnpm-lock.yaml            # Lock file pnpm
+├── next.config.js            # Configuration Next.js
+├── tsconfig.json             # Configuration TypeScript
+├── tailwind.config.js        # Configuration Tailwind CSS
+├── postcss.config.js         # Configuration PostCSS
+├── .eslintrc.json            # Configuration ESLint
+├── .prettierrc               # Configuration Prettier
+├── jest.config.js            # Configuration Jest
+├── Dockerfile                # Build Docker multi-stage
+├── LICENSE                   # Licence GNU GPL v3
+├── NOTICE                    # Attributions tierces
+├── README.md                 # Documentation
+├── nexus.dl                  # Ce fichier
+│
+├── public/                   # Assets statiques
+│   ├── favicon.svg           # Favicon SVG
+│   ├── logo.svg              # Logo complet
+│   ├── manifest.json         # Manifest PWA
+│   ├── robots.txt            # Instructions crawlers
+│   ├── icons/                # Icônes PWA
+│   └── screenshots/          # Captures d'écran
+│
+└── src/                      # Code source
+    ├── app/                  # Pages Next.js (App Router)
+    │   ├── layout.tsx        # Layout racine
+    │   ├── page.tsx          # Page d'accueil
+    │   ├── globals.css       # Styles globaux + thèmes
+    │   ├── providers.tsx     # Providers React
+    │   ├── auth/             # Authentification
+    │   ├── downloads/        # Téléchargements
+    │   ├── library/          # Bibliothèque
+    │   ├── manga/            # Détail manga
+    │   ├── search/           # Recherche
+    │   └── settings/         # Paramètres
+    │
+    ├── components/           # Composants React
+    │   ├── ThemeToggle.tsx
+    │   ├── SiteSelector.tsx
+    │   ├── Sidebar.tsx
+    │   ├── SearchBar.tsx
+    │   ├── ProgressBar.tsx
+    │   ├── MangaCard.tsx
+    │   ├── DownloadItem.tsx
+    │   ├── ChapterList.tsx
+    │   └── ConnectionBanner.tsx
+    │
+    ├── hooks/                # Hooks React
+    │   ├── useDownload.ts
+    │   ├── useSearch.ts
+    │   └── useWebSocket.ts
+    │
+    ├── lib/                  # Utilitaires
+    │   ├── api.ts            # Client API REST
+    │   ├── ws.ts             # Client WebSocket
+    │   └── utils.ts          # Fonctions utilitaires
+    │
+    ├── store/                # Stores Zustand
+    │   ├── downloads.ts
+    │   ├── settings.ts
+    │   └── index.ts
+    │
+    └── types/                # Types TypeScript
+        ├── download.ts
+        ├── manga.ts
+        ├── site.ts
+        ├── global.d.ts
+        └── next.d.ts
