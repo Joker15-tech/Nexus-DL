@@ -1,0 +1,56 @@
+# ============================================================================
+# NexusDL Frontend — robots.txt
+# ============================================================================
+#
+# Instructions pour les crawlers web concernant l'interface frontend.
+# L'application frontend est une SPA (Single Page Application) qui
+# communique avec l'API REST backend.
+#
+# ============================================================================
+
+# Règle par défaut
+User-agent: *
+Allow: /
+Disallow: /api/
+Disallow: /ws
+Disallow: /_next/
+Disallow: /_nuxt/
+Disallow: /admin/
+Disallow: /settings/
+Disallow: /private/
+
+# Crawl-delay pour éviter de surcharger le serveur
+Crawl-delay: 10
+
+# ============================================================================
+# Crawlers spécifiques
+# ============================================================================
+
+# Google
+User-agent: Googlebot
+Allow: /
+Disallow: /api/
+Disallow: /ws
+
+# Bing
+User-agent: Bingbot
+Allow: /
+Disallow: /api/
+Disallow: /ws
+
+# Bad bots
+User-agent: AhrefsBot
+Disallow: /
+
+User-agent: SemrushBot
+Disallow: /
+
+# ============================================================================
+# Sitemaps
+# ============================================================================
+Sitemap: https://nexusdl.dev/sitemap.xml
+
+# ============================================================================
+# Contact
+# ============================================================================
+Contact: webmaster@nexusdl.dev
