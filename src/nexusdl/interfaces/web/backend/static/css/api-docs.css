@@ -1,0 +1,499 @@
+/* ============================================================================
+   NexusDL API — Custom Swagger/ReDoc Styles
+   Style: Cyberpunk Neon / Hacker Futurist
+   ============================================================================ */
+
+/* ============================================================================
+   Variables CSS
+   ============================================================================ */
+
+:root {
+  /* Couleurs principales */
+  --nx-primary: #00ff41;
+  --nx-primary-dim: #00cc33;
+  --nx-primary-bright: #39ff14;
+  --nx-primary-bg: #001a0d;
+
+  --nx-secondary: #00ffff;
+  --nx-secondary-dim: #00cccc;
+  --nx-secondary-bg: #001a1a;
+
+  --nx-accent: #ff00ff;
+  --nx-accent-dim: #cc00cc;
+  --nx-accent-bg: #1a001a;
+
+  /* Statuts */
+  --nx-success: #00ff41;
+  --nx-warning: #ffff00;
+  --nx-error: #ff0040;
+  --nx-info: #00ffff;
+
+  /* Fonds */
+  --nx-background: #000000;
+  --nx-surface: #0d1117;
+  --nx-surface-alt: #161b22;
+  --nx-surface-hover: #1a1f2e;
+
+  /* Textes */
+  --nx-text: #00ff41;
+  --nx-text-bright: #ffffff;
+  --nx-text-muted: #00aaaa;
+  --nx-text-dim: #006666;
+
+  /* Bordures */
+  --nx-border: #00ff41;
+  --nx-border-dim: #006622;
+
+  /* Typographie */
+  --nx-font-mono: 'JetBrains Mono', 'Fira Code', 'Consolas', 'Monaco', monospace;
+}
+
+/* ============================================================================
+   Swagger UI — Overrides
+   ============================================================================ */
+
+/* Body principal */
+body.swagger-ui,
+body {
+  background-color: var(--nx-background) !important;
+  color: var(--nx-text) !important;
+  font-family: var(--nx-font-mono) !important;
+}
+
+/* Topbar */
+.topbar {
+  background-color: var(--nx-surface) !important;
+  border-bottom: 2px solid var(--nx-primary) !important;
+  padding: 16px 24px !important;
+}
+
+.topbar a {
+  color: var(--nx-primary) !important;
+  font-weight: bold !important;
+  font-size: 18px !important;
+  text-shadow: 0 0 10px rgba(0, 255, 65, 0.5) !important;
+}
+
+.topbar .download-url-wrapper .select-label span {
+  color: var(--nx-text-muted) !important;
+}
+
+/* Wrapper principal */
+.wrapper {
+  background-color: var(--nx-background) !important;
+  max-width: 1400px !important;
+  padding: 24px !important;
+}
+
+/* Informations de l'API */
+.info {
+  background-color: var(--nx-surface) !important;
+  border: 1px solid var(--nx-border-dim) !important;
+  border-radius: 6px !important;
+  padding: 24px !important;
+  margin-bottom: 24px !important;
+}
+
+.info .title {
+  color: var(--nx-primary) !important;
+  font-family: var(--nx-font-mono) !important;
+  text-shadow: 0 0 15px rgba(0, 255, 65, 0.4) !important;
+}
+
+.info a {
+  color: var(--nx-secondary) !important;
+  text-decoration: none !important;
+}
+
+.info a:hover {
+  color: var(--nx-primary-bright) !important;
+  text-decoration: underline !important;
+}
+
+.info .description {
+  color: var(--nx-text-muted) !important;
+}
+
+/* Sections d'opérations */
+.opblock-tag {
+  border-bottom: 1px solid var(--nx-border-dim) !important;
+  color: var(--nx-primary) !important;
+  font-family: var(--nx-font-mono) !important;
+  font-size: 18px !important;
+  padding: 12px 0 !important;
+}
+
+.opblock-tag small {
+  color: var(--nx-text-muted) !important;
+  font-family: var(--nx-font-mono) !important;
+}
+
+/* Blocs d'opération */
+.opblock {
+  background-color: var(--nx-surface) !important;
+  border: 1px solid var(--nx-border-dim) !important;
+  border-radius: 4px !important;
+  margin-bottom: 12px !important;
+}
+
+.opblock:hover {
+  border-color: var(--nx-secondary) !important;
+  box-shadow: 0 0 10px rgba(0, 255, 255, 0.2) !important;
+}
+
+.opblock .opblock-summary {
+  background-color: var(--nx-surface-alt) !important;
+  border: none !important;
+  padding: 12px 16px !important;
+}
+
+.opblock .opblock-summary-method {
+  background-color: var(--nx-primary) !important;
+  color: var(--nx-background) !important;
+  font-family: var(--nx-font-mono) !important;
+  font-weight: bold !important;
+  padding: 4px 12px !important;
+  border-radius: 3px !important;
+  min-width: 70px !important;
+  text-align: center !important;
+}
+
+.opblock .opblock-summary-path {
+  color: var(--nx-text-bright) !important;
+  font-family: var(--nx-font-mono) !important;
+  font-size: 14px !important;
+}
+
+.opblock .opblock-summary-description {
+  color: var(--nx-text-muted) !important;
+  font-family: var(--nx-font-mono) !important;
+}
+
+/* Méthodes HTTP — couleurs spécifiques */
+.opblock.opblock-get .opblock-summary-method {
+  background-color: var(--nx-secondary) !important;
+}
+
+.opblock.opblock-post .opblock-summary-method {
+  background-color: var(--nx-primary) !important;
+}
+
+.opblock.opblock-put .opblock-summary-method {
+  background-color: var(--nx-warning) !important;
+  color: var(--nx-background) !important;
+}
+
+.opblock.opblock-delete .opblock-summary-method {
+  background-color: var(--nx-error) !important;
+  color: var(--nx-text-bright) !important;
+}
+
+.opblock.opblock-patch .opblock-summary-method {
+  background-color: var(--nx-accent) !important;
+  color: var(--nx-text-bright) !important;
+}
+
+/* Corps de l'opération */
+.opblock-body {
+  background-color: var(--nx-surface) !important;
+  color: var(--nx-text) !important;
+}
+
+.opblock-description-wrapper,
+.opblock-external-docs-wrapper,
+.opblock-title_normal {
+  color: var(--nx-text-muted) !important;
+  font-family: var(--nx-font-mono) !important;
+}
+
+/* Paramètres */
+.parameters-col_description input[type="text"],
+.parameters-col_description textarea,
+.parameters-col_description select {
+  background-color: var(--nx-surface-alt) !important;
+  color: var(--nx-text) !important;
+  border: 1px solid var(--nx-border-dim) !important;
+  border-radius: 3px !important;
+  font-family: var(--nx-font-mono) !important;
+  padding: 6px 10px !important;
+}
+
+.parameters-col_description input[type="text"]:focus,
+.parameters-col_description textarea:focus {
+  border-color: var(--nx-secondary) !important;
+  outline: none !important;
+  box-shadow: 0 0 6px rgba(0, 255, 255, 0.4) !important;
+}
+
+.parameter__name {
+  color: var(--nx-primary) !important;
+  font-family: var(--nx-font-mono) !important;
+  font-weight: bold !important;
+}
+
+.parameter__type {
+  color: var(--nx-text-muted) !important;
+  font-family: var(--nx-font-mono) !important;
+}
+
+/* Boutons */
+.btn {
+  background-color: var(--nx-surface-alt) !important;
+  color: var(--nx-text) !important;
+  border: 1px solid var(--nx-border-dim) !important;
+  border-radius: 3px !important;
+  font-family: var(--nx-font-mono) !important;
+  padding: 8px 16px !important;
+  cursor: pointer !important;
+  transition: all 0.2s ease !important;
+}
+
+.btn:hover {
+  background-color: var(--nx-primary-bg) !important;
+  border-color: var(--nx-primary) !important;
+  color: var(--nx-primary) !important;
+}
+
+.btn.authorize {
+  background-color: var(--nx-primary-bg) !important;
+  color: var(--nx-primary) !important;
+  border: 2px solid var(--nx-primary) !important;
+  font-weight: bold !important;
+}
+
+.btn.authorize:hover {
+  background-color: var(--nx-primary) !important;
+  color: var(--nx-background) !important;
+}
+
+.btn.authorize svg {
+  fill: var(--nx-primary) !important;
+}
+
+.btn.execute {
+  background-color: var(--nx-primary) !important;
+  color: var(--nx-background) !important;
+  border: 2px solid var(--nx-primary-bright) !important;
+  font-weight: bold !important;
+  text-shadow: none !important;
+}
+
+.btn.execute:hover {
+  background-color: var(--nx-primary-bright) !important;
+  box-shadow: 0 0 15px rgba(0, 255, 65, 0.6) !important;
+}
+
+.btn.cancel {
+  background-color: var(--nx-surface-alt) !important;
+  color: var(--nx-error) !important;
+  border: 1px solid var(--nx-error) !important;
+}
+
+/* Responses */
+.responses-inner {
+  background-color: var(--nx-surface-alt) !important;
+  border-radius: 4px !important;
+  padding: 12px !important;
+}
+
+.response-col_status {
+  color: var(--nx-text) !important;
+  font-family: var(--nx-font-mono) !important;
+  font-weight: bold !important;
+}
+
+.response-col_description {
+  color: var(--nx-text-muted) !important;
+  font-family: var(--nx-font-mono) !important;
+}
+
+/* Codes de statut avec couleurs */
+.response-col_status .response-unknown,
+.responses-inner h4 {
+  color: var(--nx-text) !important;
+}
+
+.responses-table .response .response-col_status {
+  font-family: var(--nx-font-mono) !important;
+}
+
+/* Code blocks */
+pre {
+  background-color: var(--nx-background) !important;
+  color: var(--nx-primary) !important;
+  border: 1px solid var(--nx-border-dim) !important;
+  border-radius: 4px !important;
+  padding: 12px !important;
+  font-family: var(--nx-font-mono) !important;
+  font-size: 12px !important;
+  overflow-x: auto !important;
+}
+
+pre.microlight {
+  background-color: var(--nx-background) !important;
+}
+
+code {
+  background-color: var(--nx-surface-alt) !important;
+  color: var(--nx-secondary) !important;
+  padding: 2px 6px !important;
+  border-radius: 3px !important;
+  font-family: var(--nx-font-mono) !important;
+  font-size: 12px !important;
+}
+
+/* Models / Schemas */
+.models {
+  background-color: var(--nx-surface) !important;
+  border: 1px solid var(--nx-border-dim) !important;
+  border-radius: 6px !important;
+  padding: 16px !important;
+  margin-top: 24px !important;
+}
+
+.models h4 {
+  color: var(--nx-primary) !important;
+  font-family: var(--nx-font-mono) !important;
+  border-bottom: 1px solid var(--nx-border-dim) !important;
+  padding-bottom: 8px !important;
+}
+
+.model {
+  background-color: var(--nx-surface-alt) !important;
+  border: 1px solid var(--nx-border-dim) !important;
+  border-radius: 4px !important;
+  margin: 8px 0 !important;
+  padding: 8px !important;
+}
+
+.model:hover {
+  border-color: var(--nx-secondary) !important;
+}
+
+.model-title {
+  color: var(--nx-primary) !important;
+  font-family: var(--nx-font-mono) !important;
+  font-weight: bold !important;
+}
+
+/* Section selector */
+.section {
+  background-color: var(--nx-surface) !important;
+}
+
+/* Scheme container */
+.scheme-container {
+  background-color: var(--nx-surface) !important;
+  border: 1px solid var(--nx-border-dim) !important;
+  border-radius: 6px !important;
+  padding: 16px !important;
+  margin-bottom: 24px !important;
+}
+
+.scheme-container .schemes {
+  color: var(--nx-text) !important;
+}
+
+.scheme-container label {
+  color: var(--nx-text-muted) !important;
+  font-family: var(--nx-font-mono) !important;
+}
+
+/* Servers */
+.servers label {
+  color: var(--nx-text-muted) !important;
+}
+
+.servers select {
+  background-color: var(--nx-surface-alt) !important;
+  color: var(--nx-text) !important;
+  border: 1px solid var(--nx-border-dim) !important;
+  border-radius: 3px !important;
+  padding: 6px 10px !important;
+  font-family: var(--nx-font-mono) !important;
+}
+
+/* Modal d'authorization */
+.dialog-ux .modal-ux {
+  background-color: var(--nx-surface) !important;
+  border: 2px solid var(--nx-primary) !important;
+  border-radius: 6px !important;
+  box-shadow: 0 0 30px rgba(0, 255, 65, 0.3) !important;
+}
+
+.dialog-ux .modal-ux-header {
+  background-color: var(--nx-surface-alt) !important;
+  border-bottom: 1px solid var(--nx-border-dim) !important;
+  color: var(--nx-primary) !important;
+}
+
+.dialog-ux .modal-ux-content {
+  background-color: var(--nx-surface) !important;
+  color: var(--nx-text) !important;
+}
+
+.dialog-ux input {
+  background-color: var(--nx-surface-alt) !important;
+  color: var(--nx-text) !important;
+  border: 1px solid var(--nx-border-dim) !important;
+  border-radius: 3px !important;
+  padding: 8px !important;
+  font-family: var(--nx-font-mono) !important;
+}
+
+/* Scrollbars */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--nx-surface);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--nx-border-dim);
+  border-radius: 5px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--nx-primary);
+}
+
+/* Selection */
+::selection {
+  background-color: var(--nx-primary);
+  color: var(--nx-background);
+}
+
+/* ============================================================================
+   Animations
+   ============================================================================ */
+
+@keyframes nx-glow {
+  0%, 100% { box-shadow: 0 0 5px rgba(0, 255, 65, 0.3); }
+  50% { box-shadow: 0 0 20px rgba(0, 255, 65, 0.6); }
+}
+
+.opblock.opblock-get:hover .opblock-summary-method {
+  animation: nx-glow 2s infinite;
+}
+
+/* ============================================================================
+   Responsive
+   ============================================================================ */
+
+@media (max-width: 768px) {
+  .wrapper {
+    padding: 12px !important;
+  }
+
+  .info .title {
+    font-size: 20px !important;
+  }
+
+  .opblock .opblock-summary {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+  }
+}
