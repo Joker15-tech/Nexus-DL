@@ -1,0 +1,1220 @@
+/**
+ * NexusDL — Global Styles
+ *
+ * Fichier CSS global pour l'application frontend Next.js.
+ * Définit les variables CSS, les thèmes, les animations, et les styles de base.
+ *
+ * Thèmes supportés :
+ *   - cyberpunk (défaut) : Néon vert/cyan/magenta sur fond noir
+ *   - dark               : Sombre classique
+ *   - light              : Clair épuré
+ *   - system             : Auto-détection OS
+ *
+ * Palette cyberpunk :
+ *   - Primary   : #00ff41 (vert néon)
+ *   - Secondary : #00ffff (cyan)
+ *   - Accent    : #ff00ff (magenta)
+ *   - Background: #000000 (noir pur)
+ *   - Surface   : #0d1117 (gris très sombre)
+ *
+ * @module globals.css
+ */
+
+/* ============================================================================
+   TAILWIND DIRECTIVES
+   ============================================================================ */
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ============================================================================
+   CSS CUSTOM PROPERTIES (Variables)
+   ============================================================================ */
+
+:root {
+  /* --------------------------------------------------------------------------
+     Thème Cyberpunk (défaut)
+     -------------------------------------------------------------------------- */
+  --nx-primary: #00ff41;
+  --nx-primary-dim: #00cc33;
+  --nx-primary-bright: #39ff14;
+  --nx-primary-bg: rgba(0, 255, 65, 0.08);
+  --nx-primary-glow: rgba(0, 255, 65, 0.4);
+
+  --nx-secondary: #00ffff;
+  --nx-secondary-dim: #00cccc;
+  --nx-secondary-bg: rgba(0, 255, 255, 0.08);
+  --nx-secondary-glow: rgba(0, 255, 255, 0.4);
+
+  --nx-accent: #ff00ff;
+  --nx-accent-dim: #cc00cc;
+  --nx-accent-bg: rgba(255, 0, 255, 0.08);
+  --nx-accent-glow: rgba(255, 0, 255, 0.4);
+
+  /* Statuts */
+  --nx-success: #00ff41;
+  --nx-warning: #ffff00;
+  --nx-error: #ff0040;
+  --nx-info: #00ffff;
+
+  /* Fonds */
+  --nx-background: #000000;
+  --nx-surface: #0d1117;
+  --nx-surface-alt: #161b22;
+  --nx-surface-hover: #1a1f2e;
+
+  /* Textes */
+  --nx-text: #00ff41;
+  --nx-text-bright: #ffffff;
+  --nx-text-muted: #00aaaa;
+  --nx-text-dim: #006666;
+
+  /* Bordures */
+  --nx-border: #00ff41;
+  --nx-border-dim: #006622;
+
+  /* Ombres */
+  --nx-shadow-sm: 0 0 5px rgba(0, 255, 65, 0.1);
+  --nx-shadow-md: 0 0 15px rgba(0, 255, 65, 0.2);
+  --nx-shadow-lg: 0 0 30px rgba(0, 255, 65, 0.3);
+  --nx-shadow-glow: 0 0 20px rgba(0, 255, 65, 0.4);
+
+  /* Typographie */
+  --nx-font-mono: 'JetBrains Mono', 'Fira Code', 'Consolas', 'Monaco', 'Courier New', monospace;
+  --nx-font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+
+  /* Espacements */
+  --nx-radius-sm: 0.375rem;
+  --nx-radius-md: 0.5rem;
+  --nx-radius-lg: 0.75rem;
+  --nx-radius-xl: 1rem;
+
+  /* Transitions */
+  --nx-transition-fast: 150ms ease;
+  --nx-transition-normal: 200ms ease;
+  --nx-transition-slow: 300ms ease;
+
+  /* Z-index */
+  --nx-z-dropdown: 50;
+  --nx-z-modal: 100;
+  --nx-z-tooltip: 150;
+  --nx-z-toast: 200;
+}
+
+/* ============================================================================
+   THÈME DARK (Classique)
+   ============================================================================ */
+
+.theme-dark {
+  --nx-primary: #22c55e;
+  --nx-primary-dim: #16a34a;
+  --nx-primary-bright: #4ade80;
+  --nx-primary-bg: rgba(34, 197, 94, 0.1);
+  --nx-primary-glow: rgba(34, 197, 94, 0.3);
+
+  --nx-secondary: #06b6d4;
+  --nx-secondary-dim: #0891b2;
+  --nx-secondary-bg: rgba(6, 182, 212, 0.1);
+  --nx-secondary-glow: rgba(6, 182, 212, 0.3);
+
+  --nx-accent: #a855f7;
+  --nx-accent-dim: #9333ea;
+  --nx-accent-bg: rgba(168, 85, 247, 0.1);
+  --nx-accent-glow: rgba(168, 85, 247, 0.3);
+
+  --nx-success: #22c55e;
+  --nx-warning: #eab308;
+  --nx-error: #ef4444;
+  --nx-info: #06b6d4;
+
+  --nx-background: #0a0a0a;
+  --nx-surface: #171717;
+  --nx-surface-alt: #262626;
+  --nx-surface-hover: #333333;
+
+  --nx-text: #e5e5e5;
+  --nx-text-bright: #ffffff;
+  --nx-text-muted: #a3a3a3;
+  --nx-text-dim: #737373;
+
+  --nx-border: #22c55e;
+  --nx-border-dim: #333333;
+
+  --nx-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --nx-shadow-md: 0 4px 6px rgba(0, 0, 0, 0.4);
+  --nx-shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.5);
+  --nx-shadow-glow: 0 0 15px rgba(34, 197, 94, 0.2);
+}
+
+/* ============================================================================
+   THÈME LIGHT
+   ============================================================================ */
+
+.theme-light {
+  --nx-primary: #16a34a;
+  --nx-primary-dim: #15803d;
+  --nx-primary-bright: #22c55e;
+  --nx-primary-bg: rgba(22, 163, 74, 0.08);
+  --nx-primary-glow: rgba(22, 163, 74, 0.2);
+
+  --nx-secondary: #0891b2;
+  --nx-secondary-dim: #0e7490;
+  --nx-secondary-bg: rgba(8, 145, 178, 0.08);
+  --nx-secondary-glow: rgba(8, 145, 178, 0.2);
+
+  --nx-accent: #9333ea;
+  --nx-accent-dim: #7e22ce;
+  --nx-accent-bg: rgba(147, 51, 234, 0.08);
+  --nx-accent-glow: rgba(147, 51, 234, 0.2);
+
+  --nx-success: #16a34a;
+  --nx-warning: #ca8a04;
+  --nx-error: #dc2626;
+  --nx-info: #0891b2;
+
+  --nx-background: #ffffff;
+  --nx-surface: #f9fafb;
+  --nx-surface-alt: #f3f4f6;
+  --nx-surface-hover: #e5e7eb;
+
+  --nx-text: #1f2937;
+  --nx-text-bright: #111827;
+  --nx-text-muted: #6b7280;
+  --nx-text-dim: #9ca3af;
+
+  --nx-border: #16a34a;
+  --nx-border-dim: #d1d5db;
+
+  --nx-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --nx-shadow-md: 0 4px 6px rgba(0, 0, 0, 0.07);
+  --nx-shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1);
+  --nx-shadow-glow: 0 0 10px rgba(22, 163, 74, 0.15);
+}
+
+/* ============================================================================
+   THÈME SYSTEM (Auto-détection)
+   ============================================================================ */
+
+.theme-system {
+  /* Utilise les variables cyberpunk par défaut */
+  /* Le JavaScript gère le basculement via matchMedia */
+}
+
+@media (prefers-color-scheme: light) {
+  .theme-system {
+    --nx-primary: #16a34a;
+    --nx-primary-dim: #15803d;
+    --nx-primary-bright: #22c55e;
+    --nx-primary-bg: rgba(22, 163, 74, 0.08);
+    --nx-primary-glow: rgba(22, 163, 74, 0.2);
+
+    --nx-secondary: #0891b2;
+    --nx-secondary-dim: #0e7490;
+    --nx-secondary-bg: rgba(8, 145, 178, 0.08);
+    --nx-secondary-glow: rgba(8, 145, 178, 0.2);
+
+    --nx-accent: #9333ea;
+    --nx-accent-dim: #7e22ce;
+    --nx-accent-bg: rgba(147, 51, 234, 0.08);
+    --nx-accent-glow: rgba(147, 51, 234, 0.2);
+
+    --nx-success: #16a34a;
+    --nx-warning: #ca8a04;
+    --nx-error: #dc2626;
+    --nx-info: #0891b2;
+
+    --nx-background: #ffffff;
+    --nx-surface: #f9fafb;
+    --nx-surface-alt: #f3f4f6;
+    --nx-surface-hover: #e5e7eb;
+
+    --nx-text: #1f2937;
+    --nx-text-bright: #111827;
+    --nx-text-muted: #6b7280;
+    --nx-text-dim: #9ca3af;
+
+    --nx-border: #16a34a;
+    --nx-border-dim: #d1d5db;
+
+    --nx-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+    --nx-shadow-md: 0 4px 6px rgba(0, 0, 0, 0.07);
+    --nx-shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1);
+    --nx-shadow-glow: 0 0 10px rgba(22, 163, 74, 0.15);
+  }
+}
+
+/* ============================================================================
+   BASE STYLES (Reset & Foundation)
+   ============================================================================ */
+
+@layer base {
+  /* Reset global */
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
+
+  /* Document */
+  html {
+    font-size: 16px;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+    scroll-behavior: smooth;
+    color-scheme: dark;
+  }
+
+  .theme-light html,
+  .theme-light {
+    color-scheme: light;
+  }
+
+  /* Body */
+  body {
+    font-family: var(--nx-font-sans);
+    background-color: var(--nx-background);
+    color: var(--nx-text);
+    line-height: 1.6;
+    min-height: 100vh;
+    overflow-x: hidden;
+    transition: background-color var(--nx-transition-slow),
+                color var(--nx-transition-slow);
+  }
+
+  /* Sélection de texte */
+  ::selection {
+    background-color: var(--nx-primary);
+    color: var(--nx-background);
+  }
+
+  /* Focus global */
+  :focus-visible {
+    outline: 2px solid var(--nx-primary);
+    outline-offset: 2px;
+  }
+
+  /* Liens */
+  a {
+    color: var(--nx-secondary);
+    text-decoration: none;
+    transition: color var(--nx-transition-fast);
+  }
+
+  a:hover {
+    color: var(--nx-primary);
+  }
+
+  /* Images */
+  img,
+  picture,
+  video,
+  canvas,
+  svg {
+    display: block;
+    max-width: 100%;
+  }
+
+  /* Inputs et boutons */
+  input,
+  button,
+  textarea,
+  select {
+    font: inherit;
+    color: inherit;
+  }
+
+  button {
+    cursor: pointer;
+    border: none;
+    background: none;
+  }
+
+  /* Listes */
+  ul,
+  ol {
+    list-style: none;
+  }
+
+  /* Headings */
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--nx-font-mono);
+    font-weight: 700;
+    line-height: 1.2;
+    color: var(--nx-text-bright);
+  }
+
+  /* Code */
+  code,
+  kbd,
+  samp,
+  pre {
+    font-family: var(--nx-font-mono);
+  }
+
+  /* Tables */
+  table {
+    border-collapse: collapse;
+    border-spacing: 0;
+  }
+
+  /* Horizontal rule */
+  hr {
+    border: none;
+    border-top: 1px solid var(--nx-border-dim);
+    margin: 1rem 0;
+  }
+}
+
+/* ============================================================================
+   SCROLLBAR STYLES
+   ============================================================================ */
+
+/* Webkit (Chrome, Safari, Edge) */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--nx-surface);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--nx-border-dim);
+  border-radius: 4px;
+  border: 2px solid var(--nx-surface);
+  transition: background var(--nx-transition-fast);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--nx-primary);
+}
+
+::-webkit-scrollbar-corner {
+  background: var(--nx-surface);
+}
+
+/* Firefox */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--nx-border-dim) var(--nx-surface);
+}
+
+/* Scrollbar fine (pour les conteneurs compacts) */
+.scrollbar-thin::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  border: none;
+}
+
+/* Scrollbar cachée (tout en gardant le scroll) */
+.scrollbar-none {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
+
+/* ============================================================================
+   ANIMATIONS
+   ============================================================================ */
+
+/* Fade In */
+@keyframes nx-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Fade Out */
+@keyframes nx-fade-out {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+/* Slide In from Top */
+@keyframes nx-slide-in-top {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Slide In from Bottom */
+@keyframes nx-slide-in-bottom {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Slide In from Left */
+@keyframes nx-slide-in-left {
+  from {
+    opacity: 0;
+    transform: translateX(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* Slide In from Right */
+@keyframes nx-slide-in-right {
+  from {
+    opacity: 0;
+    transform: translateX(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* Zoom In */
+@keyframes nx-zoom-in {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Zoom Out */
+@keyframes nx-zoom-out {
+  from {
+    opacity: 1;
+    transform: scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+}
+
+/* Glow Pulse (cyberpunk) */
+@keyframes nx-glow-pulse {
+  0%, 100% {
+    box-shadow: 0 0 5px var(--nx-primary-glow);
+  }
+  50% {
+    box-shadow: 0 0 20px var(--nx-primary-glow), 0 0 40px var(--nx-primary-glow);
+  }
+}
+
+/* Neon Flicker (cyberpunk) */
+@keyframes nx-neon-flicker {
+  0%, 19%, 21%, 23%, 25%, 54%, 56%, 100% {
+    text-shadow:
+      0 0 4px var(--nx-primary),
+      0 0 11px var(--nx-primary),
+      0 0 19px var(--nx-primary),
+      0 0 40px var(--nx-primary);
+    opacity: 1;
+  }
+  20%, 24%, 55% {
+    text-shadow: none;
+    opacity: 0.8;
+  }
+}
+
+/* Scan Line (cyberpunk CRT effect) */
+@keyframes nx-scanline {
+  0% {
+    transform: translateY(-100%);
+  }
+  100% {
+    transform: translateY(100vh);
+  }
+}
+
+/* Shimmer (skeleton loader) */
+@keyframes nx-shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+/* Progress Stripes */
+@keyframes nx-progress-stripes {
+  0% {
+    background-position: 1rem 0;
+  }
+  100% {
+    background-position: 0 0;
+  }
+}
+
+/* Progress Shimmer (indeterminate) */
+@keyframes nx-progress-shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+/* Spin */
+@keyframes nx-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Bounce */
+@keyframes nx-bounce {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-4px);
+  }
+}
+
+/* Ping (notification dot) */
+@keyframes nx-ping {
+  75%, 100% {
+    transform: scale(2);
+    opacity: 0;
+  }
+}
+
+/* Float (subtle floating animation) */
+@keyframes nx-float {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-6px);
+  }
+}
+
+/* Typing cursor */
+@keyframes nx-blink {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0;
+  }
+}
+
+/* Gradient shift */
+@keyframes nx-gradient-shift {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+/* ============================================================================
+   COMPONENT STYLES
+   ============================================================================ */
+
+@layer components {
+  /* --------------------------------------------------------------------------
+     Background Effects
+     -------------------------------------------------------------------------- */
+
+  .nx-bg-grid {
+    background-image:
+      linear-gradient(var(--nx-border-dim) 1px, transparent 1px),
+      linear-gradient(90deg, var(--nx-border-dim) 1px, transparent 1px);
+    background-size: 40px 40px;
+    opacity: 0.15;
+  }
+
+  .nx-bg-dots {
+    background-image: radial-gradient(var(--nx-border-dim) 1px, transparent 1px);
+    background-size: 20px 20px;
+    opacity: 0.2;
+  }
+
+  .nx-bg-gradient-radial {
+    background: radial-gradient(
+      ellipse at center,
+      var(--nx-primary-bg) 0%,
+      transparent 70%
+    );
+  }
+
+  /* --------------------------------------------------------------------------
+     Glass Morphism
+     -------------------------------------------------------------------------- */
+
+  .nx-glass {
+    background: rgba(13, 17, 23, 0.8);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid var(--nx-border-dim);
+  }
+
+  .nx-glass-light {
+    background: rgba(255, 255, 255, 0.8);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid var(--nx-border-dim);
+  }
+
+  /* --------------------------------------------------------------------------
+     Neon Effects
+     -------------------------------------------------------------------------- */
+
+  .nx-neon-text {
+    color: var(--nx-primary);
+    text-shadow:
+      0 0 7px var(--nx-primary),
+      0 0 10px var(--nx-primary),
+      0 0 21px var(--nx-primary);
+  }
+
+  .nx-neon-text-secondary {
+    color: var(--nx-secondary);
+    text-shadow:
+      0 0 7px var(--nx-secondary),
+      0 0 10px var(--nx-secondary),
+      0 0 21px var(--nx-secondary);
+  }
+
+  .nx-neon-text-accent {
+    color: var(--nx-accent);
+    text-shadow:
+      0 0 7px var(--nx-accent),
+      0 0 10px var(--nx-accent),
+      0 0 21px var(--nx-accent);
+  }
+
+  .nx-neon-border {
+    border-color: var(--nx-primary);
+    box-shadow:
+      0 0 5px var(--nx-primary-glow),
+      inset 0 0 5px var(--nx-primary-glow);
+  }
+
+  .nx-neon-glow {
+    box-shadow:
+      0 0 5px var(--nx-primary-glow),
+      0 0 10px var(--nx-primary-glow),
+      0 0 20px var(--nx-primary-glow);
+  }
+
+  /* --------------------------------------------------------------------------
+     Skeleton Loader
+     -------------------------------------------------------------------------- */
+
+  .nx-skeleton {
+    background: linear-gradient(
+      90deg,
+      var(--nx-surface-alt) 25%,
+      var(--nx-surface-hover) 50%,
+      var(--nx-surface-alt) 75%
+    );
+    background-size: 200% 100%;
+    animation: nx-shimmer 1.5s ease-in-out infinite;
+    border-radius: var(--nx-radius-md);
+  }
+
+  /* --------------------------------------------------------------------------
+     Cards
+     -------------------------------------------------------------------------- */
+
+  .nx-card {
+    background-color: var(--nx-surface);
+    border: 2px solid var(--nx-border-dim);
+    border-radius: var(--nx-radius-xl);
+    transition: all var(--nx-transition-normal);
+  }
+
+  .nx-card:hover {
+    border-color: var(--nx-secondary);
+    box-shadow: var(--nx-shadow-md);
+  }
+
+  .nx-card-glow:hover {
+    border-color: var(--nx-primary);
+    box-shadow: var(--nx-shadow-glow);
+  }
+
+  /* --------------------------------------------------------------------------
+     Buttons
+     -------------------------------------------------------------------------- */
+
+  .nx-btn-primary {
+    background-color: var(--nx-primary);
+    color: var(--nx-background);
+    font-family: var(--nx-font-mono);
+    font-weight: 700;
+    border-radius: var(--nx-radius-lg);
+    transition: all var(--nx-transition-normal);
+  }
+
+  .nx-btn-primary:hover {
+    background-color: var(--nx-primary-bright);
+    box-shadow: var(--nx-shadow-glow);
+  }
+
+  .nx-btn-primary:active {
+    transform: scale(0.98);
+  }
+
+  .nx-btn-secondary {
+    background-color: var(--nx-surface-alt);
+    color: var(--nx-text-muted);
+    border: 2px solid var(--nx-border-dim);
+    font-family: var(--nx-font-mono);
+    border-radius: var(--nx-radius-lg);
+    transition: all var(--nx-transition-normal);
+  }
+
+  .nx-btn-secondary:hover {
+    border-color: var(--nx-secondary);
+    color: var(--nx-secondary);
+    background-color: var(--nx-secondary-bg);
+  }
+
+  .nx-btn-ghost {
+    background-color: transparent;
+    color: var(--nx-text-muted);
+    font-family: var(--nx-font-mono);
+    border-radius: var(--nx-radius-lg);
+    transition: all var(--nx-transition-normal);
+  }
+
+  .nx-btn-ghost:hover {
+    background-color: var(--nx-surface-hover);
+    color: var(--nx-text);
+  }
+
+  /* --------------------------------------------------------------------------
+     Inputs
+     -------------------------------------------------------------------------- */
+
+  .nx-input {
+    background-color: var(--nx-background);
+    border: 2px solid var(--nx-border-dim);
+    border-radius: var(--nx-radius-lg);
+    color: var(--nx-text);
+    font-family: var(--nx-font-mono);
+    transition: all var(--nx-transition-normal);
+  }
+
+  .nx-input:hover {
+    border-color: var(--nx-secondary);
+  }
+
+  .nx-input:focus {
+    border-color: var(--nx-primary);
+    box-shadow: 0 0 0 3px var(--nx-primary-bg);
+    outline: none;
+  }
+
+  .nx-input::placeholder {
+    color: var(--nx-text-dim);
+  }
+
+  .nx-input-error {
+    border-color: var(--nx-error);
+  }
+
+  .nx-input-error:focus {
+    box-shadow: 0 0 0 3px rgba(255, 0, 64, 0.15);
+  }
+
+  /* --------------------------------------------------------------------------
+     Badges
+     -------------------------------------------------------------------------- */
+
+  .nx-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.125rem 0.5rem;
+    border-radius: var(--nx-radius-sm);
+    font-family: var(--nx-font-mono);
+    font-size: 0.625rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    border: 1px solid;
+  }
+
+  .nx-badge-primary {
+    background-color: var(--nx-primary-bg);
+    color: var(--nx-primary);
+    border-color: rgba(0, 255, 65, 0.3);
+  }
+
+  .nx-badge-secondary {
+    background-color: var(--nx-secondary-bg);
+    color: var(--nx-secondary);
+    border-color: rgba(0, 255, 255, 0.3);
+  }
+
+  .nx-badge-accent {
+    background-color: var(--nx-accent-bg);
+    color: var(--nx-accent);
+    border-color: rgba(255, 0, 255, 0.3);
+  }
+
+  .nx-badge-success {
+    background-color: rgba(34, 197, 94, 0.1);
+    color: #22c55e;
+    border-color: rgba(34, 197, 94, 0.3);
+  }
+
+  .nx-badge-warning {
+    background-color: rgba(234, 179, 8, 0.1);
+    color: #eab308;
+    border-color: rgba(234, 179, 8, 0.3);
+  }
+
+  .nx-badge-error {
+    background-color: rgba(239, 68, 68, 0.1);
+    color: #ef4444;
+    border-color: rgba(239, 68, 68, 0.3);
+  }
+
+  /* --------------------------------------------------------------------------
+     Tooltips
+     -------------------------------------------------------------------------- */
+
+  .nx-tooltip {
+    position: relative;
+  }
+
+  .nx-tooltip::after {
+    content: attr(data-tooltip);
+    position: absolute;
+    bottom: calc(100% + 8px);
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 0.25rem 0.5rem;
+    background-color: var(--nx-surface-alt);
+    border: 1px solid var(--nx-border-dim);
+    border-radius: var(--nx-radius-sm);
+    font-family: var(--nx-font-mono);
+    font-size: 0.625rem;
+    color: var(--nx-text);
+    white-space: nowrap;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity var(--nx-transition-fast);
+    z-index: var(--nx-z-tooltip);
+  }
+
+  .nx-tooltip:hover::after {
+    opacity: 1;
+  }
+
+  /* --------------------------------------------------------------------------
+     Dividers
+     -------------------------------------------------------------------------- */
+
+  .nx-divider {
+    height: 1px;
+    background: linear-gradient(
+      90deg,
+      transparent,
+      var(--nx-border-dim),
+      transparent
+    );
+  }
+
+  .nx-divider-glow {
+    height: 1px;
+    background: linear-gradient(
+      90deg,
+      transparent,
+      var(--nx-primary),
+      transparent
+    );
+    box-shadow: 0 0 8px var(--nx-primary-glow);
+  }
+}
+
+/* ============================================================================
+   UTILITY CLASSES
+   ============================================================================ */
+
+@layer utilities {
+  /* Text glow */
+  .text-glow {
+    text-shadow: 0 0 10px currentColor;
+  }
+
+  .text-glow-strong {
+    text-shadow:
+      0 0 5px currentColor,
+      0 0 10px currentColor,
+      0 0 20px currentColor;
+  }
+
+  /* Line clamp */
+  .line-clamp-1 {
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 1;
+  }
+
+  .line-clamp-2 {
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+  }
+
+  .line-clamp-3 {
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 3;
+  }
+
+  .line-clamp-4 {
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 4;
+  }
+
+  /* Animations */
+  .animate-fade-in {
+    animation: nx-fade-in 0.2s ease-out;
+  }
+
+  .animate-slide-in-top {
+    animation: nx-slide-in-top 0.2s ease-out;
+  }
+
+  .animate-slide-in-bottom {
+    animation: nx-slide-in-bottom 0.2s ease-out;
+  }
+
+  .animate-slide-in-left {
+    animation: nx-slide-in-left 0.2s ease-out;
+  }
+
+  .animate-slide-in-right {
+    animation: nx-slide-in-right 0.2s ease-out;
+  }
+
+  .animate-zoom-in {
+    animation: nx-zoom-in 0.2s ease-out;
+  }
+
+  .animate-glow-pulse {
+    animation: nx-glow-pulse 2s ease-in-out infinite;
+  }
+
+  .animate-neon-flicker {
+    animation: nx-neon-flicker 4s linear infinite;
+  }
+
+  .animate-shimmer {
+    animation: nx-shimmer 1.5s ease-in-out infinite;
+  }
+
+  .animate-float {
+    animation: nx-float 3s ease-in-out infinite;
+  }
+
+  .animate-blink {
+    animation: nx-blink 1s step-end infinite;
+  }
+
+  .animate-gradient {
+    background-size: 200% 200%;
+    animation: nx-gradient-shift 3s ease infinite;
+  }
+
+  /* Transitions */
+  .transition-theme {
+    transition: background-color var(--nx-transition-slow),
+                color var(--nx-transition-slow),
+                border-color var(--nx-transition-slow),
+                box-shadow var(--nx-transition-slow);
+  }
+
+  /* Hide scrollbar but keep scroll */
+  .scroll-hidden {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .scroll-hidden::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+/* ============================================================================
+   NEXT.JS SPECIFIC
+   ============================================================================ */
+
+/* Next.js Image optimization */
+.next-image-wrapper {
+  position: relative;
+  overflow: hidden;
+}
+
+.next-image-wrapper img {
+  transition: transform var(--nx-transition-slow);
+}
+
+.next-image-wrapper:hover img {
+  transform: scale(1.05);
+}
+
+/* ============================================================================
+   SONNER TOAST OVERRIDES
+   ============================================================================ */
+
+[data-sonner-toaster] {
+  --normal-bg: var(--nx-surface) !important;
+  --normal-border: var(--nx-border-dim) !important;
+  --normal-text: var(--nx-text) !important;
+  --success-bg: var(--nx-surface) !important;
+  --success-border: rgba(34, 197, 94, 0.3) !important;
+  --success-text: #22c55e !important;
+  --error-bg: var(--nx-surface) !important;
+  --error-border: rgba(239, 68, 68, 0.3) !important;
+  --error-text: #ef4444 !important;
+  --warning-bg: var(--nx-surface) !important;
+  --warning-border: rgba(234, 179, 8, 0.3) !important;
+  --warning-text: #eab308 !important;
+  --info-bg: var(--nx-surface) !important;
+  --info-border: rgba(6, 182, 212, 0.3) !important;
+  --info-text: #06b6d4 !important;
+  --border-radius: var(--nx-radius-lg) !important;
+  font-family: var(--nx-font-mono) !important;
+}
+
+[data-sonner-toast] {
+  border-width: 2px !important;
+  box-shadow: var(--nx-shadow-lg) !important;
+}
+
+/* ============================================================================
+   RESPONSIVE UTILITIES
+   ============================================================================ */
+
+@media (max-width: 640px) {
+  html {
+    font-size: 14px;
+  }
+
+  /* Réduire les animations sur mobile pour la performance */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}
+
+/* ============================================================================
+   PRINT STYLES
+   ============================================================================ */
+
+@media print {
+  body {
+    background: white !important;
+    color: black !important;
+  }
+
+  .no-print {
+    display: none !important;
+  }
+
+  a {
+    color: blue !important;
+    text-decoration: underline !important;
+  }
+}
+
+/* ============================================================================
+   ACCESSIBILITY
+   ============================================================================ */
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* High contrast mode */
+@media (prefers-contrast: high) {
+  :root {
+    --nx-border-dim: var(--nx-text-muted);
+    --nx-text-dim: var(--nx-text-muted);
+  }
+}
+
+/* Screen reader only */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+/* Focus visible only (pas de focus ring au clic souris) */
+.focus-visible-only:focus:not(:focus-visible) {
+  outline: none;
+}
