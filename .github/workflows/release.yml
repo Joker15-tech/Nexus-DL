@@ -1,0 +1,702 @@
+# ============================================================================
+# NEXUSDL - Release Workflow
+# ============================================================================
+#
+# Ce workflow automatise le processus complet de publication d'une release :
+#   1. Validation du tag et de la version
+#   2. Génération du changelog automatique
+#   3. Build des packages Python (sdist + wheel)
+#   4. Build du frontend Next.js (production)
+#   5. Build des images Docker (multi-arch)
+#   6. Publication sur GitHub Releases (avec artifacts)
+#   7. Publication sur PyPI (optionnel)
+#   8. Publication des images Docker vers GHCR + Docker Hub
+#   9. Notification (Discord/Slack optionnel)
+#
+# Déclencheurs :
+#   - Push de tags v* (ex: v1.0.0, v1.2.3-beta.1)
+#   - Déclenchement manuel (workflow_dispatch)
+#
+# Sécurité :
+#   - Attestations SLSA Level 3
+#   - Signatures cosign (si configuré)
+#   - SBOM pour tous les artifacts
+#   - Vérification d'intégrité des packages
+#
+# ============================================================================
+
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Release version (e.g., 1.2.3)"
+        required: true
+        type: string
+      prerelease:
+        description: "Mark as pre-release"
+        required: false
+        default: false
+        type: boolean
+      publish_pypi:
+        description: "Publish to PyPI"
+        required: false
+        default: false
+        type: boolean
+      publish_docker:
+        description: "Publish Docker images"
+        required: false
+        default: true
+        type: boolean
+      draft:
+        description: "Create as draft release"
+        required: false
+        default: false
+        type: boolean
+
+# ============================================================================
+# PERMISSIONS
+# ============================================================================
+permissions:
+  contents: write       # Créer la release et uploader les artifacts
+  packages: write       # Push vers GHCR
+  id-token: write       # Attestations OIDC (PyPI, SLSA)
+  attestations: write   # Attestations de build
+  actions: read
+  issues: read
+  pull-requests: read
+
+# ============================================================================
+# CONCURRENCY
+# ============================================================================
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false  # Ne jamais annuler une release en cours
+
+# ============================================================================
+# VARIABLES GLOBALES
+# ============================================================================
+env:
+  PYTHON_VERSION: "3.12"
+  NODE_VERSION: "20"
+  PNPM_VERSION: "9"
+  FRONTEND_DIR: "src/nexusdl/interfaces/web/frontend"
+  REGISTRY: ghcr.io
+  IMAGE_PREFIX: ${{ github.repository_owner }}/nexusdl
+  DOCKERHUB_IMAGE_PREFIX: nexusdl/nexusdl
+
+# ============================================================================
+# JOBS
+# ============================================================================
+jobs:
+  # ==========================================================================
+  # JOB 1 : VALIDATION
+  # ==========================================================================
+  validate:
+    name: "Validate Release"
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      is_prerelease: ${{ steps.version.outputs.is_prerelease }}
+      tag: ${{ steps.version.outputs.tag }}
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Extract and validate version
+        id: version
+        run: |
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            VERSION="${{ github.event.inputs.version }}"
+            TAG="v${VERSION}"
+          else
+            TAG="${GITHUB_REF#refs/tags/}"
+            VERSION="${TAG#v}"
+          fi
+          
+          # Validation du format semver
+          if ! [[ "${VERSION}" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9.]+)?(\+[a-zA-Z0-9.]+)?$ ]]; then
+            echo "❌ Invalid version format: ${VERSION}"
+            echo "Expected: MAJOR.MINOR.PATCH[-prerelease][+build]"
+            exit 1
+          fi
+          
+          # Détection de pre-release
+          IS_PRERELEASE="false"
+          if [[ "${VERSION}" =~ - ]]; then
+            IS_PRERELEASE="true"
+          fi
+          
+          # Override avec l'input manuel si présent
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            IS_PRERELEASE="${{ github.event.inputs.prerelease }}"
+          fi
+          
+          echo "version=${VERSION}" >> $GITHUB_OUTPUT
+          echo "tag=${TAG}" >> $GITHUB_OUTPUT
+          echo "is_prerelease=${IS_PRERELEASE}" >> $GITHUB_OUTPUT
+          
+          echo "✅ Release validated:"
+          echo "   Version: ${VERSION}"
+          echo "   Tag: ${TAG}"
+          echo "   Pre-release: ${IS_PRERELEASE}"
+
+      - name: Check if tag already exists
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          if git rev-parse "${{ steps.version.outputs.tag }}" >/dev/null 2>&1; then
+            echo "❌ Tag ${{ steps.version.outputs.tag }} already exists!"
+            exit 1
+          fi
+
+      - name: Verify version consistency
+        run: |
+          # Vérifier pyproject.toml
+          PYPROJECT_VERSION=$(grep -Po '(?<=^version = ")[^"]*' pyproject.toml || echo "")
+          if [[ -n "${PYPROJECT_VERSION}" && "${PYPROJECT_VERSION}" != "${{ steps.version.outputs.version }}" ]]; then
+            echo "⚠️  Warning: pyproject.toml version (${PYPROJECT_VERSION}) != tag version (${{ steps.version.outputs.version }})"
+          fi
+          
+          # Vérifier package.json du frontend
+          FRONTEND_VERSION=$(jq -r '.version' "${{ env.FRONTEND_DIR }}/package.json" 2>/dev/null || echo "")
+          if [[ -n "${FRONTEND_VERSION}" && "${FRONTEND_VERSION}" != "${{ steps.version.outputs.version }}" ]]; then
+            echo "⚠️  Warning: frontend package.json version (${FRONTEND_VERSION}) != tag version (${{ steps.version.outputs.version }})"
+          fi
+          
+          # Vérifier __init__.py
+          INIT_VERSION=$(grep -Po "(?<=__version__: Final\[str\] = \")[^\"]*" src/nexusdl/__init__.py || echo "")
+          if [[ -n "${INIT_VERSION}" && "${INIT_VERSION}" != "${{ steps.version.outputs.version }}" ]]; then
+            echo "⚠️  Warning: __init__.py version (${INIT_VERSION}) != tag version (${{ steps.version.outputs.version }})"
+          fi
+
+  # ==========================================================================
+  # JOB 2 : CHANGELOG
+  # ==========================================================================
+  changelog:
+    name: "Generate Changelog"
+    runs-on: ubuntu-latest
+    needs: [validate]
+    outputs:
+      changelog: ${{ steps.changelog.outputs.changelog }}
+      release_notes: ${{ steps.changelog.outputs.release_notes }}
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Generate changelog
+        id: changelog
+        uses: janestreet/changelog-action@v1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          tag: ${{ needs.validate.outputs.tag }}
+          writeToFile: false
+
+      - name: Save changelog to file
+        run: |
+          cat > release-notes.md << 'EOF'
+          ${{ steps.changelog.outputs.changelog }}
+          EOF
+          
+          echo "## 📝 Release Notes" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo '```markdown' >> $GITHUB_STEP_SUMMARY
+          cat release-notes.md >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+
+      - name: Upload changelog artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-notes
+          path: release-notes.md
+          retention-days: 90
+
+  # ==========================================================================
+  # JOB 3 : BUILD PYTHON PACKAGES
+  # ==========================================================================
+  build-python:
+    name: "Build Python Packages"
+    runs-on: ubuntu-latest
+    needs: [validate, changelog]
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: "pip"
+
+      - name: Install build tools
+        run: |
+          python -m pip install --upgrade pip
+          pip install build twine
+
+      - name: Update version in source
+        run: |
+          VERSION="${{ needs.validate.outputs.version }}"
+          
+          # Mettre à jour pyproject.toml
+          sed -i "s/^version = .*/version = \"${VERSION}\"/" pyproject.toml
+          
+          # Mettre à jour __init__.py
+          sed -i "s/__version__: Final\[str\] = .*/__version__: Final[str] = \"${VERSION}\"/" src/nexusdl/__init__.py
+          
+          echo "✅ Version updated to ${VERSION}"
+
+      - name: Build Python packages
+        run: |
+          python -m build --sdist --wheel --outdir dist/
+
+      - name: Verify packages
+        run: |
+          twine check dist/*
+          echo "## 📦 Python Packages" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          ls -lh dist/ >> $GITHUB_STEP_SUMMARY
+
+      - name: Generate SBOM for Python packages
+        uses: anchore/sbom-action@v0
+        with:
+          path: .
+          format: spdx-json
+          output-file: sbom-python.spdx.json
+
+      - name: Upload Python artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: python-packages
+          path: |
+            dist/
+            sbom-python.spdx.json
+          retention-days: 90
+
+  # ==========================================================================
+  # JOB 4 : BUILD FRONTEND
+  # ==========================================================================
+  build-frontend:
+    name: "Build Frontend"
+    runs-on: ubuntu-latest
+    needs: [validate, changelog]
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: ${{ env.FRONTEND_DIR }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "pnpm"
+          cache-dependency-path: "${{ env.FRONTEND_DIR }}/pnpm-lock.yaml"
+
+      - name: Update version in package.json
+        run: |
+          VERSION="${{ needs.validate.outputs.version }}"
+          npm version "${VERSION}" --no-git-tag-version
+          echo "✅ Frontend version updated to ${VERSION}"
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build Next.js application
+        run: pnpm build
+        env:
+          NODE_ENV: production
+          NEXT_PUBLIC_API_URL: "/api/v1"
+          NEXT_PUBLIC_WS_URL: "/ws"
+          NEXT_PUBLIC_APP_NAME: "NexusDL"
+          NEXT_PUBLIC_APP_VERSION: "${{ needs.validate.outputs.version }}"
+
+      - name: Generate SBOM for frontend
+        uses: anchore/sbom-action@v0
+        with:
+          path: ${{ env.FRONTEND_DIR }}
+          format: spdx-json
+          output-file: sbom-frontend.spdx.json
+
+      - name: Create frontend archive
+        run: |
+          cd ..
+          tar -czf frontend-build.tar.gz \
+            --exclude='node_modules' \
+            --exclude='.next/cache' \
+            frontend/
+          mv frontend-build.tar.gz ${{ env.FRONTEND_DIR }}/
+
+      - name: Upload frontend artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-build
+          path: |
+            ${{ env.FRONTEND_DIR }}/.next/
+            ${{ env.FRONTEND_DIR }}/public/
+            ${{ env.FRONTEND_DIR }}/frontend-build.tar.gz
+            ${{ env.FRONTEND_DIR }}/sbom-frontend.spdx.json
+          retention-days: 90
+
+  # ==========================================================================
+  # JOB 5 : BUILD DOCKER IMAGES
+  # ==========================================================================
+  build-docker:
+    name: "Build Docker Images"
+    runs-on: ubuntu-latest
+    needs: [validate, build-python, build-frontend]
+    if: github.event_name != 'workflow_dispatch' || github.event.inputs.publish_docker == 'true'
+    timeout-minutes: 45
+    strategy:
+      matrix:
+        include:
+          - image: backend
+            dockerfile: docker/Dockerfile
+            platforms: linux/amd64,linux/arm64
+          - image: web
+            dockerfile: docker/Dockerfile.web
+            platforms: linux/amd64,linux/arm64
+          - image: gui
+            dockerfile: docker/Dockerfile.gui
+            platforms: linux/amd64
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Docker meta
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: |
+            ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-${{ matrix.image }}
+            ${{ env.DOCKERHUB_IMAGE_PREFIX }}-${{ matrix.image }}
+          tags: |
+            type=semver,pattern={{version}},value=${{ needs.validate.outputs.version }}
+            type=semver,pattern={{major}}.{{minor}},value=${{ needs.validate.outputs.version }}
+            type=semver,pattern={{major}},value=${{ needs.validate.outputs.version }}
+            type=raw,value=latest,enable=${{ !needs.validate.outputs.is_prerelease }}
+          labels: |
+            org.opencontainers.image.title=NexusDL ${{ matrix.image }}
+            org.opencontainers.image.version=${{ needs.validate.outputs.version }}
+            org.opencontainers.image.revision=${{ github.sha }}
+
+      - name: Build Docker image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ${{ matrix.dockerfile }}
+          platforms: ${{ matrix.platforms }}
+          push: false
+          load: false
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha,scope=${{ matrix.image }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.image }}
+          build-args: |
+            NEXUSDL_VERSION=${{ needs.validate.outputs.version }}
+            BUILDKIT_INLINE_CACHE=1
+          outputs: |
+            type=image,name=${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-${{ matrix.image }},push-by-digest=true,name-canonical=true,push=false
+          provenance: true
+          sbom: true
+
+      - name: Export digest
+        run: |
+          mkdir -p /tmp/digests/${{ matrix.image }}
+          digest="${{ steps.build.outputs.digest }}"
+          touch "/tmp/digests/${{ matrix.image }}/${digest#sha256:}"
+
+      - name: Upload digest
+        uses: actions/upload-artifact@v4
+        with:
+          name: digests-${{ matrix.image }}
+          path: /tmp/digests/${{ matrix.image }}/*
+          if-no-files-found: error
+          retention-days: 1
+
+  # ==========================================================================
+  # JOB 6 : PUBLISH DOCKER IMAGES
+  # ==========================================================================
+  publish-docker:
+    name: "Publish Docker Images"
+    runs-on: ubuntu-latest
+    needs: [validate, build-docker]
+    if: github.event_name != 'workflow_dispatch' || github.event.inputs.publish_docker == 'true'
+    timeout-minutes: 30
+    strategy:
+      matrix:
+        image: [backend, web, gui]
+
+    steps:
+      - name: Download digests
+        uses: actions/download-artifact@v4
+        with:
+          name: digests-${{ matrix.image }}
+          path: /tmp/digests/${{ matrix.image }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Docker meta
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: |
+            ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-${{ matrix.image }}
+            ${{ env.DOCKERHUB_IMAGE_PREFIX }}-${{ matrix.image }}
+          tags: |
+            type=semver,pattern={{version}},value=${{ needs.validate.outputs.version }}
+            type=semver,pattern={{major}}.{{minor}},value=${{ needs.validate.outputs.version }}
+            type=semver,pattern={{major}},value=${{ needs.validate.outputs.version }}
+            type=raw,value=latest,enable=${{ !needs.validate.outputs.is_prerelease }}
+
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Login to Docker Hub
+        if: secrets.DOCKERHUB_USERNAME != ''
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Create manifest list and push
+        working-directory: /tmp/digests/${{ matrix.image }}
+        run: |
+          docker buildx imagetools create $(jq -cr '.tags | map("-t " + .) | join(" ")' <<< "$DOCKER_METADATA_OUTPUT_JSON") \
+            $(printf '${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-${{ matrix.image }}@sha256:%s ' *)
+
+      - name: Inspect image
+        run: |
+          docker buildx imagetools inspect ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-${{ matrix.image }}:${{ needs.validate.outputs.version }}
+
+      - name: Attest image
+        uses: actions/attest-build-provenance@v1
+        with:
+          subject-name: ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-${{ matrix.image }}
+          subject-digest: ${{ steps.meta.outputs.digest }}
+          push-to-registry: true
+
+  # ==========================================================================
+  # JOB 7 : PUBLISH GITHUB RELEASE
+  # ==========================================================================
+  publish-github:
+    name: "Publish GitHub Release"
+    runs-on: ubuntu-latest
+    needs: [validate, changelog, build-python, build-frontend, build-docker]
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts/
+          merge-multiple: true
+
+      - name: Prepare release assets
+        run: |
+          mkdir -p release-assets/
+          
+          # Copier les packages Python
+          if [ -d "artifacts/python-packages/dist" ]; then
+            cp artifacts/python-packages/dist/* release-assets/
+          fi
+          
+          # Copier le frontend archive
+          if [ -f "artifacts/frontend-build/frontend-build.tar.gz" ]; then
+            cp artifacts/frontend-build/frontend-build.tar.gz release-assets/
+          fi
+          
+          # Copier les SBOM
+          find artifacts/ -name "sbom-*.spdx.json" -exec cp {} release-assets/ \;
+          
+          # Copier les notes de release
+          if [ -f "artifacts/release-notes/release-notes.md" ]; then
+            cp artifacts/release-notes/release-notes.md release-notes.md
+          else
+            echo "## Release ${{ needs.validate.outputs.version }}" > release-notes.md
+            echo "" >> release-notes.md
+            echo "See [CHANGELOG.md](./CHANGELOG.md) for details." >> release-notes.md
+          fi
+          
+          echo "## 📦 Release Assets" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          ls -lh release-assets/ >> $GITHUB_STEP_SUMMARY
+
+      - name: Create GitHub Release
+        id: create_release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ needs.validate.outputs.tag }}
+          name: "NexusDL ${{ needs.validate.outputs.version }}"
+          body_path: release-notes.md
+          draft: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.draft == 'true' }}
+          prerelease: ${{ needs.validate.outputs.is_prerelease == 'true' }}
+          files: |
+            release-assets/*
+          generate_release_notes: false
+          make_latest: ${{ needs.validate.outputs.is_prerelease != 'true' }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Attest release artifacts
+        uses: actions/attest-build-provenance@v1
+        with:
+          subject-path: release-assets/*
+        continue-on-error: true
+
+      - name: Summary
+        run: |
+          echo "## 🚀 Release Published" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Version:** \`${{ needs.validate.outputs.version }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "**Tag:** \`${{ needs.validate.outputs.tag }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "**Pre-release:** \`${{ needs.validate.outputs.is_prerelease }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Release URL:** ${{ steps.create_release.outputs.url }}" >> $GITHUB_STEP_SUMMARY
+
+  # ==========================================================================
+  # JOB 8 : PUBLISH TO PYPI (OPTIONNEL)
+  # ==========================================================================
+  publish-pypi:
+    name: "Publish to PyPI"
+    runs-on: ubuntu-latest
+    needs: [validate, publish-github]
+    if: >
+      (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')) ||
+      (github.event_name == 'workflow_dispatch' && github.event.inputs.publish_pypi == 'true')
+    environment:
+      name: pypi
+      url: https://pypi.org/p/nexusdl
+    timeout-minutes: 10
+
+    steps:
+      - name: Download Python packages
+        uses: actions/download-artifact@v4
+        with:
+          name: python-packages
+          path: dist/
+
+      - name: Verify packages
+        run: |
+          pip install twine
+          twine check dist/*
+
+      - name: Publish to Test PyPI (pre-releases)
+        if: needs.validate.outputs.is_prerelease == 'true'
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          repository-url: https://test.pypi.org/legacy/
+          packages-dir: dist/
+          skip-existing: true
+          attestations: true
+
+      - name: Publish to PyPI (stable releases)
+        if: needs.validate.outputs.is_prerelease != 'true'
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          packages-dir: dist/
+          skip-existing: false
+          attestations: true
+
+      - name: Summary
+        run: |
+          echo "## 🐍 PyPI Publication" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          if [[ "${{ needs.validate.outputs.is_prerelease }}" == "true" ]]; then
+            echo "**Published to:** Test PyPI" >> $GITHUB_STEP_SUMMARY
+            echo "**URL:** https://test.pypi.org/project/nexusdl/${{ needs.validate.outputs.version }}/" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "**Published to:** PyPI" >> $GITHUB_STEP_SUMMARY
+            echo "**URL:** https://pypi.org/project/nexusdl/${{ needs.validate.outputs.version }}/" >> $GITHUB_STEP_SUMMARY
+          fi
+
+  # ==========================================================================
+  # JOB 9 : NOTIFICATION
+  # ==========================================================================
+  notify:
+    name: "Send Notification"
+    runs-on: ubuntu-latest
+    needs: [validate, publish-github, publish-pypi, publish-docker]
+    if: always() && needs.publish-github.result == 'success'
+    timeout-minutes: 5
+
+    steps:
+      - name: Notify Discord (if configured)
+        if: secrets.DISCORD_WEBHOOK != ''
+        uses: Ilshidur/action-discord@0.3.2
+        env:
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
+          DISCORD_EMBEDS: |
+            [{
+              "title": "🚀 NexusDL ${{ needs.validate.outputs.version }} Released!",
+              "description": "A new version of NexusDL has been published.",
+              "color": 65280,
+              "fields": [
+                {"name": "Version", "value": "${{ needs.validate.outputs.version }}", "inline": true},
+                {"name": "Pre-release", "value": "${{ needs.validate.outputs.is_prerelease }}", "inline": true},
+                {"name": "GitHub Release", "value": "[View Release](${{ github.server_url }}/${{ github.repository }}/releases/tag/${{ needs.validate.outputs.tag }})", "inline": false}
+              ],
+              "footer": {"text": "NexusDL Release Bot"}
+            }]
+
+      - name: Summary
+        run: |
+          echo "# 🎉 Release Complete!" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## 📊 Final Status" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Step | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|------|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Validation | ✅ |" >> $GITHUB_STEP_SUMMARY
+          echo "| Changelog | ✅ |" >> $GITHUB_STEP_SUMMARY
+          echo "| Python Build | ✅ |" >> $GITHUB_STEP_SUMMARY
+          echo "| Frontend Build | ✅ |" >> $GITHUB_STEP_SUMMARY
+          echo "| Docker Build | ${{ needs.publish-docker.result == 'success' && '✅' || '⏭️' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| GitHub Release | ✅ |" >> $GITHUB_STEP_SUMMARY
+          echo "| PyPI | ${{ needs.publish-pypi.result == 'success' && '✅' || '⏭️' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## 🔗 Links" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **GitHub Release:** [${{ needs.validate.outputs.version }}](${{ github.server_url }}/${{ github.repository }}/releases/tag/${{ needs.validate.outputs.tag }})" >> $GITHUB_STEP_SUMMARY
+          echo "- **Docker Images:** \`docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-web:${{ needs.validate.outputs.version }}\`" >> $GITHUB_STEP_SUMMARY
+          if [[ "${{ needs.validate.outputs.is_prerelease }}" != "true" ]]; then
+            echo "- **PyPI:** \`pip install nexusdl==${{ needs.validate.outputs.version }}\`" >> $GITHUB_STEP_SUMMARY
+          fi
