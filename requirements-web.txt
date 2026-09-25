@@ -32,7 +32,7 @@ bcrypt==4.2.1
 
 # --- Rate limiting ---
 slowapi==0.1.9
-limits==3.13.0
+limits==5.8.0
 deprecated==1.2.15
 wrapt==1.17.0
 
