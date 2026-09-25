@@ -1,0 +1,93 @@
+# ============================================================================
+# NEXUSDL - Code Owners Configuration
+# ============================================================================
+#
+# Ce fichier définit les propriétaires de code pour le dépôt Nexus-DL.
+# Lorsqu'une Pull Request modifie des fichiers correspondant à un motif,
+# GitHub assigne automatiquement les propriétaires listés ici comme réviseurs.
+#
+# Syntaxe :
+#   <motif_de_fichier>    <propriétaire_github>
+#
+# Notes :
+#   - Remplacez "@Joker15-tech" par votre nom d'utilisateur GitHub réel 
+#     ou par une équipe GitHub (ex: "@nexusdl/core" ou "@nexusdl/frontend").
+#   - Les motifs sont évalués dans l'ordre, le dernier motif correspondant 
+#     l'emporte.
+#   - Documentation officielle : https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+#
+# ============================================================================
+
+# ============================================================================
+# PROPRIÉTAIRE PAR DÉFAUT
+# ============================================================================
+# S'applique à tous les fichiers du dépôt sauf si un motif plus spécifique 
+# est défini ci-dessous.
+*                               @Joker15-tech
+
+# ============================================================================
+# CORE & ARCHITECTURE
+# ============================================================================
+# Logique métier principale, configuration, événements, gestion des chemins, etc.
+/src/nexusdl/core/              @Joker15-tech
+
+# ============================================================================
+# INTERFACES UTILISATEUR
+# ============================================================================
+# Interface en ligne de commande (Textual)
+/src/nexusdl/interfaces/cli/    @Joker15-tech
+
+# Interface graphique desktop (PyQt6)
+/src/nexusdl/interfaces/gui/    @Joker15-tech
+
+# Interface Web - Backend (FastAPI, routeurs, middlewares, schémas)
+/src/nexusdl/interfaces/web/backend/ @Joker15-tech
+
+# Interface Web - Frontend (Next.js, React, Tailwind, composants)
+/src/nexusdl/interfaces/web/frontend/ @Joker15-tech
+
+# ============================================================================
+# PARSEURS & SOURCES DE DONNÉES
+# ============================================================================
+# Logique de scraping et d'extraction pour les différents sites de manga
+/src/nexusdl/parsers/           @Joker15-tech
+
+# ============================================================================
+# SYSTÈME DE PLUGINS
+# ============================================================================
+# API de plugins, hooks et chargeur de plugins
+/src/nexusdl/plugins/           @Joker15-tech
+
+# ============================================================================
+# INFRASTRUCTURE & DÉPLOIEMENT
+# ============================================================================
+# Configuration Docker et docker-compose
+/docker/                        @Joker15-tech
+/Dockerfile                     @Joker15-tech
+/docker-compose.yml             @Joker15-tech
+
+# Configuration Netlify et déploiement frontend
+/netlify.toml                   @Joker15-tech
+
+# Workflows GitHub Actions (CI/CD, dependabot, etc.)
+/.github/workflows/             @Joker15-tech
+/.github/dependabot.yml         @Joker15-tech
+/.github/CODEOWNERS             @Joker15-tech
+
+# ============================================================================
+# DOCUMENTATION & CONFIGURATION GLOBALE
+# ============================================================================
+# Documentation principale, guides d'installation, changelog
+/docs/                          @Joker15-tech
+/README.md                      @Joker15-tech
+/CHANGELOG.md                   @Joker15-tech
+/CONTRIBUTING.md                @Joker15-tech
+
+# Fichiers de configuration Python et Node.js à la racine
+/pyproject.toml                 @Joker15-tech
+/requirements*.txt              @Joker15-tech
+/src/nexusdl/interfaces/web/frontend/package.json @Joker15-tech
+/src/nexusdl/interfaces/web/frontend/pnpm-lock.yaml @Joker15-tech
+/src/nexusdl/interfaces/web/frontend/tsconfig.json @Joker15-tech
+/src/nexusdl/interfaces/web/frontend/tailwind.config.js @Joker15-tech
+/src/nexusdl/interfaces/web/frontend/next.config.js @Joker15-tech
