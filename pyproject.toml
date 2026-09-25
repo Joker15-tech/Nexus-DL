@@ -219,7 +219,7 @@ dev = [
 
     # Build & release
     "build>=1.2,<2.0",
-    "twine>=6.0,<7.0",
+    "twine>=6.0,<8.0",
     "hatch>=1.14,<2.0",
     "bump-my-version>=0.29,<1.0",
 
