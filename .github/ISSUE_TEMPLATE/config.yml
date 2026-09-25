@@ -1,0 +1,32 @@
+# ============================================================================
+# NEXUSDL - Issue Templates Configuration
+# ============================================================================
+#
+# Configuration des templates d'issues pour le dépôt NexusDL.
+# Ce fichier définit les templates disponibles et les options supplémentaires.
+#
+# Documentation : https://docs.github.com/en/communities/using-templates-to-encourage-useful-issues-and-pull-requests/configuring-issue-templates-for-your-repository
+# ============================================================================
+
+blank_issues_enabled: false
+
+contact_links:
+  - name: "📖 Documentation"
+    url: https://docs.nexusdl.dev
+    about: "Consultez la documentation officielle avant de poser une question"
+  
+  - name: "💬 Discord Community"
+    url: https://discord.gg/nexusdl
+    about: "Rejoignez notre Discord pour discuter avec la communauté"
+  
+  - name: "📧 Contact"
+    url: mailto:contact@nexusdl.dev
+    about: "Contactez-nous directement pour les questions privées"
+  
+  - name: "💡 Discussions"
+    url: https://github.com/nexusdl/nexusdl/discussions
+    about: "Participez aux discussions générales sur le projet"
+  
+  - name: "🔒 Signaler une vulnérabilité de sécurité"
+    url: https://github.com/nexusdl/nexusdl/security/advisories/new
+    about: "Signalez une vulnérabilité de sécurité de manière confidentielle"
