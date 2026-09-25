@@ -1,0 +1,988 @@
+```markdown
+# ============================================================================
+# NEXUSDL - Instructions d'Installation Complètes
+# ============================================================================
+#
+# Ce guide couvre l'installation et le déploiement de NexusDL pour :
+#   1. CLI (Interface en ligne de commande - Textual)
+#   2. GUI (Interface graphique - PyQt6)
+#   3. Web (Interface web - FastAPI + Next.js)
+#   4. Netlify (Déploiement frontend)
+#
+# ============================================================================
+
+# TABLE DES MATIÈRES
+
+1. Prérequis Système
+2. Installation de Base (Core)
+3. Installation CLI
+4. Installation GUI
+5. Installation Web
+6. Configuration
+7. Lancement
+8. Déploiement Netlify
+9. Docker
+10. Dépannage
+11. Exemples d'Utilisation
+
+# ============================================================================
+# 1. PRÉREQUIS SYSTÈME
+# ============================================================================
+
+## Python
+- Version : 3.11 ou supérieure
+- Vérification : python --version
+- Installation : https://www.python.org/downloads/
+
+## Node.js (pour Web et Netlify)
+- Version : 18.17.0 ou supérieure
+- Vérification : node --version
+- Installation : https://nodejs.org/
+
+## Package Managers
+- pip (inclus avec Python)
+- pnpm (recommandé) ou npm
+- Installation pnpm : npm install -g pnpm
+
+## Git
+- Pour cloner le dépôt
+- Installation : https://git-scm.com/downloads
+
+## Systèmes d'Exploitation Supportés
+- Linux (Ubuntu 20.04+, Fedora 36+, Arch)
+- macOS (12 Monterey ou supérieur)
+- Windows (10/11)
+
+# ============================================================================
+# 2. INSTALLATION DE BASE (CORE)
+# ============================================================================
+
+## Étape 1 : Cloner le dépôt
+
+```bash
+git clone https://github.com/nexusdl/nexusdl.git
+cd nexusdl
+```
+
+## Étape 2 : Créer un environnement virtuel (recommandé)
+
+```bash
+# Linux/macOS
+python -m venv venv
+source venv/bin/activate
+
+# Windows
+python -m venv venv
+venv\Scripts\activate
+```
+
+## Étape 3 : Installer les dépendances Python de base
+
+```bash
+# Dépendances minimales
+pip install -r requirements.txt
+
+# Ou avec toutes les dépendances
+pip install -r requirements-all.txt
+```
+
+## Étape 4 : Installer NexusDL en mode développement
+
+```bash
+pip install -e .
+```
+
+## Vérification
+
+```bash
+nexusdl --version
+# Devrait afficher : NexusDL 0.1.0
+```
+
+# ============================================================================
+# 3. INSTALLATION CLI (Interface Ligne de Commande)
+# ============================================================================
+
+## Prérequis
+- Python 3.11+
+- Dépendances de base installées
+
+## Installation
+
+```bash
+# Installer Textual (framework TUI)
+pip install textual
+
+# Ou installer toutes les dépendances CLI
+pip install -r requirements-cli.txt
+```
+
+## Vérification
+
+```bash
+# Vérifier que Textual est installé
+python -c "import textual; print(textual.__version__)"
+```
+
+## Lancement
+
+```bash
+# Lancer l'interface CLI
+nexusdl --cli
+
+# Ou directement
+python -m nexusdl --cli
+
+# Avec options
+nexusdl --cli --debug
+nexusdl --cli --config /path/to/config.yaml
+nexusdl --cli --lang fr
+```
+
+## Utilisation
+
+L'interface CLI fournit :
+- Navigation au clavier (flèches, Tab, Enter)
+- Recherche de mangas
+- Gestion des téléchargements
+- Bibliothèque locale
+- Configuration
+- Logs en temps réel
+
+Raccourcis clavier :
+- q : Quitter
+- ? : Aide
+- / : Rechercher
+- F1 : Écran d'aide
+- F2 : Bibliothèque
+- F3 : Téléchargements
+- F4 : Paramètres
+
+# ============================================================================
+# 4. INSTALLATION GUI (Interface Graphique)
+# ============================================================================
+
+## Prérequis
+- Python 3.11+
+- Dépendances de base installées
+- Système avec display (X11, Wayland, Windows, macOS)
+
+## Installation
+
+```bash
+# Installer PyQt6
+pip install PyQt6
+
+# Ou installer toutes les dépendances GUI
+pip install -r requirements-gui.txt
+```
+
+## Dépendances Système (Linux)
+
+```bash
+# Ubuntu/Debian
+sudo apt-get install -y \
+    libgl1-mesa-glx \
+    libegl1-mesa \
+    libxkbcommon0 \
+    libxcb-icccm4 \
+    libxcb-image0 \
+    libxcb-keysyms1 \
+    libxcb-randr0 \
+    libxcb-render-util0 \
+    libxcb-xinerama0 \
+    libxcb-xfixes0
+
+# Fedora
+sudo dnf install -y \
+    mesa-libGL \
+    mesa-libEGL \
+    libxkbcommon \
+    xcb-util-wm \
+    xcb-util-image \
+    xcb-util-keysyms \
+    xcb-util-renderutil
+
+# Arch Linux
+sudo pacman -S --needed \
+    mesa \
+    libxkbcommon \
+    xcb-util-wm \
+    xcb-util-image \
+    xcb-util-keysyms \
+    xcb-util-renderutil
+```
+
+## Vérification
+
+```bash
+# Vérifier que PyQt6 est installé
+python -c "import PyQt6; print('PyQt6 OK')"
+
+# Tester l'affichage (Linux)
+python -c "from PyQt6.QtWidgets import QApplication; app = QApplication([]); print('Display OK')"
+```
+
+## Lancement
+
+```bash
+# Lancer l'interface GUI
+nexusdl --gui
+
+# Ou directement
+python -m nexusdl --gui
+
+# Avec options
+nexusdl --gui --debug
+nexusdl --gui --config /path/to/config.yaml
+```
+
+## Utilisation
+
+L'interface GUI fournit :
+- Interface graphique moderne
+- Thème cyberpunk néon
+- Navigation par onglets
+- Drag & drop
+- Notifications système
+- Raccourcis clavier
+
+# ============================================================================
+# 5. INSTALLATION WEB (Interface Web)
+# ============================================================================
+
+## Architecture
+
+L'interface web comprend deux composants :
+1. **Backend** : API REST FastAPI (Python)
+2. **Frontend** : Interface Next.js (Node.js)
+
+## 5.1 Installation Backend
+
+### Prérequis
+- Python 3.11+
+- Dépendances de base installées
+
+### Installation
+
+```bash
+# Installer FastAPI et Uvicorn
+pip install fastapi uvicorn[standard]
+
+# Ou installer toutes les dépendances web
+pip install -r requirements-web.txt
+
+# Dépendances supplémentaires recommandées
+pip install python-multipart pyjwt bcrypt
+```
+
+### Vérification
+
+```bash
+# Vérifier que FastAPI est installé
+python -c "import fastapi; print(fastapi.__version__)"
+
+# Vérifier qu'Uvicorn est installé
+python -c "import uvicorn; print(uvicorn.__version__)"
+```
+
+### Lancement Backend
+
+```bash
+# Lancer le backend seul
+nexusdl --web
+
+# Ou avec options
+nexusdl --web --host 0.0.0.0 --port 8000
+
+# Mode développement (avec rechargement automatique)
+nexusdl --web --reload
+
+# Mode production (plusieurs workers)
+nexusdl --web --workers 4
+
+# Ou directement avec Python
+python -m nexusdl.interfaces.web.backend.main
+```
+
+### Accès Backend
+
+- API : http://localhost:8000/api/v1
+- Documentation Swagger : http://localhost:8000/docs
+- Documentation ReDoc : http://localhost:8000/redoc
+- Health check : http://localhost:8000/health
+
+## 5.2 Installation Frontend
+
+### Prérequis
+- Node.js 18.17+
+- pnpm (recommandé) ou npm
+
+### Installation
+
+```bash
+# Naviguer vers le dossier frontend
+cd src/nexusdl/interfaces/web/frontend
+
+# Installer pnpm (si pas déjà fait)
+npm install -g pnpm
+
+# Installer les dépendances
+pnpm install
+
+# Ou avec npm
+npm install
+```
+
+### Configuration
+
+```bash
+# Copier le fichier d'environnement
+cp .env.example .env.local
+
+# Éditer .env.local
+nano .env.local
+```
+
+Contenu de .env.local :
+
+```bash
+# URL de l'API backend
+NEXT_PUBLIC_API_URL=http://localhost:8000/api/v1
+
+# URL du WebSocket backend
+NEXT_PUBLIC_WS_URL=ws://localhost:8000/ws
+
+# Nom de l'application
+NEXT_PUBLIC_APP_NAME=NexusDL
+
+# Version de l'application
+NEXT_PUBLIC_APP_VERSION=0.1.0
+```
+
+### Lancement Frontend (Mode Développement)
+
+```bash
+# Depuis le dossier frontend
+pnpm dev
+
+# Ou avec npm
+npm run dev
+```
+
+Le frontend sera accessible sur : http://localhost:3000
+
+### Build Frontend (Mode Production)
+
+```bash
+# Construire le frontend
+pnpm build
+
+# Ou avec npm
+npm run build
+
+# Démarrer le serveur de production
+pnpm start
+
+# Ou avec npm
+npm start
+```
+
+### Analyse du Bundle
+
+```bash
+# Analyser la taille du bundle
+pnpm analyze
+
+# Ou avec npm
+npm run analyze
+```
+
+## 5.3 Lancement Combiné (Backend + Frontend)
+
+```bash
+# Lancer les deux en même temps
+nexusdl --web --dev
+
+# Ou avec le script Python
+python -m nexusdl.interfaces.web
+```
+
+Cela lancera :
+- Backend sur http://localhost:8000
+- Frontend sur http://localhost:3000
+
+# ============================================================================
+# 6. CONFIGURATION
+# ============================================================================
+
+## Fichier de Configuration
+
+Le fichier de configuration principal est :
+
+```bash
+# Linux/macOS
+~/.config/nexusdl/config.yaml
+
+# Windows
+%APPDATA%\nexusdl\config.yaml
+```
+
+## Création du Fichier de Configuration
+
+```bash
+# Générer un fichier de configuration par défaut
+nexusdl --reset-config
+
+# Ou copier l'exemple
+cp config/config.example.yaml ~/.config/nexusdl/config.yaml
+```
+
+## Configuration Minimale
+
+```yaml
+# ~/.config/nexusdl/config.yaml
+
+app:
+  language: fr
+  theme: cyberpunk
+  timezone: Europe/Paris
+
+download:
+  max_concurrent_tasks: 5
+  max_concurrent_pages: 10
+  default_format: cbz
+  default_quality: original
+  output_dir: ~/manga
+
+library:
+  path: ~/manga-library
+  auto_scan: true
+  scan_interval_minutes: 60
+
+network:
+  timeout: 30
+  max_connections: 100
+  verify_ssl: true
+
+logging:
+  level: INFO
+  format: text
+  file_enabled: true
+```
+
+## Variables d'Environnement
+
+```bash
+# Configuration via variables d'environnement
+export NEXUSDL_CONFIG=/path/to/config.yaml
+export NEXUSDL_LOG_LEVEL=DEBUG
+export NEXUSDL_LANGUAGE=fr
+```
+
+# ============================================================================
+# 7. LANCEMENT
+# ============================================================================
+
+## Lancement Automatique
+
+```bash
+# Détecte et lance la meilleure interface disponible
+nexusdl
+
+# Ou
+python -m nexusdl
+```
+
+Priorité de détection :
+1. GUI (si PyQt6 installé + display disponible)
+2. CLI (si Textual installé)
+3. Web (si FastAPI + Node.js installés)
+
+## Lancement Spécifique
+
+```bash
+# Interface CLI
+nexusdl --cli
+
+# Interface GUI
+nexusdl --gui
+
+# Interface Web
+nexusdl --web
+```
+
+## Options Communes
+
+```bash
+# Afficher la version
+nexusdl --version
+
+# Afficher l'aide
+nexusdl --help
+
+# Mode debug
+nexusdl --debug
+
+# Fichier de configuration personnalisé
+nexusdl --config /path/to/config.yaml
+
+# Langue
+nexusdl --lang fr
+
+# Niveau de log
+nexusdl --log-level DEBUG
+```
+
+## Actions Rapides
+
+```bash
+# Télécharger un manga directement
+nexusdl --download https://mangadex.org/title/12345
+
+# Rechercher des mangas
+nexusdl --search "one piece"
+
+# Lister les sites disponibles
+nexusdl --list-sites
+
+# Afficher les chemins
+nexusdl --show-paths
+
+# Diagnostics
+nexusdl --diagnose
+```
+
+# ============================================================================
+# 8. DÉPLOIEMENT NETLIFY
+# ============================================================================
+
+## Prérequis
+
+- Compte Netlify (gratuit)
+- CLI Netlify installé : `npm install -g netlify-cli`
+- Frontend buildé
+
+## Étape 1 : Build du Frontend
+
+```bash
+cd src/nexusdl/interfaces/web/frontend
+
+# Installer les dépendances
+pnpm install
+
+# Build pour production
+pnpm build
+```
+
+Le build sera généré dans le dossier `.next/` ou `out/` (selon la configuration).
+
+## Étape 2 : Configuration Netlify
+
+### Option A : Via Netlify CLI
+
+```bash
+# Se connecter à Netlify
+netlify login
+
+# Déployer
+netlify deploy
+
+# Pour déployer en production
+netlify deploy --prod
+```
+
+### Option B : Via Netlify Dashboard
+
+1. Aller sur https://app.netlify.com
+2. Cliquer sur "Add new site" → "Deploy manually"
+3. Glisser-déposer le dossier `out/` ou `.next/`
+
+### Option C : Via Git (Recommandé)
+
+1. Pousser le code sur GitHub/GitLab
+2. Connecter le dépôt à Netlify
+3. Configurer les paramètres de build
+
+## Configuration netlify.toml
+
+Créer un fichier `netlify.toml` à la racine du frontend :
+
+```toml
+[build]
+  command = "pnpm build"
+  publish = ".next"
+
+[build.environment]
+  NODE_VERSION = "20"
+  NEXT_PUBLIC_API_URL = "https://api.nexusdl.dev/api/v1"
+  NEXT_PUBLIC_WS_URL = "wss://api.nexusdl.dev/ws"
+
+[[plugins]]
+  package = "@netlify/plugin-nextjs"
+
+[[redirects]]
+  from = "/api/*"
+  to = "https://api.nexusdl.dev/api/v1/:splat"
+  status = 200
+
+[[redirects]]
+  from = "/ws"
+  to = "wss://api.nexusdl.dev/ws"
+  status = 200
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "DENY"
+    X-Content-Type-Options = "nosniff"
+    X-XSS-Protection = "1; mode=block"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+```
+
+## Étape 3 : Configuration du Backend
+
+Le backend doit être déployé séparément (VPS, Heroku, Railway, etc.).
+
+### Variables d'Environnement Backend
+
+```bash
+# API URL publique
+NEXT_PUBLIC_API_URL=https://api.nexusdl.dev/api/v1
+
+# WebSocket URL publique
+NEXT_PUBLIC_WS_URL=wss://api.nexusdl.dev/ws
+```
+
+## Étape 4 : Vérification
+
+```bash
+# Vérifier le déploiement
+netlify status
+
+# Ouvrir le site
+netlify open
+```
+
+## Déploiement Continu
+
+### GitHub Actions
+
+Créer `.github/workflows/netlify-deploy.yml` :
+
+```yaml
+name: Deploy to Netlify
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '20'
+      
+      - name: Install pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 8
+      
+      - name: Install dependencies
+        run: pnpm install
+        working-directory: src/nexusdl/interfaces/web/frontend
+      
+      - name: Build
+        run: pnpm build
+        working-directory: src/nexusdl/interfaces/web/frontend
+      
+      - name: Deploy to Netlify
+        uses: nwtgck/actions-netlify@v2
+        with:
+          publish-dir: src/nexusdl/interfaces/web/frontend/.next
+          production-branch: main
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          deploy-message: "Deploy from GitHub Actions"
+        env:
+          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+          NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
+```
+
+## Déploiement Backend sur Railway/Heroku
+
+### Railway
+
+```bash
+# Installer Railway CLI
+npm install -g @railway/cli
+
+# Se connecter
+railway login
+
+# Créer un projet
+railway init
+
+# Déployer
+railway up
+```
+
+### Heroku
+
+```bash
+# Installer Heroku CLI
+# https://devcenter.heroku.com/articles/heroku-cli
+
+# Se connecter
+heroku login
+
+# Créer une app
+heroku create nexusdl-backend
+
+# Déployer
+git push heroku main
+
+# Configurer les variables d'environnement
+heroku config:set PYTHON_VERSION=3.11.0
+heroku config:set WEB_CONCURRENCY=4
+```
+
+# ============================================================================
+# 9. DOCKER
+# ============================================================================
+
+## Installation Docker
+
+```bash
+# Linux
+sudo apt-get install docker.io docker-compose
+
+# macOS
+brew install docker docker-compose
+
+# Windows
+# Télécharger Docker Desktop : https://www.docker.com/products/docker-desktop
+```
+
+## Build des Images
+
+```bash
+# Build complet
+docker-compose build
+
+# Build backend seul
+docker build -t nexusdl-backend -f docker/Dockerfile .
+
+# Build frontend seul
+docker build -t nexusdl-frontend -f src/nexusdl/interfaces/web/frontend/Dockerfile src/nexusdl/interfaces/web/frontend
+
+# Build GUI
+docker build -t nexusdl-gui -f docker/Dockerfile.gui .
+```
+
+## Lancement avec Docker Compose
+
+```bash
+# Démarrer tous les services
+docker-compose up -d
+
+# Voir les logs
+docker-compose logs -f
+
+# Arrêter
+docker-compose down
+```
+
+## Lancement Manuel
+
+```bash
+# Backend
+docker run -d \
+  --name nexusdl-backend \
+  -p 8000:8000 \
+  -v ~/.config/nexusdl:/root/.config/nexusdl \
+  nexusdl-backend
+
+# Frontend
+docker run -d \
+  --name nexusdl-frontend \
+  -p 3000:3000 \
+  -e NEXT_PUBLIC_API_URL=http://localhost:8000/api/v1 \
+  -e NEXT_PUBLIC_WS_URL=ws://localhost:8000/ws \
+  nexusdl-frontend
+```
+
+# ============================================================================
+# 10. DÉPANNAGE
+# ============================================================================
+
+## Problèmes Courants
+
+### Python Version Incorrecte
+
+```bash
+# Erreur : Python 3.11+ is required
+# Solution : Mettre à jour Python
+
+# Linux
+sudo apt-get install python3.11
+
+# macOS
+brew install python@3.11
+
+# Windows
+# Télécharger depuis python.org
+```
+
+### Module Not Found
+
+```bash
+# Erreur : ModuleNotFoundError: No module named 'textual'
+# Solution : Installer les dépendances manquantes
+
+pip install textual
+# ou
+pip install -r requirements-cli.txt
+```
+
+### Display Not Available (GUI)
+
+```bash
+# Erreur : Could not connect to display
+# Solution (Linux) :
+
+# Vérifier que X11 ou Wayland est actif
+echo $DISPLAY
+echo $WAYLAND_DISPLAY
+
+# Si vide, exporter la variable
+export DISPLAY=:0
+
+# Ou lancer avec xvfb (headless)
+xvfb-run nexusdl --gui
+```
+
+### Port Already in Use
+
+```bash
+# Erreur : Address already in use
+# Solution : Changer le port
+
+# Backend
+nexusdl --web --port 8001
+
+# Frontend
+cd src/nexusdl/interfaces/web/frontend
+pnpm dev --port 3001
+```
+
+### CORS Errors (Web)
+
+```bash
+# Erreur : CORS policy blocked
+# Solution : Configurer CORS dans le backend
+
+# Éditer config.yaml
+interface:
+  web:
+    cors_origins:
+      - http://localhost:3000
+      - https://nexusdl.netlify.app
+```
+
+### WebSocket Connection Failed
+
+```bash
+# Erreur : WebSocket connection failed
+# Solutions :
+
+# 1. Vérifier que le backend est lancé
+curl http://localhost:8000/health
+
+# 2. Vérifier l'URL WebSocket
+echo $NEXT_PUBLIC_WS_URL
+
+# 3. Vérifier les logs du backend
+nexusdl --web --debug
+```
+
+### Build Frontend Failed
+
+```bash
+# Erreur : Build failed
+# Solutions :
+
+# 1. Nettoyer le cache
+cd src/nexusdl/interfaces/web/frontend
+rm -rf .next node_modules
+pnpm install
+pnpm build
+
+# 2. Augmenter la mémoire Node.js
+export NODE_OPTIONS="--max-old-space-size=4096"
+pnpm build
+```
+
+### Netlify Deploy Failed
+
+```bash
+# Erreur : Deploy failed
+# Solutions :
+
+# 1. Vérifier les variables d'environnement
+netlify env:list
+
+# 2. Vérifier le build local
+pnpm build
+
+# 3. Vérifier les logs Netlify
+netlify logs
+```
+
+## Logs
+
+```bash
+# Logs CLI
+tail -f ~/.local/share/nexusdl/logs/nexusdl.log
+
+# Logs Backend
+journalctl -u nexusdl-backend -f
+
+# Logs Frontend
+# Dans le navigateur : F12 → Console
+
+# Logs Docker
+docker logs nexusdl-backend -f
+docker logs nexusdl-frontend -f
+```
+
+## Diagnostics
+
+```bash
+# Exécuter les diagnostics
+nexusdl --diagnose
+
+# Vérifier les dépendances
+nexusdl --check-deps
+
+# Afficher les chemins
+nexusdl --show-paths
+```
+
+# ============================================================================
+# 11. EXEMPLES D'UTILISATION
+# ============================================================================
+
+## CLI
+
+```bash
+# Lancer l'interface CLI
+nexusdl --cli
+
+# Rechercher un manga
+# (dans l'interface CLI, appuyer sur /)
+# Tape
