@@ -28,7 +28,7 @@ ecdsa==0.19.0
 rsa==4.9
 pyasn1==0.6.1
 passlib[bcrypt]==1.7.4
-bcrypt==4.2.1
+bcrypt==5.0.0
 
 # --- Rate limiting ---
 slowapi==0.1.9
