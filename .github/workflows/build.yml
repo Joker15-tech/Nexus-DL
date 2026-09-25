@@ -1,0 +1,413 @@
+# ============================================================================
+# NEXUSDL - Build Workflow
+# ============================================================================
+#
+# Ce workflow GitHub Actions gère le build complet du projet Nexus-DL :
+#   1. Backend Python (lint, type-check, tests, build)
+#   2. Frontend Next.js (lint, type-check, build)
+#
+# Déclencheurs :
+#   - Push sur les branches main, develop, release/*
+#   - Pull Requests vers main ou develop
+#   - Déclenchement manuel (workflow_dispatch)
+#
+# Optimisations :
+#   - Cache pip et pnpm pour accélérer les builds
+#   - Matrice de tests Python (3.11, 3.12, 3.13)
+#   - Jobs parallèles (backend et frontend en simultané)
+#   - Arrêt rapide si le lint échoue
+#
+# ============================================================================
+
+name: Build & Test
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+      - "release/**"
+    paths-ignore:
+      - "**.md"
+      - "docs/**"
+      - "assets/**"
+      - ".github/ISSUE_TEMPLATE/**"
+      - "LICENSE"
+      - "NOTICE"
+
+  pull_request:
+    branches:
+      - main
+      - develop
+    paths-ignore:
+      - "**.md"
+      - "docs/**"
+      - "assets/**"
+
+  workflow_dispatch:
+    inputs:
+      run_e2e:
+        description: "Run end-to-end tests"
+        required: false
+        default: "false"
+        type: boolean
+
+# ============================================================================
+# PERMISSIONS
+# ============================================================================
+permissions:
+  contents: read
+  checks: write
+  pull-requests: write
+
+# ============================================================================
+# CONCURRENCY
+# ============================================================================
+# Annule les builds en cours si un nouveau commit est poussé sur la même branche
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+# ============================================================================
+# VARIABLES GLOBALES
+# ============================================================================
+env:
+  PYTHON_VERSION: "3.12"
+  NODE_VERSION: "20"
+  PNPM_VERSION: "9"
+  FRONTEND_DIR: "src/nexusdl/interfaces/web/frontend"
+
+# ============================================================================
+# JOBS
+# ============================================================================
+jobs:
+  # ==========================================================================
+  # JOB 1 : BACKEND PYTHON
+  # ==========================================================================
+  backend:
+    name: "Backend (Python ${{ matrix.python-version }})"
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.11", "3.12", "3.13"]
+
+    steps:
+      # ------------------------------------------------------------------
+      # Checkout du code
+      # ------------------------------------------------------------------
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # ------------------------------------------------------------------
+      # Configuration Python
+      # ------------------------------------------------------------------
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: "pip"
+          cache-dependency-path: |
+            requirements.txt
+            requirements-dev.txt
+            requirements-all.txt
+            pyproject.toml
+
+      # ------------------------------------------------------------------
+      # Installation des dépendances
+      # ------------------------------------------------------------------
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip setuptools wheel
+          pip install -r requirements-dev.txt
+          pip install -e ".[dev]"
+
+      # ------------------------------------------------------------------
+      # Lint (uniquement sur la version principale pour éviter le bruit)
+      # ------------------------------------------------------------------
+      - name: Run Ruff linter
+        if: matrix.python-version == env.PYTHON_VERSION
+        run: |
+          ruff check src/ --output-format=github
+
+      - name: Run Ruff formatter check
+        if: matrix.python-version == env.PYTHON_VERSION
+        run: |
+          ruff format --check src/
+
+      # ------------------------------------------------------------------
+      # Type checking
+      # ------------------------------------------------------------------
+      - name: Run mypy type checking
+        if: matrix.python-version == env.PYTHON_VERSION
+        run: |
+          mypy src/nexusdl --ignore-missing-imports --no-strict-optional || true
+
+      # ------------------------------------------------------------------
+      # Tests unitaires
+      # ------------------------------------------------------------------
+      - name: Run unit tests
+        run: |
+          pytest tests/ \
+            --verbose \
+            --tb=short \
+            --junitxml=test-results/backend-${{ matrix.python-version }}.xml \
+            --cov=src/nexusdl \
+            --cov-report=xml:coverage-backend.xml \
+            --cov-report=term-missing \
+            -x
+        env:
+          NEXUSDL_ENV: test
+          NEXUSDL_LOG_LEVEL: WARNING
+
+      # ------------------------------------------------------------------
+      # Upload des résultats de tests
+      # ------------------------------------------------------------------
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results-backend-${{ matrix.python-version }}
+          path: |
+            test-results/
+            coverage-backend.xml
+          retention-days: 7
+
+      # ------------------------------------------------------------------
+      # Build du package Python
+      # ------------------------------------------------------------------
+      - name: Build Python package
+        if: matrix.python-version == env.PYTHON_VERSION
+        run: |
+          pip install build
+          python -m build --sdist --wheel --outdir dist/
+
+      - name: Upload Python package
+        if: matrix.python-version == env.PYTHON_VERSION
+        uses: actions/upload-artifact@v4
+        with:
+          name: python-package
+          path: dist/
+          retention-days: 7
+
+  # ==========================================================================
+  # JOB 2 : FRONTEND NEXT.JS
+  # ==========================================================================
+  frontend:
+    name: "Frontend (Node ${{ matrix.node-version }})"
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    strategy:
+      fail-fast: false
+      matrix:
+        node-version: ["18", "20", "22"]
+
+    defaults:
+      run:
+        working-directory: ${{ env.FRONTEND_DIR }}
+
+    steps:
+      # ------------------------------------------------------------------
+      # Checkout du code
+      # ------------------------------------------------------------------
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # ------------------------------------------------------------------
+      # Configuration pnpm
+      # ------------------------------------------------------------------
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      # ------------------------------------------------------------------
+      # Configuration Node.js
+      # ------------------------------------------------------------------
+      - name: Set up Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: "pnpm"
+          cache-dependency-path: "${{ env.FRONTEND_DIR }}/pnpm-lock.yaml"
+
+      # ------------------------------------------------------------------
+      # Installation des dépendances
+      # ------------------------------------------------------------------
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # ------------------------------------------------------------------
+      # Lint
+      # ------------------------------------------------------------------
+      - name: Run ESLint
+        if: matrix.node-version == env.NODE_VERSION
+        run: pnpm lint
+
+      # ------------------------------------------------------------------
+      # Type checking
+      # ------------------------------------------------------------------
+      - name: Run TypeScript type check
+        if: matrix.node-version == env.NODE_VERSION
+        run: pnpm type-check
+
+      # ------------------------------------------------------------------
+      # Tests unitaires
+      # ------------------------------------------------------------------
+      - name: Run unit tests
+        if: matrix.node-version == env.NODE_VERSION
+        run: pnpm test:ci
+        env:
+          CI: true
+
+      # ------------------------------------------------------------------
+      # Build de production
+      # ------------------------------------------------------------------
+      - name: Build Next.js application
+        run: pnpm build
+        env:
+          NODE_ENV: production
+          NEXT_PUBLIC_API_URL: "/api/v1"
+          NEXT_PUBLIC_WS_URL: "/ws"
+          NEXT_PUBLIC_APP_NAME: "NexusDL"
+          NEXT_PUBLIC_APP_VERSION: "0.1.0"
+
+      # ------------------------------------------------------------------
+      # Upload du build
+      # ------------------------------------------------------------------
+      - name: Upload frontend build
+        if: matrix.node-version == env.NODE_VERSION
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-build
+          path: |
+            ${{ env.FRONTEND_DIR }}/.next/
+            ${{ env.FRONTEND_DIR }}/public/
+          retention-days: 7
+
+  # ==========================================================================
+  # JOB 3 : TESTS END-TO-END (Optionnel)
+  # ==========================================================================
+  e2e:
+    name: "E2E Tests (Playwright)"
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    needs: [backend, frontend]
+    if: >
+      github.event_name == 'workflow_dispatch' &&
+      github.event.inputs.run_e2e == 'true'
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "pnpm"
+          cache-dependency-path: "${{ env.FRONTEND_DIR }}/pnpm-lock.yaml"
+
+      - name: Install dependencies
+        working-directory: ${{ env.FRONTEND_DIR }}
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Playwright browsers
+        working-directory: ${{ env.FRONTEND_DIR }}
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Run E2E tests
+        working-directory: ${{ env.FRONTEND_DIR }}
+        run: pnpm test:e2e
+        env:
+          CI: true
+
+      - name: Upload Playwright report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: ${{ env.FRONTEND_DIR }}/playwright-report/
+          retention-days: 14
+
+  # ==========================================================================
+  # JOB 4 : DOCKER BUILD (Vérification)
+  # ==========================================================================
+  docker:
+    name: "Docker Build Check"
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    needs: [backend, frontend]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build backend Docker image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: docker/Dockerfile
+          push: false
+          load: true
+          tags: nexusdl-backend:test
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build frontend Docker image
+        uses: docker/build-push-action@v6
+        with:
+          context: ${{ env.FRONTEND_DIR }}
+          file: ${{ env.FRONTEND_DIR }}/Dockerfile
+          push: false
+          load: true
+          tags: nexusdl-frontend:test
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Test backend container
+        run: |
+          docker run --rm nexusdl-backend:test python -c "import nexusdl; print(nexusdl.__version__)"
+
+  # ==========================================================================
+  # JOB 5 : RÉSUMÉ DU BUILD
+  # ==========================================================================
+  build-summary:
+    name: "Build Summary"
+    runs-on: ubuntu-latest
+    needs: [backend, frontend]
+    if: always()
+
+    steps:
+      - name: Check build status
+        run: |
+          echo "## Build Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Job | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|-----|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Backend (Python) | ${{ needs.backend.result == 'success' && '✅ Passed' || '❌ Failed' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Frontend (Next.js) | ${{ needs.frontend.result == 'success' && '✅ Passed' || '❌ Failed' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Commit:** ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Branch:** ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Triggered by:** ${{ github.actor }}" >> $GITHUB_STEP_SUMMARY
+
+      - name: Fail if any job failed
+        if: needs.backend.result != 'success' || needs.frontend.result != 'success'
+        run: |
+          echo "One or more build jobs failed!"
+          exit 1
