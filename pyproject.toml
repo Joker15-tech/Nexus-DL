@@ -145,7 +145,7 @@ web = [
 
 # --- Interface Desktop (CustomTkinter) ---
 gui = [
-    "customtkinter>=5.2.2,<6.0",
+    "customtkinter>=5.2.2,<7.0",
     "darkdetect>=0.8.0,<1.0",
     "pywinstyles>=1.6; sys_platform == 'win32'",
 ]

@@ -11,7 +11,7 @@
 -r requirements.txt
 
 # --- Framework GUI ---
-customtkinter==5.2.2
+customtkinter==6.0.0
 tkinter==0.1.0 ; python_version < "3.13"
 darkdetect==0.8.0
 packaging==24.2
