@@ -1,7 +1,7 @@
 # ============================================================================
-# NEXUSDL FRONTEND - Configuration Netlify
+# NEXUSDL FRONTEND - Configuration Netlify (CORRIGÉE)
 # ============================================================================
-# URL de déploiement : https://nexusdldev.netlify.app
+# URL de déploiement frontend : https://nexusdldev.netlify.app
 # ============================================================================
 
 [build]
@@ -21,15 +21,15 @@
   # ========================================================================
   # VARIABLES D'ENVIRONNEMENT DE BUILD
   # ========================================================================
-  # ⚠️ IMPORTANT : Modifiez ces valeurs pour qu'elles pointent vers VOTRE backend déployé.
   
-  # Option A : Si vous utilisez les redirections Netlify ci-dessous (Recommandé pour éviter le CORS)
   # Le frontend appellera /api/v1/..., et Netlify le redirigera vers votre vrai backend.
+  # Cela permet d'éviter les erreurs CORS.
   NEXT_PUBLIC_API_URL = "/api/v1"
   
-  # Option B : URL directe du backend (Nécessaire pour les WebSockets, car Netlify ne proxyfie pas les WS vers l'extérieur)
-  # ⚠️ REMPLACEZ "api.nexusdl.dev" par le domaine réel de votre backend.
-  NEXT_PUBLIC_WS_URL = "wss://api.nexusdl.dev/ws"
+  # ⚠️ URL WebSocket : Doit pointer DIRECTEMENT vers votre backend Railway avec wss://
+  # Netlify ne peut pas proxyfier les WebSockets de manière fiable.
+  # REMPLACEZ "votre-backend-railway" par le vrai domaine de votre projet Railway.
+  NEXT_PUBLIC_WS_URL = "wss://votre-backend-railway.up.railway.app/ws"
   
   # Méta-données de l'application
   NEXT_PUBLIC_APP_NAME = "NexusDL"
@@ -46,44 +46,36 @@
 # REDIRECTIONS (Proxy API pour contourner les restrictions CORS)
 # ============================================================================
 # Ces règles permettent au frontend de parler au backend comme s'il était 
-# sur le même domaine (nexusdldev.netlify.app), ce qui résout 99% des problèmes CORS.
+# sur le même domaine, ce qui résout 99% des problèmes CORS.
 
 # 1. Proxy pour l'API REST
 # Si le frontend appelle: https://nexusdldev.netlify.app/api/v1/manga
-# Netlify le transmettra à: https://VOTRE_BACKEND/api/v1/manga
+# Netlify le transmettra à: https://votre-backend-railway.up.railway.app/api/v1/manga
 [[redirects]]
   from = "/api/v1/*"
-  # ⚠️ REMPLACEZ cette URL par l'URL réelle de votre backend déployé
-  to = "https://api.nexusdl.dev/api/v1/:splat"
+  # ⚠️ REMPLACEZ cette URL par l'URL réelle de votre backend Railway
+  to = "https://votre-backend-railway.up.railway.app/api/v1/:splat"
   status = 200
   force = true
 
 # 2. Proxy pour les endpoints de santé (Health checks)
 [[redirects]]
   from = "/health/*"
-  to = "https://api.nexusdl.dev/health/:splat"
+  # ⚠️ REMPLACEZ cette URL par l'URL réelle de votre backend Railway
+  to = "https://votre-backend-railway.up.railway.app/health/:splat"
   status = 200
   force = true
 
 # ============================================================================
 # EN-TÊTES DE SÉCURITÉ (Security Headers)
 # ============================================================================
-# Applique des politiques de sécurité strictes à toutes les réponses du frontend.
 [[headers]]
   for = "/*"
   [headers.values]
-    # Empêche l'incorporation du site dans des iframes (anti-clickjacking)
     X-Frame-Options = "DENY"
-    # Empêche le navigateur de deviner le type MIME (anti-sniffing)
     X-Content-Type-Options = "nosniff"
-    # Protection XSS basique pour les anciens navigateurs
     X-XSS-Protection = "1; mode=block"
-    # Politique de referer stricte pour la confidentialité
     Referrer-Policy = "strict-origin-when-cross-origin"
-    # Désactive l'accès aux API matérielles non nécessaires
     Permissions-Policy = "geolocation=(), microphone=(), camera=()"
-    # HSTS : Force l'utilisation de HTTPS (Netlify fournit déjà le SSL)
     Strict-Transport-Security = "max-age=31536000; includeSubDomains; preload"
-    # Content Security Policy (CSP) de base pour Next.js
-    # ⚠️ À ajuster si vous ajoutez des scripts externes (Google Analytics, etc.)
     Content-Security-Policy = "default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; connect-src 'self' https: wss:;"
