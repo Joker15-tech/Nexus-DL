@@ -16,92 +16,92 @@
 pytest==8.3.4
 pytest-asyncio==0.25.0
 pytest-cov==6.0.0
-pytest-xdist==3.6.1
-pytest-mock==3.14.0
-pytest-timeout==2.3.1
-pytest-httpx==0.35.0
+pytest-xdist==3.8.0
+pytest-mock==3.15.1
+pytest-timeout==2.4.0
+pytest-httpx==0.36.2
 pytest-watch==4.2.0
-pytest-benchmark==5.1.0
-pytest-sugar==1.0.0
+pytest-benchmark==5.3.0
+pytest-sugar==1.1.1
 pytest-randomly==3.16.0
-respx==0.22.0
-hypothesis==6.122.6
+respx==0.23.1
+hypothesis==6.168.0
 sortedcontainers==2.4.0
 faker==33.1.0
-freezegun==1.5.1
-inline-snapshot==0.19.3
+freezegun==1.5.5
+inline-snapshot==0.35.4
 
 # --- Lint & format ---
-ruff==0.8.4
+ruff==0.16.8
 mypy==1.14.0
-mypy-extensions==1.0.0
+mypy-extensions==1.1.0
 types-aiofiles==24.1.0.20241221
 types-pyyaml==6.0.12.20241221
-types-requests==2.32.0.20241016
+types-requests==2.33.0.20260906
 types-pillow==10.2.0.20240822
 pathspec==0.12.1
-typing-extensions==4.12.2
+typing-extensions==4.16.0
 
 # --- Sécurité ---
-bandit==1.8.0
+bandit==1.9.4
 bandit-sarif-formatter==1.1.1
-stevedore==5.4.0
+stevedore==5.9.1
 pbr==6.1.0
-PyYAML==6.0.2
-pip-audit==2.7.3
-safety==3.2.14
+PyYAML==6.0.3
+pip-audit==2.10.1
+safety==3.8.1
 gitleaks-python==8.22.1
 detect-secrets==1.5.0
 
 # --- Build & release ---
-build==1.2.2.post1
+build==1.6.1
 twine==6.0.1
-hatch==1.14.0
-hatchling==1.27.0
-hatch-vcs==0.4.0
+hatch==1.18.1
+hatchling==1.32.4
+hatch-vcs==0.5.0
 bump-my-version==0.29.0
-pyproject-hooks==1.2.0
+pyproject-hooks==1.3.3
 
 # --- Git hooks ---
-pre-commit==4.0.1
-cfgv==3.4.0
-identify==2.6.3
-nodeenv==1.9.1
+pre-commit==4.6.2
+cfgv==3.5.0
+identify==2.6.19
+nodeenv==1.10.0
 virtualenv==20.28.0
-distlib==0.3.9
+distlib==0.4.3
 filelock==3.16.1
 
 # --- Environnement ---
-tox==4.23.2
-tox-uv==1.15.0
-tox-gh-actions==3.2.0
-uv==0.5.13
+tox==4.63.0
+tox-uv==1.36.0
+tox-gh-actions==3.5.0
+uv==0.12.17
 cachetools==5.5.0
 chardet==5.2.0
 colorama==0.4.6
 
 # --- Profiling ---
-py-spy==0.4.0
-memray==1.15.0 ; sys_platform != "win32"
-rich-cli==1.8.0
+py-spy==0.4.2
+memray==1.20.0 ; sys_platform != "win32"
+rich-cli==1.8.1
 
 # --- Analyse avancée ---
 radon==6.0.1
-mando==0.7.1
-vulture==2.14
-deptry==0.22.0
+mando==0.8.2
+vulture==2.16
+deptry==0.25.1
 pylint==3.3.3
 astroid==3.3.6
-dill==0.3.9
+dill==0.4.1
 isort==5.13.2
 mccabe==0.7.0
-platformdirs==4.3.6
-tomlkit==0.13.2
+platformdirs==4.11.12
+tomlkit==0.15.1
 
 # --- Utilitaires dev ---
 ipython==8.31.0
 ipdb==0.13.13
 rich==13.9.4
 watchdog==6.0.0
-python-dotenv==1.0.1
-colorlog==6.9.0
+python-dotenv==1.2.3
+colorlog==6.12.0
