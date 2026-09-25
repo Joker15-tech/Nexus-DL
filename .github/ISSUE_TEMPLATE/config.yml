@@ -12,7 +12,7 @@ blank_issues_enabled: false
 
 contact_links:
   - name: "📖 Documentation"
-    url: https://docs.nexusdl.dev
+    url: https://docs.nexusdldev.netlify.app
     about: "Consultez la documentation officielle avant de poser une question"
   
   - name: "💬 Discord Community"
@@ -24,9 +24,9 @@ contact_links:
     about: "Contactez-nous directement pour les questions privées"
   
   - name: "💡 Discussions"
-    url: https://github.com/nexusdl/nexusdl/discussions
+    url: https://github.com/Joker15-tech/nexusdl/discussions
     about: "Participez aux discussions générales sur le projet"
   
   - name: "🔒 Signaler une vulnérabilité de sécurité"
-    url: https://github.com/nexusdl/nexusdl/security/advisories/new
+    url: https://github.com/Joker15-tech/nexusdl/security/advisories/new
     about: "Signalez une vulnérabilité de sécurité de manière confidentielle"
