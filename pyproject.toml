@@ -2,14 +2,15 @@
 # NEXUSDL - Project Configuration
 # ============================================================================
 #
-# Ce fichier définit la configuration du projet Python NexusDL.
-# Il remplace setup.py et requirements.txt par une configuration moderne et centralisée.
+# Ce fichier définit la configuration complète du projet Python NexusDL.
+# Il gère les métadonnées, les dépendances, les points d'entrée et la 
+# configuration de tous les outils de développement (linting, typing, testing).
 #
-# Installation en mode développement :
+# Installation en mode développement (avec tous les outils) :
 #   pip install -e ".[dev]"
 #
-# Installation avec toutes les interfaces (CLI + GUI + Web) :
-#   pip install -e ".[all]"
+# Installation pour la production (backend + CLI) :
+#   pip install -e ".[cli,web]"
 #
 # ============================================================================
 
@@ -28,10 +29,10 @@ description = "Advanced Manga Downloader and Library Manager"
 readme = "README.md"
 license = { text = "GPL-3.0-only" }
 authors = [
-    { name = "NexusDL Team", email = "contact@nexusdl.dev" }
+    { name = "NexusDL Team", email = "drxenon487@gmail.com" }
 ]
 maintainers = [
-    { name = "NexusDL Core Team", email = "core@nexusdl.dev" }
+    { name = "NexusDL Core Team", email = "drxenon487@gmail.com" }
 ]
 keywords = [
     "manga", "downloader", "library", "manager", "webtoon", 
@@ -56,7 +57,7 @@ classifiers = [
 requires-python = ">=3.11"
 
 # ============================================================================
-# DÉPENDANCES
+# DÉPENDANCES PRINCIPALES (CORE)
 # ============================================================================
 
 dependencies = [
@@ -129,8 +130,7 @@ dev = [
     "pytest-asyncio>=0.23.3",
     "pytest-cov>=4.1.0",
     "pytest-mock>=3.12.0",
-    "httpx[http2]>=0.27.0", # Pour tester les requêtes HTTP
-    # Build
+    # Build & Publish
     "build>=1.0.3",
     "twine>=4.0.2",
 ]
@@ -160,7 +160,7 @@ nexusdl = "nexusdl.__main__:main"
 
 [project.urls]
 "Homepage" = "https://nexusdl.dev"
-"Documentation" = "https://docs.nexusdl.dev"
+"Documentation" = "https://github.com/JokerApocalypse-cmd/Nexus-DL#readme"
 "Repository" = "https://github.com/JokerApocalypse-cmd/Nexus-DL"
 "Issues" = "https://github.com/JokerApocalypse-cmd/Nexus-DL/issues"
 "Changelog" = "https://github.com/JokerApocalypse-cmd/Nexus-DL/blob/main/CHANGELOG.md"
@@ -245,7 +245,7 @@ warn_unused_ignores = true
 warn_no_return = true
 warn_unreachable = true
 
-# Ignorer les erreurs pour les bibliothèques sans stubs
+# Ignorer les erreurs pour les bibliothèques sans stubs de type
 [[tool.mypy.overrides]]
 module = [
     "playwright.*",
@@ -312,10 +312,3 @@ exclude_lines = [
 ]
 fail_under = 70.0
 show_missing = true
-
-# ============================================================================
-# CONFIGURATION BUILD (Wheel/Sdist)
-# ============================================================================
-
-[tool.build]
-# Aucune configuration spécifique nécessaire, les défauts de setuptools sont bons
