@@ -1,0 +1,125 @@
+# ============================================================================
+# NEXUS-DL - Configuration Netlify
+# ============================================================================
+#
+# Ce fichier configure le déploiement du frontend Next.js de Nexus-DL sur Netlify.
+# Il gère le répertoire de base, les commandes de build, les variables 
+# d'environnement, les plugins et les en-têtes de sécurité.
+#
+# Emplacement : À la RACINE du dépôt Git (pas dans le dossier frontend).
+# Licence : GPL-3.0-only
+# ============================================================================
+
+# ============================================================================
+# PARAMÈTRES DE BUILD
+# ============================================================================
+[build]
+  # ⚠️ CRUCIAL : Indique à Netlify où se trouve le package.json et le code Next.js
+  base = "src/nexusdl/interfaces/web/frontend"
+  
+  # Commande exécutée pour construire le projet
+  command = "pnpm build"
+  
+  # Dossier publié après le build (Next.js génère ceci par défaut)
+  publish = ".next"
+
+# ============================================================================
+# VARIABLES D'ENVIRONNEMENT DE BUILD
+# ============================================================================
+[build.environment]
+  # Version de Node.js à utiliser (LTS recommandé pour Next.js 14)
+  NODE_VERSION = "20"
+  
+  # Gestionnaire de paquets par défaut
+  NPM_FLAGS = "--prefix=/dev/null" # Force l'utilisation de pnpm via le lockfile
+  
+  # Désactiver la télémétrie Next.js pour accélérer le build CI/CD
+  NEXT_TELEMETRY_DISABLED = "1"
+
+  # ⚠️ URLs par défaut du backend. 
+  # REMARQUE : Vous DEVEZ remplacer ces valeurs dans l'interface Netlify 
+  # (Site settings > Environment variables) par l'URL réelle de votre backend déployé.
+  NEXT_PUBLIC_API_URL = "https://api.nexusdl.dev/api/v1"
+  NEXT_PUBLIC_WS_URL = "wss://api.nexusdl.dev/ws"
+
+# ============================================================================
+# PLUGINS
+# ============================================================================
+[[plugins]]
+  # Plugin officiel Netlify pour une compatibilité totale avec Next.js 14+ 
+  # (App Router, Server Components, Image Optimization, etc.)
+  package = "@netlify/plugin-nextjs"
+
+# ============================================================================
+# EN-TÊTES DE SÉCURITÉ (Security Headers)
+# ============================================================================
+[[headers]]
+  # Appliquer ces en-têtes à toutes les routes
+  for = "/*"
+  [headers.values]
+    # Empêcher le site d'être chargé dans une iframe (protection clickjacking)
+    X-Frame-Options = "DENY"
+    
+    # Empêcher le sniffing de type MIME
+    X-Content-Type-Options = "nosniff"
+    
+    # Protection XSS basique
+    X-XSS-Protection = "1; mode=block"
+    
+    # Politique de referer stricte
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    
+    # Forcer HTTPS (HSTS)
+    Strict-Transport-Security = "max-age=31536000; includeSubDomains; preload"
+    
+    # Politique de sécurité du contenu (CSP) adaptée à Next.js
+    # Note : 'unsafe-eval' et 'unsafe-inline' sont parfois nécessaires pour 
+    # les scripts de développement ou certains composants Next.js. 
+    # À durcir en production si possible.
+    Content-Security-Policy = """
+      default-src 'self';
+      script-src 'self' 'unsafe-eval' 'unsafe-inline' https://fonts.googleapis.com;
+      style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
+      img-src 'self' data: blob: https:;
+      font-src 'self' https://fonts.gstatic.com;
+      connect-src 'self' https: wss:;
+      frame-src 'none';
+      object-src 'none';
+    """
+
+# ============================================================================
+# REDIRECTIONS
+# ============================================================================
+# Next.js gère la plupart des routes via le plugin, mais ces redirections 
+# peuvent être utiles pour des cas spécifiques.
+
+# Exemple 1 : Rediriger tout le trafic HTTP vers HTTPS (généralement géré par Netlify auto, mais explicite ici)
+[[redirects]]
+  from = "http:///*"
+  to = "https://:splat"
+  status = 301
+  force = true
+
+# Exemple 2 : Proxy API (Optionnel)
+# Si vous voulez que votre frontend Netlify proxy les requêtes /api/* vers votre backend
+# pour éviter les problèmes CORS, décommentez les lignes ci-dessous et remplacez l'URL.
+# [[redirects]]
+#   from = "/api/*"
+#   to = "https://api.nexusdl.dev/api/v1/:splat"
+#   status = 200
+#   force = true
+
+# Exemple 3 : Proxy WebSocket (Optionnel)
+# [[redirects]]
+#   from = "/ws"
+#   to = "wss://api.nexusdl.dev/ws"
+#   status = 200
+#   force = true
+
+# ============================================================================
+# FONCTIONS NETLIFY (Optionnel)
+# ============================================================================
+# Si vous ajoutez des Serverless Functions Netlify à l'avenir
+[functions]
+  directory = "netlify/functions"
+  node_bundler = "esbuild"
