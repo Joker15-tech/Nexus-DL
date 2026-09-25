@@ -1,0 +1,673 @@
+# ============================================================================
+# NEXUSDL - Docker Build & Publish Workflow
+# ============================================================================
+#
+# Ce workflow gère le build, le scan et la publication des images Docker
+# de NexusDL vers GitHub Container Registry (GHCR) et Docker Hub.
+#
+# Images produites :
+#   - nexusdl-backend  : Backend Python FastAPI uniquement
+#   - nexusdl-web      : Backend + Frontend Next.js (image complète)
+#   - nexusdl-gui      : Interface graphique PyQt6
+#
+# Architectures supportées :
+#   - linux/amd64 (x86_64)
+#   - linux/arm64 (Apple Silicon, AWS Graviton, etc.)
+#
+# Registres cibles :
+#   - ghcr.io/nexusdl/nexusdl-* (GitHub Container Registry)
+#   - docker.io/nexusdl/nexusdl-* (Docker Hub, optionnel)
+#
+# Déclencheurs :
+#   - Push sur main (build + push vers GHCR)
+#   - Push de tags v* (build + push avec tag de version)
+#   - Pull Requests (build uniquement, pas de push)
+#   - Déclenchement manuel (workflow_dispatch)
+#
+# Sécurité :
+#   - Scan de vulnérabilités avec Trivy
+#   - SBOM (Software Bill of Materials) généré automatiquement
+#   - Provenance attestations (SLSA)
+#   - Signatures cosign (optionnel)
+#
+# ============================================================================
+
+name: Docker Build & Publish
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - "v*"
+    paths:
+      - "docker/**"
+      - "src/nexusdl/**"
+      - "requirements*.txt"
+      - "pyproject.toml"
+      - ".github/workflows/docker.yml"
+
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "docker/**"
+      - "src/nexusdl/**"
+      - "requirements*.txt"
+      - "pyproject.toml"
+      - ".github/workflows/docker.yml"
+
+  workflow_dispatch:
+    inputs:
+      push_images:
+        description: "Push images to registry"
+        required: false
+        default: "false"
+        type: boolean
+      platforms:
+        description: "Target platforms (comma-separated)"
+        required: false
+        default: "linux/amd64,linux/arm64"
+        type: string
+
+# ============================================================================
+# PERMISSIONS
+# ============================================================================
+permissions:
+  contents: read
+  packages: write       # Nécessaire pour push vers GHCR
+  id-token: write       # Nécessaire pour les attestations OIDC
+  attestations: write   # Nécessaire pour les attestations de build
+  actions: read
+  security-events: write # Nécessaire pour upload des résultats Trivy
+
+# ============================================================================
+# CONCURRENCY
+# ============================================================================
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+# ============================================================================
+# VARIABLES GLOBALES
+# ============================================================================
+env:
+  REGISTRY: ghcr.io
+  IMAGE_PREFIX: ${{ github.repository_owner }}/nexusdl
+  DOCKERHUB_IMAGE_PREFIX: nexusdl/nexusdl
+  TRIVY_DB_REPOSITORY: ghcr.io/aquasecurity/trivy-db
+
+# ============================================================================
+# JOBS
+# ============================================================================
+jobs:
+  # ==========================================================================
+  # JOB 1 : EXTRACTION DES MÉTADONNÉES
+  # ==========================================================================
+  meta:
+    name: "Extract Metadata"
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.meta.outputs.version }}
+      tags-backend: ${{ steps.meta-backend.outputs.tags }}
+      labels-backend: ${{ steps.meta-backend.outputs.labels }}
+      tags-web: ${{ steps.meta-web.outputs.tags }}
+      labels-web: ${{ steps.meta-web.outputs.labels }}
+      tags-gui: ${{ steps.meta-gui.outputs.tags }}
+      labels-gui: ${{ steps.meta-gui.outputs.labels }}
+      platforms: ${{ steps.platforms.outputs.platforms }}
+      push_enabled: ${{ steps.push-check.outputs.push_enabled }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # Déterminer les plateformes cibles
+      - name: Determine platforms
+        id: platforms
+        run: |
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" && -n "${{ github.event.inputs.platforms }}" ]]; then
+            echo "platforms=${{ github.event.inputs.platforms }}" >> $GITHUB_OUTPUT
+          else
+            echo "platforms=linux/amd64,linux/arm64" >> $GITHUB_OUTPUT
+          fi
+
+      # Vérifier si on doit push les images
+      - name: Check if push is enabled
+        id: push-check
+        run: |
+          PUSH="false"
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" && "${{ github.event.inputs.push_images }}" == "true" ]]; then
+            PUSH="true"
+          elif [[ "${{ github.event_name }}" == "push" && "${{ github.ref }}" == "refs/heads/main" ]]; then
+            PUSH="true"
+          elif [[ "${{ github.event_name }}" == "push" && "${{ github.ref }}" == refs/tags/v* ]]; then
+            PUSH="true"
+          fi
+          echo "push_enabled=${PUSH}" >> $GITHUB_OUTPUT
+          echo "Push enabled: ${PUSH}"
+
+      # Extraire la version
+      - name: Extract version
+        id: meta
+        run: |
+          if [[ "${{ github.ref }}" == refs/tags/v* ]]; then
+            VERSION=${GITHUB_REF#refs/tags/v}
+          else
+            VERSION="dev-$(git rev-parse --short HEAD)"
+          fi
+          echo "version=${VERSION}" >> $GITHUB_OUTPUT
+          echo "Version: ${VERSION}"
+
+      # Métadonnées pour l'image backend
+      - name: Docker meta (backend)
+        id: meta-backend
+        uses: docker/metadata-action@v5
+        with:
+          images: |
+            ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-backend
+            ${{ env.DOCKERHUB_IMAGE_PREFIX }}-backend
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=semver,pattern={{major}}
+            type=raw,value=latest,enable=${{ startsWith(github.ref, 'refs/tags/v') }}
+            type=sha,prefix=sha-,format=short
+          labels: |
+            org.opencontainers.image.title=NexusDL Backend
+            org.opencontainers.image.description=Backend API for NexusDL (FastAPI)
+            org.opencontainers.image.vendor=NexusDL Team
+            org.opencontainers.image.version=${{ steps.meta.outputs.version }}
+          flavor: |
+            latest=false
+
+      # Métadonnées pour l'image web
+      - name: Docker meta (web)
+        id: meta-web
+        uses: docker/metadata-action@v5
+        with:
+          images: |
+            ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-web
+            ${{ env.DOCKERHUB_IMAGE_PREFIX }}-web
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=semver,pattern={{major}}
+            type=raw,value=latest,enable=${{ startsWith(github.ref, 'refs/tags/v') }}
+            type=sha,prefix=sha-,format=short
+          labels: |
+            org.opencontainers.image.title=NexusDL Web
+            org.opencontainers.image.description=Complete web interface for NexusDL (FastAPI + Next.js)
+            org.opencontainers.image.vendor=NexusDL Team
+            org.opencontainers.image.version=${{ steps.meta.outputs.version }}
+          flavor: |
+            latest=false
+
+      # Métadonnées pour l'image GUI
+      - name: Docker meta (gui)
+        id: meta-gui
+        uses: docker/metadata-action@v5
+        with:
+          images: |
+            ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-gui
+            ${{ env.DOCKERHUB_IMAGE_PREFIX }}-gui
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=semver,pattern={{major}}
+            type=raw,value=latest,enable=${{ startsWith(github.ref, 'refs/tags/v') }}
+            type=sha,prefix=sha-,format=short
+          labels: |
+            org.opencontainers.image.title=NexusDL GUI
+            org.opencontainers.image.description=Desktop GUI for NexusDL (PyQt6)
+            org.opencontainers.image.vendor=NexusDL Team
+            org.opencontainers.image.version=${{ steps.meta.outputs.version }}
+          flavor: |
+            latest=false
+
+  # ==========================================================================
+  # JOB 2 : BUILD & PUSH - BACKEND
+  # ==========================================================================
+  build-backend:
+    name: "Build Backend Image"
+    runs-on: ubuntu-latest
+    needs: [meta]
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+        with:
+          platforms: ${{ needs.meta.outputs.platforms }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+        with:
+          driver-opts: |
+            image=moby/buildkit:latest
+            network=host
+
+      # Login vers GHCR (uniquement si push activé)
+      - name: Login to GitHub Container Registry
+        if: needs.meta.outputs.push_enabled == 'true'
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # Login vers Docker Hub (optionnel, si secrets configurés)
+      - name: Login to Docker Hub
+        if: needs.meta.outputs.push_enabled == 'true' && secrets.DOCKERHUB_USERNAME != ''
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      # Build et push de l'image backend
+      - name: Build and push backend image
+        id: build-backend
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: docker/Dockerfile
+          platforms: ${{ needs.meta.outputs.platforms }}
+          push: ${{ needs.meta.outputs.push_enabled == 'true' }}
+          tags: ${{ needs.meta.outputs.tags-backend }}
+          labels: ${{ needs.meta.outputs.labels-backend }}
+          cache-from: |
+            type=gha,scope=backend
+            type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-backend:buildcache
+          cache-to: |
+            type=gha,mode=max,scope=backend
+            type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-backend:buildcache,mode=max
+          build-args: |
+            BUILDKIT_INLINE_CACHE=1
+            NEXUSDL_VERSION=${{ needs.meta.outputs.version }}
+          provenance: true
+          sbom: true
+          outputs: |
+            type=image,name=target,\
+            annotation-index.org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }},\
+            annotation-index.org.opencontainers.image.description=NexusDL Backend,\
+            annotation-index.org.opencontainers.image.licenses=GPL-3.0
+
+      # Attestation de build (SLSA provenance)
+      - name: Attest backend image
+        if: needs.meta.outputs.push_enabled == 'true'
+        uses: actions/attest-build-provenance@v1
+        with:
+          subject-name: ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-backend
+          subject-digest: ${{ steps.build-backend.outputs.digest }}
+          push-to-registry: true
+
+  # ==========================================================================
+  # JOB 3 : BUILD & PUSH - WEB
+  # ==========================================================================
+  build-web:
+    name: "Build Web Image"
+    runs-on: ubuntu-latest
+    needs: [meta]
+    timeout-minutes: 45
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+        with:
+          platforms: ${{ needs.meta.outputs.platforms }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+        with:
+          driver-opts: |
+            image=moby/buildkit:latest
+            network=host
+
+      - name: Login to GitHub Container Registry
+        if: needs.meta.outputs.push_enabled == 'true'
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Login to Docker Hub
+        if: needs.meta.outputs.push_enabled == 'true' && secrets.DOCKERHUB_USERNAME != ''
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build and push web image
+        id: build-web
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: docker/Dockerfile.web
+          platforms: ${{ needs.meta.outputs.platforms }}
+          push: ${{ needs.meta.outputs.push_enabled == 'true' }}
+          tags: ${{ needs.meta.outputs.tags-web }}
+          labels: ${{ needs.meta.outputs.labels-web }}
+          cache-from: |
+            type=gha,scope=web
+            type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-web:buildcache
+          cache-to: |
+            type=gha,mode=max,scope=web
+            type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-web:buildcache,mode=max
+          build-args: |
+            BUILDKIT_INLINE_CACHE=1
+            NEXUSDL_VERSION=${{ needs.meta.outputs.version }}
+            NEXT_PUBLIC_API_URL=/api/v1
+            NEXT_PUBLIC_WS_URL=/ws
+          provenance: true
+          sbom: true
+          outputs: |
+            type=image,name=target,\
+            annotation-index.org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }},\
+            annotation-index.org.opencontainers.image.description=NexusDL Web,\
+            annotation-index.org.opencontainers.image.licenses=GPL-3.0
+
+      - name: Attest web image
+        if: needs.meta.outputs.push_enabled == 'true'
+        uses: actions/attest-build-provenance@v1
+        with:
+          subject-name: ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-web
+          subject-digest: ${{ steps.build-web.outputs.digest }}
+          push-to-registry: true
+
+  # ==========================================================================
+  # JOB 4 : BUILD & PUSH - GUI
+  # ==========================================================================
+  build-gui:
+    name: "Build GUI Image"
+    runs-on: ubuntu-latest
+    needs: [meta]
+    timeout-minutes: 30
+    # GUI uniquement sur amd64 car PyQt6 avec display est complexe en ARM
+    if: github.event_name != 'pull_request' || contains(github.event.pull_request.labels.*.name, 'docker-gui')
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to GitHub Container Registry
+        if: needs.meta.outputs.push_enabled == 'true'
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Login to Docker Hub
+        if: needs.meta.outputs.push_enabled == 'true' && secrets.DOCKERHUB_USERNAME != ''
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build and push GUI image
+        id: build-gui
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: docker/Dockerfile.gui
+          platforms: linux/amd64
+          push: ${{ needs.meta.outputs.push_enabled == 'true' }}
+          tags: ${{ needs.meta.outputs.tags-gui }}
+          labels: ${{ needs.meta.outputs.labels-gui }}
+          cache-from: |
+            type=gha,scope=gui
+            type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-gui:buildcache
+          cache-to: |
+            type=gha,mode=max,scope=gui
+            type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-gui:buildcache,mode=max
+          build-args: |
+            BUILDKIT_INLINE_CACHE=1
+            NEXUSDL_VERSION=${{ needs.meta.outputs.version }}
+          provenance: true
+          sbom: true
+
+      - name: Attest GUI image
+        if: needs.meta.outputs.push_enabled == 'true'
+        uses: actions/attest-build-provenance@v1
+        with:
+          subject-name: ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-gui
+          subject-digest: ${{ steps.build-gui.outputs.digest }}
+          push-to-registry: true
+
+  # ==========================================================================
+  # JOB 5 : SCAN DE SÉCURITÉ (TRIVY)
+  # ==========================================================================
+  security-scan:
+    name: "Security Scan (${{ matrix.image }})"
+    runs-on: ubuntu-latest
+    needs: [meta, build-backend, build-web]
+    if: always() && (needs.build-backend.result == 'success' || needs.build-web.result == 'success')
+    timeout-minutes: 20
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - image: backend
+            context: .
+            dockerfile: docker/Dockerfile
+          - image: web
+            context: .
+            dockerfile: docker/Dockerfile.web
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # Scan du code source (fs)
+      - name: Run Trivy filesystem scan
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          scan-type: "fs"
+          scan-ref: "."
+          ignore-unfixed: true
+          severity: "CRITICAL,HIGH"
+          format: "sarif"
+          output: "trivy-fs-results-${{ matrix.image }}.sarif"
+          exit-code: "0"
+
+      # Upload des résultats vers GitHub Security
+      - name: Upload Trivy scan results to GitHub Security tab
+        if: always()
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: "trivy-fs-results-${{ matrix.image }}.sarif"
+          category: "trivy-${{ matrix.image }}-fs"
+
+      # Scan de l'image Docker construite
+      - name: Run Trivy image scan
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          scan-type: "image"
+          input: "${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-${{ matrix.image }}:${{ github.sha }}"
+          ignore-unfixed: true
+          severity: "CRITICAL,HIGH"
+          format: "sarif"
+          output: "trivy-image-results-${{ matrix.image }}.sarif"
+          exit-code: "0"
+        if: needs.meta.outputs.push_enabled == 'true'
+
+      - name: Upload image scan results
+        if: always() && needs.meta.outputs.push_enabled == 'true'
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: "trivy-image-results-${{ matrix.image }}.sarif"
+          category: "trivy-${{ matrix.image }}-image"
+
+      # Rapport résumé
+      - name: Generate scan summary
+        if: always()
+        run: |
+          echo "## 🔒 Security Scan Report - ${{ matrix.image }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Image: \`${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-${{ matrix.image }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "Scan date: $(date -u +'%Y-%m-%d %H:%M:%S UTC')" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Results uploaded to GitHub Security tab." >> $GITHUB_STEP_SUMMARY
+
+  # ==========================================================================
+  # JOB 6 : TEST DES IMAGES
+  # ==========================================================================
+  test-images:
+    name: "Test Images"
+    runs-on: ubuntu-latest
+    needs: [meta, build-backend, build-web]
+    if: needs.build-backend.result == 'success' && needs.build-web.result == 'success'
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      # Charger l'image backend depuis le cache
+      - name: Load backend image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: docker/Dockerfile
+          platforms: linux/amd64
+          push: false
+          load: true
+          tags: nexusdl-backend:test
+          cache-from: type=gha,scope=backend
+
+      # Charger l'image web depuis le cache
+      - name: Load web image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: docker/Dockerfile.web
+          platforms: linux/amd64
+          push: false
+          load: true
+          tags: nexusdl-web:test
+          cache-from: type=gha,scope=web
+
+      # Tester l'image backend
+      - name: Test backend image
+        run: |
+          echo "Testing backend image..."
+          docker run --rm nexusdl-backend:test python -c "
+          import nexusdl
+          print(f'✓ NexusDL version: {nexusdl.__version__}')
+          from nexusdl.interfaces.web.backend.main import create_app
+          app = create_app()
+          print(f'✓ FastAPI app created: {app.title}')
+          "
+
+      # Tester l'image web
+      - name: Test web image
+        run: |
+          echo "Testing web image..."
+          # Démarrer le conteneur en arrière-plan
+          docker run -d --name nexusdl-web-test -p 8000:8000 nexusdl-web:test
+          
+          # Attendre que le serveur démarre
+          echo "Waiting for server to start..."
+          timeout 60 bash -c 'until curl -sf http://localhost:8000/health > /dev/null; do sleep 2; done'
+          
+          # Vérifier les endpoints
+          echo "Checking health endpoint..."
+          curl -sf http://localhost:8000/health | jq .
+          
+          echo "Checking API docs..."
+          curl -sf http://localhost:8000/docs > /dev/null && echo "✓ Swagger UI available"
+          
+          echo "Checking OpenAPI schema..."
+          curl -sf http://localhost:8000/openapi.json | jq .info
+          
+          # Arrêter le conteneur
+          docker stop nexusdl-web-test
+          echo "✓ All web image tests passed"
+
+  # ==========================================================================
+  # JOB 7 : RÉSUMÉ DU DÉPLOIEMENT
+  # ==========================================================================
+  summary:
+    name: "Deployment Summary"
+    runs-on: ubuntu-latest
+    needs: [meta, build-backend, build-web, build-gui, security-scan, test-images]
+    if: always()
+
+    steps:
+      - name: Generate deployment summary
+        run: |
+          echo "# 🐳 Docker Build & Publish Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Version:** \`${{ needs.meta.outputs.version }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "**Branch:** \`${{ github.ref_name }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "**Commit:** \`${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "**Platforms:** \`${{ needs.meta.outputs.platforms }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "**Push enabled:** \`${{ needs.meta.outputs.push_enabled }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          echo "## 📦 Images" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Image | Build | Scan | Test |" >> $GITHUB_STEP_SUMMARY
+          echo "|-------|-------|------|------|" >> $GITHUB_STEP_SUMMARY
+          
+          BACKEND_STATUS="${{ needs.build-backend.result == 'success' && '✅' || '❌' }}"
+          WEB_STATUS="${{ needs.build-web.result == 'success' && '✅' || '❌' }}"
+          GUI_STATUS="${{ needs.build-gui.result == 'success' && '✅' || (needs.build-gui.result == 'skipped' && '⏭️' || '❌') }}"
+          SCAN_STATUS="${{ needs.security-scan.result == 'success' && '✅' || '❌' }}"
+          TEST_STATUS="${{ needs.test-images.result == 'success' && '✅' || '❌' }}"
+          
+          echo "| \`backend\` | ${BACKEND_STATUS} | ${SCAN_STATUS} | ${TEST_STATUS} |" >> $GITHUB_STEP_SUMMARY
+          echo "| \`web\` | ${WEB_STATUS} | ${SCAN_STATUS} | ${TEST_STATUS} |" >> $GITHUB_STEP_SUMMARY
+          echo "| \`gui\` | ${GUI_STATUS} | - | - |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          if [[ "${{ needs.meta.outputs.push_enabled }}" == "true" ]]; then
+            echo "## 🚀 Published Images" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo '```bash' >> $GITHUB_STEP_SUMMARY
+            echo "# Pull from GHCR" >> $GITHUB_STEP_SUMMARY
+            echo "docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-backend:${{ needs.meta.outputs.version }}" >> $GITHUB_STEP_SUMMARY
+            echo "docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-web:${{ needs.meta.outputs.version }}" >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo '```bash' >> $GITHUB_STEP_SUMMARY
+            echo "# Run backend" >> $GITHUB_STEP_SUMMARY
+            echo "docker run -d -p 8000:8000 ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-backend:${{ needs.meta.outputs.version }}" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "# Run web (complete)" >> $GITHUB_STEP_SUMMARY
+            echo "docker run -d -p 8000:8000 ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-web:${{ needs.meta.outputs.version }}" >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+          else
+            echo "ℹ️ **Note:** Images were built but not pushed (PR or manual dispatch without push flag)." >> $GITHUB_STEP_SUMMARY
+          fi
+
+      - name: Fail if critical jobs failed
+        if: needs.build-backend.result == 'failure' || needs.build-web.result == 'failure'
+        run: |
+          echo "❌ Critical build jobs failed!"
+          exit 1
