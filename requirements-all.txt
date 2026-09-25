@@ -36,7 +36,7 @@ pillow-heif==0.21.0
 # --- Cloudflare (FlareSolverr) ---
 aiodns==3.2.0
 brotli==1.1.0
-pycares==4.5.0
+pycares==5.0.1
 
 # --- SOCKS5 ---
 httpx-socks[asyncio]==0.9.2
