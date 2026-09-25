@@ -1,0 +1,132 @@
+# ============================================================================
+# NEXUSDL - Configuration Dependabot
+# ============================================================================
+#
+# Ce fichier configure GitHub Dependabot pour maintenir les dépendances
+# du projet à jour de manière automatique et sécurisée.
+#
+# Écosystèmes surveillés :
+#   1. pip (Python) : Core, CLI, GUI, Backend Web
+#   2. npm/pnpm (Node.js) : Frontend Next.js
+#   3. github-actions : Workflows CI/CD
+#   4. docker : Images et Dockerfiles
+#
+# Stratégie de mise à jour :
+#   - Hebdomadaire (le lundi à 09:00 heure de Paris)
+#   - Regroupement des mises à jour mineures et de correctifs (minor/patch)
+#     pour réduire le nombre de PR et éviter le "spam".
+#   - Les mises à jour majeures (major) ouvrent une PR dédiée pour revue.
+#
+# Documentation : https://docs.github.com/en/code-security/dependabot/dependabot-version-updates/configuration-options-for-the-dependabot.yml-file
+# ============================================================================
+
+version: 2
+
+updates:
+  # ==========================================================================
+  # 1. DÉPENDANCES PYTHON (Core, CLI, GUI, Backend)
+  # ==========================================================================
+  - package-ecosystem: "pip"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "Europe/Paris"
+    open-pull-requests-limit: 10
+    labels:
+      - "dependencies"
+      - "python"
+    commit-message:
+      prefix: "deps(python)"
+      include: "scope"
+    # Regrouper les mises à jour mineures et de correctifs pour éviter le spam
+    groups:
+      python-minor-patch:
+        patterns:
+          - "*"
+        update-types:
+          - "minor"
+          - "patch"
+
+  # ==========================================================================
+  # 2. DÉPENDANCES FRONTEND (Next.js, React, Tailwind, etc.)
+  # ==========================================================================
+  - package-ecosystem: "npm" # "npm" fonctionne aussi pour pnpm et yarn
+    directory: "/src/nexusdl/interfaces/web/frontend"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "Europe/Paris"
+    open-pull-requests-limit: 10
+    labels:
+      - "dependencies"
+      - "javascript"
+      - "frontend"
+    commit-message:
+      prefix: "deps(frontend)"
+      include: "scope"
+    # Regrouper les mises à jour mineures et de correctifs
+    groups:
+      frontend-minor-patch:
+        patterns:
+          - "*"
+        update-types:
+          - "minor"
+          - "patch"
+    # Ignorer les mises à jour qui cassent souvent ou ne sont pas nécessaires
+    ignore:
+      - dependency-name: "typescript"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "next"
+        update-types: ["version-update:semver-major"]
+
+  # ==========================================================================
+  # 3. GITHUB ACTIONS (Workflows CI/CD)
+  # ==========================================================================
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "Europe/Paris"
+    open-pull-requests-limit: 5
+    labels:
+      - "dependencies"
+      - "github-actions"
+      - "ci"
+    commit-message:
+      prefix: "ci(deps)"
+      include: "scope"
+    # Regrouper toutes les mises à jour d'actions en une seule PR
+    groups:
+      github-actions:
+        patterns:
+          - "*"
+
+  # ==========================================================================
+  # 4. DÉPENDANCES DOCKER
+  # ==========================================================================
+  - package-ecosystem: "docker"
+    directory: "/docker"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "Europe/Paris"
+    open-pull-requests-limit: 5
+    labels:
+      - "dependencies"
+      - "docker"
+    commit-message:
+      prefix: "deps(docker)"
+      include: "scope"
+    groups:
+      docker-minor-patch:
+        patterns:
+          - "*"
+        update-types:
+          - "minor"
+          - "patch"
