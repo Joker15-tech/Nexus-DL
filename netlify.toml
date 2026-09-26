@@ -1,35 +1,33 @@
 # ============================================================================
 # NEXUSDL FRONTEND - Configuration Netlify
 # ============================================================================
-# URL de déploiement : https://nexusdldev.netlify.app
+# Frontend : https://nexusdldev.netlify.app
+# Backend  : https://nexus-dl-production.up.railway.app
 # ============================================================================
 
 [build]
   # ⚠️ CRUCIAL : Indique à Netlify où se trouve le package.json du frontend
   base = "src/nexusdl/interfaces/web/frontend"
   
-  # Commande de build (Netlify détectera automatiquement pnpm grâce au pnpm-lock.yaml)
+  # Commande de build (Netlify détecte pnpm grâce au pnpm-lock.yaml)
   command = "pnpm build"
   
   # Répertoire de publication (géré par le plugin Next.js)
   publish = ".next"
 
+# ============================================================================
+# VARIABLES D'ENVIRONNEMENT DE BUILD
+# ============================================================================
 [build.environment]
   # Version de Node.js (LTS recommandée pour Next.js 14+)
   NODE_VERSION = "20"
   
-  # ========================================================================
-  # VARIABLES D'ENVIRONNEMENT DE BUILD
-  # ========================================================================
-  # ⚠️ IMPORTANT : Modifiez ces valeurs pour qu'elles pointent vers VOTRE backend déployé.
-  
-  # Option A : Si vous utilisez les redirections Netlify ci-dessous (Recommandé pour éviter le CORS)
-  # Le frontend appellera /api/v1/..., et Netlify le redirigera vers votre vrai backend.
+  # Le frontend appellera /api/v1/..., et Netlify le redirigera vers Railway
+  # (évite les problèmes CORS)
   NEXT_PUBLIC_API_URL = "/api/v1"
   
-  # Option B : URL directe du backend (Nécessaire pour les WebSockets, car Netlify ne proxyfie pas les WS vers l'extérieur)
-  # ⚠️ REMPLACEZ "api.nexusdl.dev" par le domaine réel de votre backend.
-  NEXT_PUBLIC_WS_URL = "wss://api.nexusdl.dev/ws"
+  # ⚠️ WebSocket : Connexion DIRECTE vers Railway (Netlify ne proxyfie pas les WS)
+  NEXT_PUBLIC_WS_URL = "wss://nexus-dl-production.up.railway.app/ws"
   
   # Méta-données de l'application
   NEXT_PUBLIC_APP_NAME = "NexusDL"
@@ -39,40 +37,66 @@
 # PLUGINS
 # ============================================================================
 [[plugins]]
-  # Plugin officiel Next.js pour Netlify (INDISPENSABLE pour l'App Router, le SSR et les optimisations)
+  # Plugin officiel Next.js pour Netlify (INDISPENSABLE)
+  # Gère l'App Router, le SSR, les optimisations d'images, etc.
   package = "@netlify/plugin-nextjs"
 
 # ============================================================================
-# REDIRECTIONS (Proxy API pour contourner les restrictions CORS)
+# REDIRECTIONS (Proxy API vers Railway)
 # ============================================================================
-# Ces règles permettent au frontend de parler au backend comme s'il était 
-# sur le même domaine (nexusdldev.netlify.app), ce qui résout 99% des problèmes CORS.
+# Ces règles permettent au frontend de parler au backend comme s'il était
+# sur le même domaine, ce qui résout 99% des problèmes CORS.
 
 # 1. Proxy pour l'API REST
-# Si le frontend appelle: https://nexusdldev.netlify.app/api/v1/manga
-# Netlify le transmettra à: https://VOTRE_BACKEND/api/v1/manga
+# Frontend appelle : https://nexusdldev.netlify.app/api/v1/manga
+# Netlify transmet à : https://nexus-dl-production.up.railway.app/api/v1/manga
 [[redirects]]
   from = "/api/v1/*"
-  # ⚠️ REMPLACEZ cette URL par l'URL réelle de votre backend déployé
-  to = "https://api.nexusdl.dev/api/v1/:splat"
+  to = "https://nexus-dl-production.up.railway.app/api/v1/:splat"
   status = 200
   force = true
 
-# 2. Proxy pour les endpoints de santé (Health checks)
+# 2. Proxy pour les endpoints de santé
 [[redirects]]
   from = "/health/*"
-  to = "https://api.nexusdl.dev/health/:splat"
+  to = "https://nexus-dl-production.up.railway.app/health/:splat"
+  status = 200
+  force = true
+
+# 3. Proxy pour la documentation Swagger
+[[redirects]]
+  from = "/docs"
+  to = "https://nexus-dl-production.up.railway.app/docs"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/docs/*"
+  to = "https://nexus-dl-production.up.railway.app/docs/:splat"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/openapi.json"
+  to = "https://nexus-dl-production.up.railway.app/openapi.json"
+  status = 200
+  force = true
+
+# 4. Proxy pour ReDoc
+[[redirects]]
+  from = "/redoc"
+  to = "https://nexus-dl-production.up.railway.app/redoc"
   status = 200
   force = true
 
 # ============================================================================
 # EN-TÊTES DE SÉCURITÉ (Security Headers)
 # ============================================================================
-# Applique des politiques de sécurité strictes à toutes les réponses du frontend.
+# Applique des politiques de sécurité strictes à toutes les réponses.
 [[headers]]
   for = "/*"
   [headers.values]
-    # Empêche l'incorporation du site dans des iframes (anti-clickjacking)
+    # Empêche l'incorporation dans des iframes (anti-clickjacking)
     X-Frame-Options = "DENY"
     # Empêche le navigateur de deviner le type MIME (anti-sniffing)
     X-Content-Type-Options = "nosniff"
@@ -82,8 +106,7 @@
     Referrer-Policy = "strict-origin-when-cross-origin"
     # Désactive l'accès aux API matérielles non nécessaires
     Permissions-Policy = "geolocation=(), microphone=(), camera=()"
-    # HSTS : Force l'utilisation de HTTPS (Netlify fournit déjà le SSL)
+    # HSTS : Force HTTPS (Netlify fournit déjà le SSL)
     Strict-Transport-Security = "max-age=31536000; includeSubDomains; preload"
-    # Content Security Policy (CSP) de base pour Next.js
-    # ⚠️ À ajuster si vous ajoutez des scripts externes (Google Analytics, etc.)
-    Content-Security-Policy = "default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; connect-src 'self' https: wss:;"
+    # Content Security Policy (CSP) pour Next.js
+    Content-Security-Policy = "default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; connect-src 'self' https://nexus-dl-production.up.railway.app wss://nexus-dl-production.up.railway.app https: wss:;"
