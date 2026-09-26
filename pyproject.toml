@@ -72,6 +72,7 @@ dependencies = [
     "pydantic>=2.5.0",        # Validation des données
     "pydantic-settings>=2.1.0", # Gestion de la configuration via Pydantic
     "pyyaml>=6.0.1",          # Fichiers de configuration YAML
+     "jsonschema>=4.20",
     
     # --- Database & Storage ---
     "aiosqlite>=0.19.0",      # Base de données SQLite asynchrone (Library)
