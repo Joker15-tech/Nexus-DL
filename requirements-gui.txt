@@ -1,36 +1,105 @@
-# ==============================================================================
-#  NexusDL — requirements-gui.txt (Interface Desktop)
-# ==============================================================================
-#  Dépendances pour l'interface graphique desktop (CustomTkinter).
+# ============================================================================
+# NEXUSDL - Dépendances GUI (PyQt6) uniquement
+# Version optimisée pour interface graphique desktop
+# ============================================================================
+# Ce fichier contient UNIQUEMENT les dépendances nécessaires pour :
+#   - Interface graphique PyQt6
+#   - Scraping avec Playwright
+#   - Gestion de la bibliothèque
+#   - Téléchargements
 #
-#  Généré depuis pyproject.toml via :
-#      uv pip compile pyproject.toml --extra gui -o requirements-gui.txt
-# ==============================================================================
+# Exclut : FastAPI (Web), Textual (CLI), outils de dev, documentation
+# ============================================================================
 
-# --- Core ---
--r requirements.txt
+# --- Core Framework ---
+pydantic==2.10.4
+pydantic-core==2.27.2
+pydantic-settings==2.7.1
+python-dotenv==1.0.1
 
-# --- Framework GUI ---
-customtkinter==5.2.2
-tkinter==0.1.0 ; python_version < "3.13"
-darkdetect==0.8.0
-packaging==24.2
+# --- HTTP & Networking ---
+httpx==0.28.1
+httpcore==1.0.7
+h11==0.14.0
+h2==4.1.0
+hpack==4.0.0
+hyperframe==6.0.1
+aiohttp==3.11.11
+aiosignal==1.3.2
+frozenlist==1.5.0
+multidict==6.1.0
+yarl==1.18.3
+propcache==0.2.1
+websockets==14.1
+anyio==4.7.0
+sniffio==1.3.1
+certifi==2024.12.14
+idna==3.10
 
-# --- Dépendances indirectes ---
+# --- Parsing & Scraping ---
+beautifulsoup4==4.12.3
+soupsieve==2.6
+lxml==5.3.0
+cssselect==1.2.0
+playwright==1.49.1
+greenlet==3.1.1
+pyee==12.0.0
+
+# --- Data & Validation ---
+pyyaml==6.0.2
+jsonschema==4.23.0
+jsonschema-specifications==2024.10.1
+referencing==0.35.1
+rpds-py==0.22.3
+attrs==24.3.0
+
+# --- Database & Storage ---
+aiosqlite==0.20.0
+aiofiles==24.1.0
+
+# --- Image & Packaging ---
 pillow==11.1.0
+img2pdf==0.5.1
+pikepdf==9.4.2
+defusedxml==0.7.1
+Deprecated==1.3.1
+wrapt==2.4.1
+
+# --- Auth & Security ---
+passlib[bcrypt]==1.7.4
+bcrypt==4.2.1
+pyjwt==2.10.1
+cryptography==44.0.0
+cffi==1.17.1
+pycparser==2.22
+
+# --- Logging & Utils ---
+loguru==0.7.3
+rich==13.9.4
+markdown-it-py==3.0.0
+mdurl==0.1.2
+pygments==2.18.0
+click==8.1.8
 typing-extensions==4.12.2
+annotated-types==0.7.0
 
-# --- Windows spécifique ---
-pywinstyles==1.8 ; sys_platform == "win32"
-pywin32==308 ; sys_platform == "win32"
-pywin32-ctypes==0.2.3 ; sys_platform == "win32"
+# --- PyQt6 GUI Framework ---
+PyQt6==6.7.1
+PyQt6-Qt6==6.7.3
+PyQt6-sip==13.8.0
+PyQt6-WebEngine==6.7.0
+PyQt6-WebEngine-Qt6==6.7.3
 
-# --- macOS spécifique ---
-pyobjc-core==10.3.1 ; sys_platform == "darwin"
-pyobjc-framework-Cocoa==10.3.1 ; sys_platform == "darwin"
+# --- Compression ---
+zipfile-deflate64==0.2.0
 
-# --- Linux spécifique (dépendances système optionnelles) ---
-# Note : sous Linux, tkinter est fourni par le système :
-#   Debian/Ubuntu : apt install python3-tk
-#   Fedora        : dnf install python3-tkinter
-#   Arch          : pacman -S tk
+# --- Unicode & Text ---
+unidecode==1.3.8
+
+# --- Misc ---
+six==1.17.0
+deprecation==2.1.0
+python-dateutil==2.9.0.post0
+packaging==24.2
+tomli==2.2.1
+orjson==3.10.13
