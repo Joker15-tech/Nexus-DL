@@ -32,37 +32,6 @@ fichiers statiques, et gère le cycle de vie complet de l'application.
         │
         └── run_api()          : Fonction de démarrage direct
 
-**Exemple d'utilisation — Création simple** :
-    >>> from nexusdl.interfaces.web.backend.main import create_app
-    >>>
-    >>> app = create_app()
-    >>> # Lancer avec uvicorn :
-    >>> # uvicorn nexusdl.interfaces.web.backend.main:app --reload
-
-**Exemple d'utilisation — Démarrage direct** :
-    >>> from nexusdl.interfaces.web.backend.main import run_api
-    >>>
-    >>> run_api(host="0.0.0.0", port=8000, reload=True)
-
-**Exemple d'utilisation — Personnalisation** :
-    >>> from nexusdl.interfaces.web.backend.main import create_app
-    >>> from nexusdl.interfaces.web.backend.middleware import (
-    ...     CorsConfig, CorsMode,
-    ...     RateLimitConfig,
-    ...     LoggingConfig, LogFormat,
-    ...     AuthConfig,
-    ... )
-    >>>
-    >>> app = create_app(
-    ...     cors_config=CorsConfig(
-    ...         mode=CorsMode.STRICT,
-    ...         allowed_origins=["https://nexusdl.dev"],
-    ...     ),
-    ...     rate_limit_config=RateLimitConfig(default_limit=100),
-    ...     logging_config=LoggingConfig(format=LogFormat.JSON),
-    ...     auth_config=AuthConfig(jwt_secret="your-secret-key"),
-    ... )
-
 Intégration :
     - interfaces/web/backend/middleware/* : Middlewares FastAPI
     - interfaces/web/backend/routers/*    : Routeurs FastAPI
@@ -80,6 +49,7 @@ Intégration :
 from __future__ import annotations
 
 import asyncio
+import os  # ⚠️ AJOUTÉ : Nécessaire pour lire les variables d'environnement (PORT, HOST, CORS)
 import sys
 from contextlib import asynccontextmanager
 from datetime import UTC, datetime
@@ -95,7 +65,6 @@ try:
     from fastapi.middleware.httpsredirect import HTTPSRedirectMiddleware
     from fastapi.middleware.trustedhost import TrustedHostMiddleware
     from fastapi.openapi.docs import get_redoc_html, get_swagger_ui_html
-    from fastapi.openapi.utils import get_openapi
     from fastapi.responses import HTMLResponse, JSONResponse
     from fastapi.staticfiles import StaticFiles
     FASTAPI_AVAILABLE = True
@@ -112,7 +81,7 @@ from nexusdl.core.constants import (
 )
 from nexusdl.core.events import EventBus, EventType, get_event_bus
 from nexusdl.core.exceptions import NexusDLError
-from nexusdl.core.i18n import setup_i18n, t
+from nexusdl.core.i18n import setup_i18n
 from nexusdl.core.logger import setup_logging
 from nexusdl.core.paths import get_paths, paths
 
@@ -120,7 +89,6 @@ from nexusdl.core.paths import get_paths, paths
 # ============================================================================
 # CONSTANTES
 # ============================================================================
-
 
 # Version de l'API
 API_VERSION: Final[str] = "0.1.0"
@@ -133,9 +101,10 @@ DOCS_URL: Final[str] = "/docs"
 REDOC_URL: Final[str] = "/redoc"
 OPENAPI_URL: Final[str] = "/openapi.json"
 
-# Serveur par défaut
-DEFAULT_HOST: Final[str] = "127.0.0.1"
-DEFAULT_PORT: Final[int] = 8000
+# ⚠️ CORRECTION CRITIQUE POUR RAILWAY : Lire les variables d'environnement
+# Railway injecte automatiquement $PORT et $HOST. Ne pas hardcoder "127.0.0.1" ou "8000".
+DEFAULT_HOST: Final[str] = os.getenv("HOST", "0.0.0.0")
+DEFAULT_PORT: Final[int] = int(os.getenv("PORT", "8000"))
 
 # Tags OpenAPI
 OPENAPI_TAGS: Final[list[dict[str, str]]] = [
@@ -165,29 +134,19 @@ DEFAULT_SECURITY_HEADERS: Final[dict[str, str]] = {
 # EXCEPTIONS
 # ============================================================================
 
-
 class BackendAppError(NexusDLError):
     """Exception de base pour les erreurs de l'application backend."""
 
-
 class FastAPINotAvailableError(BackendAppError):
     """Exception levée lorsque FastAPI n'est pas installé."""
-
     def __init__(self) -> None:
         super().__init__(
             "FastAPI n'est pas installé. "
             "Installez-le avec: pip install fastapi uvicorn"
         )
 
-
 class ComponentInitializationError(BackendAppError):
-    """Exception levée lorsqu'un composant ne peut être initialisé.
-
-    Attributes:
-        component: Nom du composant.
-        reason: Raison de l'échec.
-    """
-
+    """Exception levée lorsqu'un composant ne peut être initialisé."""
     def __init__(self, component: str, reason: str = "") -> None:
         msg = f"Échec de l'initialisation du composant: {component}"
         if reason:
@@ -201,51 +160,27 @@ class ComponentInitializationError(BackendAppError):
 # CONFIGURATION PAR DÉFAUT — Middlewares
 # ============================================================================
 
-
 def _get_default_cors_config() -> Any:
-    """Retourne la configuration CORS par défaut.
-
-    Returns:
-        Instance de CorsConfig.
-    """
-    from nexusdl.interfaces.web.backend.middleware.cors import (
-        CorsConfig,
-        CorsMode,
-    )
+    """Retourne la configuration CORS par défaut."""
+    from nexusdl.interfaces.web.backend.middleware.cors import CorsConfig, CorsMode
     return CorsConfig(
         mode=CorsMode.PERMISSIVE,
         allow_credentials=True,
         allow_localhost_dev=True,
     )
 
-
 def _get_default_rate_limit_config() -> Any:
-    """Retourne la configuration rate limiting par défaut.
-
-    Returns:
-        Instance de RateLimitConfig.
-    """
-    from nexusdl.interfaces.web.backend.middleware.rate_limit import (
-        RateLimitConfig,
-        RateLimitStrategy,
-    )
+    """Retourne la configuration rate limiting par défaut."""
+    from nexusdl.interfaces.web.backend.middleware.rate_limit import RateLimitConfig, RateLimitStrategy
     return RateLimitConfig(
         default_limit=100,
         default_period=60,
         strategy=RateLimitStrategy.SLIDING_WINDOW,
     )
 
-
 def _get_default_logging_config() -> Any:
-    """Retourne la configuration logging par défaut.
-
-    Returns:
-        Instance de LoggingConfig.
-    """
-    from nexusdl.interfaces.web.backend.middleware.logging import (
-        LogFormat,
-        LoggingConfig,
-    )
+    """Retourne la configuration logging par défaut."""
+    from nexusdl.interfaces.web.backend.middleware.logging import LogFormat, LoggingConfig
     return LoggingConfig(
         format=LogFormat.JSON,
         log_request_body=False,
@@ -253,17 +188,9 @@ def _get_default_logging_config() -> Any:
         mask_sensitive_data=True,
     )
 
-
 def _get_default_auth_config() -> Any:
-    """Retourne la configuration auth par défaut.
-
-    Returns:
-        Instance de AuthConfig.
-    """
-    from nexusdl.interfaces.web.backend.middleware.auth import (
-        AuthConfig,
-        AuthMethod,
-    )
+    """Retourne la configuration auth par défaut."""
+    from nexusdl.interfaces.web.backend.middleware.auth import AuthConfig, AuthMethod
     import secrets
     return AuthConfig(
         jwt_secret=secrets.token_urlsafe(32),
@@ -276,13 +203,8 @@ def _get_default_auth_config() -> Any:
 # HELPERS — Configuration de l'application
 # ============================================================================
 
-
 def _check_python_version() -> None:
-    """Vérifie que la version de Python est compatible.
-
-    Raises:
-        SystemExit: Si la version est trop ancienne.
-    """
+    """Vérifie que la version de Python est compatible."""
     if sys.version_info < PYTHON_MIN_VERSION:
         print(
             f"Error: Python {PYTHON_MIN_VERSION[0]}.{PYTHON_MIN_VERSION[1]}+ is required.\n"
@@ -291,16 +213,10 @@ def _check_python_version() -> None:
         )
         sys.exit(1)
 
-
 def _check_fastapi_available() -> None:
-    """Vérifie que FastAPI est disponible.
-
-    Raises:
-        FastAPINotAvailableError: Si FastAPI n'est pas installé.
-    """
+    """Vérifie que FastAPI est disponible."""
     if not FASTAPI_AVAILABLE:
         raise FastAPINotAvailableError()
-
 
 def _initialize_core_components(
     *,
@@ -308,13 +224,7 @@ def _initialize_core_components(
     log_level: str = "INFO",
     language: str | None = None,
 ) -> None:
-    """Initialise les composants du core.
-
-    Args:
-        config_path: Chemin vers le fichier de configuration.
-        log_level: Niveau de log.
-        language: Langue de l'interface.
-    """
+    """Initialise les composants du core."""
     # 1. Initialiser les chemins
     paths_instance = get_paths()
     if not paths_instance.is_initialized:
@@ -334,7 +244,7 @@ def _initialize_core_components(
     try:
         setup_logging(
             level=log_level,
-            format="json",
+            format="text",  # "text" est plus lisible dans les logs Railway que "json"
             log_dir=paths_instance.logs_dir,
             colorize=False,
         )
@@ -361,10 +271,7 @@ def _initialize_core_components(
         except Exception:
             pass
 
-        setup_i18n(
-            language=effective_language,
-            translations_dir=translations_dir,
-        )
+        setup_i18n(language=effective_language, translations_dir=translations_dir)
         logger.debug("I18n initialisé: language={}", effective_language)
     except Exception as e:
         logger.warning("Impossible de configurer l'i18n: {}", e)
@@ -384,7 +291,6 @@ def _initialize_core_components(
 
         event_bus = EventBus(config=bus_config)
         set_event_bus(event_bus)
-        # Note: l'EventBus sera démarré dans le lifespan
         logger.debug("EventBus créé")
     except Exception as e:
         logger.warning("Impossible de créer l'EventBus: {}", e)
@@ -417,7 +323,6 @@ def _initialize_core_components(
 # APPLICATION FACTORY — Création de l'application FastAPI
 # ============================================================================
 
-
 if FASTAPI_AVAILABLE:
 
     def _configure_middlewares(
@@ -435,29 +340,7 @@ if FASTAPI_AVAILABLE:
         enable_https_redirect: bool = False,
         trusted_hosts: list[str] | None = None,
     ) -> dict[str, Any]:
-        """Configure tous les middlewares de l'application.
-
-        Les middlewares sont ajoutés dans l'ordre inverse de leur application :
-            - Le dernier ajouté est le plus externe
-            - Ordre d'application : Logging → CORS → Rate Limit → Auth → Handler
-
-        Args:
-            app: Instance FastAPI.
-            cors_config: Configuration CORS.
-            rate_limit_config: Configuration rate limiting.
-            logging_config: Configuration logging.
-            auth_config: Configuration auth.
-            enable_cors: Activer CORS.
-            enable_rate_limit: Activer rate limiting.
-            enable_logging: Activer logging.
-            enable_auth: Activer auth.
-            enable_gzip: Activer compression gzip.
-            enable_https_redirect: Activer redirection HTTPS.
-            trusted_hosts: Liste des hôtes de confiance.
-
-        Returns:
-            Dictionnaire des middlewares configurés.
-        """
+        """Configure tous les middlewares de l'application."""
         from nexusdl.interfaces.web.backend.middleware import (
             AuthMiddleware,
             CorsMiddleware,
@@ -468,13 +351,29 @@ if FASTAPI_AVAILABLE:
 
         middlewares: dict[str, Any] = {}
 
+        # ⚠️ CORRECTION CRITIQUE : Middleware CORS standard FastAPI (Infaillible)
+        # Lit la variable d'environnement configurée sur Railway
+        if enable_cors:
+            cors_origins_str = os.getenv(
+                "NEXUSDL_CORS_ORIGINS", 
+                "https://nexusdldev.netlify.app,http://localhost:3000"
+            )
+            cors_origins = [origin.strip() for origin in cors_origins_str.split(",") if origin.strip()]
+            
+            app.add_middleware(
+                CORSMiddleware,
+                allow_origins=cors_origins,
+                allow_credentials=True,
+                allow_methods=["*"],
+                allow_headers=["*"],
+            )
+            middlewares["cors"] = cors_origins
+            logger.info("✅ CORS configuré pour les origines: {}", cors_origins)
+
         # 1. Trusted hosts (le plus externe si activé)
         if trusted_hosts:
             try:
-                app.add_middleware(
-                    TrustedHostMiddleware,
-                    allowed_hosts=trusted_hosts,
-                )
+                app.add_middleware(TrustedHostMiddleware, allowed_hosts=trusted_hosts)
                 middlewares["trusted_hosts"] = True
                 logger.debug("TrustedHostMiddleware configuré")
             except Exception as e:
@@ -534,26 +433,7 @@ if FASTAPI_AVAILABLE:
         include_settings: bool = True,
         include_ws: bool = True,
     ) -> dict[str, Any]:
-        """Configure tous les routeurs de l'application.
-
-        Args:
-            app: Instance FastAPI.
-            prefix: Préfixe commun pour tous les routeurs.
-            include_all: Inclure tous les routeurs.
-            include_health: Inclure le routeur health.
-            include_auth: Inclure le routeur auth.
-            include_sites: Inclure le routeur sites.
-            include_search: Inclure le routeur search.
-            include_manga: Inclure le routeur manga.
-            include_chapters: Inclure le routeur chapters.
-            include_library: Inclure le routeur library.
-            include_download: Inclure le routeur download.
-            include_settings: Inclure le routeur settings.
-            include_ws: Inclure le routeur WebSocket.
-
-        Returns:
-            Dictionnaire des routeurs inclus.
-        """
+        """Configure tous les routeurs de l'application."""
         from nexusdl.interfaces.web.backend.routers import (
             auth_router,
             chapters_router,
@@ -615,11 +495,7 @@ if FASTAPI_AVAILABLE:
         return included
 
     def _configure_static_files(app: FastAPI) -> None:
-        """Configure les fichiers statiques.
-
-        Args:
-            app: Instance FastAPI.
-        """
+        """Configure les fichiers statiques."""
         try:
             from nexusdl.interfaces.web.backend.static import (
                 STATIC_DIR,
@@ -638,11 +514,7 @@ if FASTAPI_AVAILABLE:
             logger.warning("Impossible de monter les fichiers statiques: {}", e)
 
     def _configure_websocket(app: FastAPI) -> None:
-        """Configure le WebSocketManager.
-
-        Args:
-            app: Instance FastAPI.
-        """
+        """Configure le WebSocketManager."""
         try:
             from nexusdl.interfaces.web.backend.routers.ws import (
                 get_connection_manager,
@@ -666,11 +538,7 @@ if FASTAPI_AVAILABLE:
             logger.warning("Impossible de configurer le WebSocket: {}", e)
 
     def _configure_documentation(app: FastAPI) -> None:
-        """Configure la documentation OpenAPI (Swagger/ReDoc).
-
-        Args:
-            app: Instance FastAPI.
-        """
+        """Configure la documentation OpenAPI (Swagger/ReDoc)."""
         @app.get(DOCS_URL, include_in_schema=False)
         async def custom_swagger_ui_html() -> HTMLResponse:
             """Page Swagger UI personnalisée."""
@@ -695,11 +563,7 @@ if FASTAPI_AVAILABLE:
         logger.debug("Documentation configurée: {} et {}", DOCS_URL, REDOC_URL)
 
     def _add_security_headers_middleware(app: FastAPI) -> None:
-        """Ajoute un middleware pour les headers de sécurité.
-
-        Args:
-            app: Instance FastAPI.
-        """
+        """Ajoute un middleware pour les headers de sécurité."""
         @app.middleware("http")
         async def add_security_headers(request: Request, call_next: Any) -> Response:
             response = await call_next(request)
@@ -708,11 +572,7 @@ if FASTAPI_AVAILABLE:
             return response
 
     def _add_root_endpoint(app: FastAPI) -> None:
-        """Ajoute un endpoint racine.
-
-        Args:
-            app: Instance FastAPI.
-        """
+        """Ajoute un endpoint racine."""
         @app.get("/", include_in_schema=False)
         async def root() -> dict[str, Any]:
             """Endpoint racine avec informations de l'API."""
@@ -751,45 +611,7 @@ if FASTAPI_AVAILABLE:
         trusted_hosts: list[str] | None = None,
         debug: bool = False,
     ) -> FastAPI:
-        """Crée et configure l'application FastAPI complète.
-
-        Fonction principale pour créer une instance de l'API REST NexusDL
-        avec tous les composants configurés.
-
-        Args:
-            config_path: Chemin vers le fichier de configuration.
-            log_level: Niveau de log.
-            language: Langue de l'interface.
-            title: Titre de l'API (défaut: APP_NAME).
-            description: Description de l'API.
-            version: Version de l'API.
-            cors_config: Configuration CORS.
-            rate_limit_config: Configuration rate limiting.
-            logging_config: Configuration logging.
-            auth_config: Configuration auth.
-            enable_cors: Activer CORS.
-            enable_rate_limit: Activer rate limiting.
-            enable_logging: Activer logging.
-            enable_auth: Activer auth.
-            enable_gzip: Activer compression gzip.
-            enable_https_redirect: Activer redirection HTTPS.
-            enable_websocket: Activer WebSocket.
-            enable_static_files: Activer fichiers statiques.
-            trusted_hosts: Liste des hôtes de confiance.
-            debug: Mode debug.
-
-        Returns:
-            Instance FastAPI configurée.
-
-        Example:
-            >>> app = create_app()
-            >>> # Ou avec configuration personnalisée
-            >>> app = create_app(
-            ...     log_level="DEBUG",
-            ...     enable_rate_limit=False,
-            ...     debug=True,
-            ... )
-        """
+        """Crée et configure l'application FastAPI complète."""
         _check_fastapi_available()
 
         # Initialiser les composants du core
@@ -803,12 +625,10 @@ if FASTAPI_AVAILABLE:
         @asynccontextmanager
         async def lifespan(app: FastAPI) -> AsyncIterator[None]:
             """Gestionnaire de cycle de vie."""
-            # Startup
             await _on_startup(app)
             try:
                 yield
             finally:
-                # Shutdown
                 await _on_shutdown(app)
 
         app = FastAPI(
@@ -884,11 +704,7 @@ if FASTAPI_AVAILABLE:
         return app
 
     def _add_exception_handlers(app: FastAPI) -> None:
-        """Ajoute des handlers d'erreurs globaux.
-
-        Args:
-            app: Instance FastAPI.
-        """
+        """Ajoute des handlers d'erreurs globaux."""
         @app.exception_handler(NexusDLError)
         async def nexusdl_error_handler(request: Request, exc: NexusDLError) -> JSONResponse:
             """Handler pour les erreurs NexusDL."""
@@ -915,11 +731,7 @@ if FASTAPI_AVAILABLE:
             )
 
     async def _on_startup(app: FastAPI) -> None:
-        """Gère le démarrage de l'application.
-
-        Args:
-            app: Instance FastAPI.
-        """
+        """Gère le démarrage de l'application."""
         logger.info("Démarrage de {} v{} (API REST)", APP_NAME, APP_VERSION)
 
         # Démarrer l'EventBus
@@ -933,9 +745,7 @@ if FASTAPI_AVAILABLE:
 
         # Démarrer le WebSocketManager
         try:
-            from nexusdl.interfaces.web.backend.websocket import (
-                get_websocket_manager,
-            )
+            from nexusdl.interfaces.web.backend.websocket import get_websocket_manager
             manager = get_websocket_manager()
             if not manager.is_started:
                 await manager.start()
@@ -945,9 +755,7 @@ if FASTAPI_AVAILABLE:
 
         # Démarrer le ConnectionManager
         try:
-            from nexusdl.interfaces.web.backend.routers.ws import (
-                get_connection_manager,
-            )
+            from nexusdl.interfaces.web.backend.routers.ws import get_connection_manager
             connection_manager = get_connection_manager()
             if connection_manager:
                 await connection_manager.start()
@@ -973,9 +781,7 @@ if FASTAPI_AVAILABLE:
 
         # Notification de démarrage
         try:
-            from nexusdl.interfaces.web.backend.websocket import (
-                broadcast_system_status,
-            )
+            from nexusdl.interfaces.web.backend.websocket import broadcast_system_status
             await broadcast_system_status(
                 "running",
                 details={
@@ -989,11 +795,7 @@ if FASTAPI_AVAILABLE:
         logger.info("API REST démarrée avec succès")
 
     async def _on_shutdown(app: FastAPI) -> None:
-        """Gère l'arrêt de l'application.
-
-        Args:
-            app: Instance FastAPI.
-        """
+        """Gère l'arrêt de l'application."""
         logger.info("Arrêt de l'API REST...")
 
         # Émettre un événement d'arrêt
@@ -1012,9 +814,7 @@ if FASTAPI_AVAILABLE:
 
         # Notification d'arrêt
         try:
-            from nexusdl.interfaces.web.backend.websocket import (
-                broadcast_system_status,
-            )
+            from nexusdl.interfaces.web.backend.websocket import broadcast_system_status
             await broadcast_system_status(
                 "stopping",
                 details={
@@ -1026,9 +826,7 @@ if FASTAPI_AVAILABLE:
 
         # Arrêter le ConnectionManager
         try:
-            from nexusdl.interfaces.web.backend.routers.ws import (
-                get_connection_manager,
-            )
+            from nexusdl.interfaces.web.backend.routers.ws import get_connection_manager
             connection_manager = get_connection_manager()
             if connection_manager:
                 await connection_manager.stop()
@@ -1038,9 +836,7 @@ if FASTAPI_AVAILABLE:
 
         # Arrêter le WebSocketManager
         try:
-            from nexusdl.interfaces.web.backend.websocket import (
-                get_websocket_manager,
-            )
+            from nexusdl.interfaces.web.backend.websocket import get_websocket_manager
             manager = get_websocket_manager()
             if manager.is_started:
                 await manager.stop()
@@ -1057,34 +853,6 @@ if FASTAPI_AVAILABLE:
         except Exception as e:
             logger.warning("Erreur lors de l'arrêt de l'EventBus: {}", e)
 
-        # Réinitialiser les composants
-        for reset_func_name in [
-            "reset_config_manager",
-            "reset_i18n",
-            "reset_logging",
-            "reset_event_bus",
-            "reset_paths",
-        ]:
-            try:
-                module_name = reset_func_name.replace("reset_", "")
-                if module_name == "config_manager":
-                    from nexusdl.core.config import reset_config_manager
-                    reset_config_manager()
-                elif module_name == "i18n":
-                    from nexusdl.core.i18n import reset_i18n
-                    reset_i18n()
-                elif module_name == "logging":
-                    from nexusdl.core.logger import reset_logging
-                    reset_logging()
-                elif module_name == "event_bus":
-                    from nexusdl.core.events import reset_event_bus
-                    reset_event_bus()
-                elif module_name == "paths":
-                    from nexusdl.core.paths import reset_paths
-                    reset_paths()
-            except Exception:
-                pass
-
         # Calculer la durée de session
         started_at = app.state.nexusdl_config.get("started_at")
         if started_at:
@@ -1098,7 +866,6 @@ if FASTAPI_AVAILABLE:
 # FONCTIONS DE DÉMARRAGE
 # ============================================================================
 
-
 def run_api(
     *,
     host: str = DEFAULT_HOST,
@@ -1110,26 +877,7 @@ def run_api(
     debug: bool = False,
     **kwargs: Any,
 ) -> None:
-    """Lance l'API REST avec uvicorn.
-
-    Fonction de haut niveau pour démarrer rapidement l'API.
-
-    Args:
-        host: Hôte d'écoute.
-        port: Port d'écoute.
-        reload: Activer le rechargement automatique.
-        workers: Nombre de workers.
-        log_level: Niveau de log uvicorn.
-        config_path: Chemin vers le fichier de configuration.
-        debug: Mode debug.
-        **kwargs: Arguments additionnels pour uvicorn.
-
-    Raises:
-        FastAPINotAvailableError: Si FastAPI ou uvicorn n'est pas installé.
-
-    Example:
-        >>> run_api(host="0.0.0.0", port=8000)
-    """
+    """Lance l'API REST avec uvicorn."""
     _check_python_version()
     _check_fastapi_available()
 
@@ -1159,6 +907,9 @@ def run_api(
         "reload": reload,
         "workers": workers if not reload else 1,
         "log_level": log_level,
+        # ⚠️ CRITIQUE POUR RAILWAY : Accepter les headers du reverse proxy
+        "proxy_headers": True,
+        "forwarded_allow_ips": "*",
         **kwargs,
     }
 
@@ -1175,7 +926,6 @@ def run_api(
 # ============================================================================
 # INSTANCE GLOBALE — Pour uvicorn
 # ============================================================================
-
 
 # Instance globale de l'application (utilisée par uvicorn)
 # Peut être importée directement : from nexusdl.interfaces.web.backend.main import app
@@ -1198,22 +948,12 @@ except Exception as e:
 # FONCTIONS HELPERS PUBLIQUES
 # ============================================================================
 
-
 def is_fastapi_available() -> bool:
-    """Vérifie si FastAPI est disponible.
-
-    Returns:
-        True si FastAPI est installé.
-    """
+    """Vérifie si FastAPI est disponible."""
     return FASTAPI_AVAILABLE
 
-
 def get_fastapi_installation_instructions() -> str:
-    """Retourne les instructions d'installation de FastAPI.
-
-    Returns:
-        Instructions d'installation.
-    """
+    """Retourne les instructions d'installation de FastAPI."""
     return """
 Pour utiliser l'API REST de NexusDL, vous devez installer FastAPI et uvicorn :
 
@@ -1233,13 +973,8 @@ Ou depuis Python :
     run_api(host="0.0.0.0", port=8000)
 """.strip()
 
-
 def get_api_info() -> dict[str, Any]:
-    """Retourne les informations de l'API.
-
-    Returns:
-        Dictionnaire d'informations.
-    """
+    """Retourne les informations de l'API."""
     return {
         "name": APP_NAME,
         "version": APP_VERSION,
@@ -1260,7 +995,6 @@ def get_api_info() -> dict[str, Any]:
 # ============================================================================
 # EXPORTS
 # ============================================================================
-
 
 __all__ = [
     # Constantes
@@ -1286,13 +1020,4 @@ __all__ = [
     "is_fastapi_available",
     "get_fastapi_installation_instructions",
     "get_api_info",
-    # Fonctions internes (pour tests)
-    "initialize_core_components" if FASTAPI_AVAILABLE else None,
 ]
-
-# Nettoyer les None
-__all__ = [x for x in __all__ if x is not None]
-
-# Alias pour compatibilité
-if FASTAPI_AVAILABLE:
-    initialize_core_components = _initialize_core_components
