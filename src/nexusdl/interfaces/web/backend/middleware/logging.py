@@ -80,13 +80,14 @@ Intégration :
 
 from __future__ import annotations
 
+import asyncio
 import json
 import re
 import time
 import uuid
 from datetime import UTC, datetime
 from enum import Enum
-from typing import Any, Callable, Final
+from typing import Any, Awaitable, Callable, Final
 
 from loguru import logger
 from pydantic import BaseModel, ConfigDict, Field
@@ -95,12 +96,10 @@ try:
     from starlette.middleware.base import BaseHTTPMiddleware
     from starlette.requests import Request
     from starlette.responses import JSONResponse, Response
-    from starlette.types import Message
     STARLETTE_AVAILABLE = True
 except ImportError:
     STARLETTE_AVAILABLE = False
 
-from nexusdl.core.constants import APP_NAME
 from nexusdl.core.events import EventType, get_event_bus
 from nexusdl.core.exceptions import NexusDLError
 
@@ -412,7 +411,7 @@ class LoggingStats(BaseModel):
     requests_by_method: dict[str, int] = Field(default_factory=dict)
     total_duration_ms: float = Field(default=0.0, ge=0.0)
     max_duration_ms: float = Field(default=0.0, ge=0.0)
-    min_duration_ms: float = Field(default=float("inf"), ge=0.0)
+    min_duration_ms: float = Field(default=0.0, ge=0.0)
     average_duration_ms: float = Field(default=0.0, ge=0.0)
     errors_count: int = Field(default=0, ge=0)
     started_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
@@ -579,7 +578,7 @@ class RequestLogger:
         self._config = config
         self._logger = logger.bind(module=config.logger_name)
         self._stats = LoggingStats()
-        self._stats_lock = __import__("asyncio").Lock()
+        self._stats_lock = asyncio.Lock()
 
     async def log_request(
         self,
@@ -790,14 +789,13 @@ class RequestLogger:
 
             # Mettre à jour les durées
             new_stats["total_duration_ms"] += log_entry.duration_ms
-            new_stats["max_duration_ms"] = max(
-                new_stats["max_duration_ms"],
-                log_entry.duration_ms,
-            )
-            new_stats["min_duration_ms"] = min(
-                new_stats["min_duration_ms"],
-                log_entry.duration_ms,
-            )
+            if new_stats["total_requests"] == 1:
+                new_stats["min_duration_ms"] = log_entry.duration_ms
+            else:
+                new_stats["min_duration_ms"] = min(
+                    new_stats["min_duration_ms"],
+                    log_entry.duration_ms,
+                )
             new_stats["average_duration_ms"] = (
                 new_stats["total_duration_ms"] / new_stats["total_requests"]
             )
@@ -887,7 +885,7 @@ if STARLETTE_AVAILABLE:
             self._config = config or LoggingConfig()
             self._logger = request_logger or RequestLogger(self._config)
 
-        async def dispatch(self, request: Request, call_next: Callable) -> Response:
+        async def dispatch(self, request: Request, call_next: Callable[[Request], Awaitable[Response]]) -> Response:
             """Traite une requête HTTP.
 
             Args:

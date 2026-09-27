@@ -12,7 +12,7 @@ et intègre un système de gestion des tokens et des API keys.
     - Injection de l'utilisateur dans request.state
     - Protection des endpoints via dépendances FastAPI
     - Gestion des rôles et permissions (RBAC)
-    - Hashing sécurisé des mots de passe (bcrypt)
+    - Hashing sécurisé des mots de passe (bcrypt/SHA256)
     - Refresh tokens avec rotation
     - Blacklist de tokens révoqués
     - Rate limiting par utilisateur
@@ -66,7 +66,7 @@ et intègre un système de gestion des tokens et des API keys.
     >>>
     >>> # Protéger un endpoint
     >>> @app.get("/api/v1/manga")
-    >>> async def get_manga(user: UserIdentity = get_current_user()):
+    >>> async def get_manga(user: UserIdentity = Depends(get_current_user())):
     ...     return {"manga": []}
 
 Intégration :
@@ -81,9 +81,10 @@ Intégration :
 
 from __future__ import annotations
 
+import asyncio
 import base64
 import hashlib
-import hmac
+import json
 import secrets
 import time
 from datetime import UTC, datetime, timedelta
@@ -111,7 +112,6 @@ from nexusdl.core.constants import APP_NAME
 from nexusdl.core.events import EventType, get_event_bus
 from nexusdl.core.exceptions import NexusDLError
 from nexusdl.core.i18n import t
-from nexusdl.core.utils.hash import hash_string
 
 
 # ============================================================================
@@ -353,47 +353,19 @@ class UserIdentity(BaseModel):
     model_config = ConfigDict(frozen=True, extra="forbid")
 
     def has_role(self, role: str) -> bool:
-        """Vérifie si l'utilisateur a un rôle.
-
-        Args:
-            role: Rôle à vérifier.
-
-        Returns:
-            True si l'utilisateur a le rôle.
-        """
+        """Vérifie si l'utilisateur a un rôle."""
         return role in self.roles
 
     def has_permission(self, permission: str) -> bool:
-        """Vérifie si l'utilisateur a une permission.
-
-        Args:
-            permission: Permission à vérifier.
-
-        Returns:
-            True si l'utilisateur a la permission.
-        """
+        """Vérifie si l'utilisateur a une permission."""
         return permission in self.permissions
 
     def has_any_role(self, roles: list[str]) -> bool:
-        """Vérifie si l'utilisateur a au moins un rôle.
-
-        Args:
-            roles: Liste de rôles.
-
-        Returns:
-            True si l'utilisateur a au moins un rôle.
-        """
+        """Vérifie si l'utilisateur a au moins un rôle."""
         return any(role in self.roles for role in roles)
 
     def has_all_permissions(self, permissions: list[str]) -> bool:
-        """Vérifie si l'utilisateur a toutes les permissions.
-
-        Args:
-            permissions: Liste de permissions.
-
-        Returns:
-            True si l'utilisateur a toutes les permissions.
-        """
+        """Vérifie si l'utilisateur a toutes les permissions."""
         return all(perm in self.permissions for perm in permissions)
 
 
@@ -557,7 +529,7 @@ class AuthRequestLog(BaseModel):
 
     Attributes:
         timestamp: Timestamp ISO 8601.
-        method: Méthode d'authentification.
+        method: Méthode d'authentification utilisée.
         path: Chemin de la requête.
         client_ip: IP du client.
         user_agent: User-Agent.
@@ -581,7 +553,6 @@ class AuthRequestLog(BaseModel):
 
     def to_json(self) -> str:
         """Convertit en JSON."""
-        import json
         data = {k: v for k, v in self.model_dump().items() if v is not None}
         return json.dumps(data, ensure_ascii=False, default=str)
 
@@ -598,14 +569,10 @@ class TokenManager:
     """
 
     def __init__(self, config: AuthConfig) -> None:
-        """Initialise le gestionnaire.
-
-        Args:
-            config: Configuration d'authentification.
-        """
+        """Initialise le gestionnaire."""
         self._config = config
         self._revoked_tokens: set[str] = set()  # jti des tokens révoqués
-        self._lock = __import__("asyncio").Lock()
+        self._lock = asyncio.Lock()
 
         if not JWT_AVAILABLE:
             raise AuthError("PyJWT n'est pas installé. Installez-le avec: pip install PyJWT")
@@ -620,17 +587,7 @@ class TokenManager:
         permissions: list[str] | None = None,
         metadata: dict[str, Any] | None = None,
     ) -> str:
-        """Crée un access token JWT.
-
-        Args:
-            user_id: ID de l'utilisateur.
-            roles: Rôles de l'utilisateur.
-            permissions: Permissions de l'utilisateur.
-            metadata: Métadonnées additionnelles.
-
-        Returns:
-            Token JWT signé.
-        """
+        """Crée un access token JWT."""
         now = time.time()
         exp = now + (self._config.access_token_expire_minutes * 60)
 
@@ -655,14 +612,7 @@ class TokenManager:
         self,
         user_id: str,
     ) -> str:
-        """Crée un refresh token JWT.
-
-        Args:
-            user_id: ID de l'utilisateur.
-
-        Returns:
-            Token JWT signé.
-        """
+        """Crée un refresh token JWT."""
         now = time.time()
         exp = now + (self._config.refresh_token_expire_days * 24 * 60 * 60)
 
@@ -681,18 +631,7 @@ class TokenManager:
         )
 
     def validate_token(self, token: str, expected_type: TokenType | None = None) -> TokenPayload:
-        """Valide un token JWT.
-
-        Args:
-            token: Token à valider.
-            expected_type: Type attendu (access, refresh, ou None pour tout).
-
-        Returns:
-            Payload du token.
-
-        Raises:
-            TokenError: Si le token est invalide.
-        """
+        """Valide un token JWT."""
         try:
             payload = jwt.decode(
                 token,
@@ -717,11 +656,7 @@ class TokenManager:
             raise TokenError("unknown", f"Invalid token: {e}") from e
 
     async def revoke_token(self, token: str) -> None:
-        """Révoque un token JWT.
-
-        Args:
-            token: Token à révoquer.
-        """
+        """Révoque un token JWT."""
         try:
             payload = jwt.decode(
                 token,
@@ -738,14 +673,7 @@ class TokenManager:
             logger.warning("Impossible de révoquer le token: {}", e)
 
     async def is_token_revoked(self, token: str) -> bool:
-        """Vérifie si un token est révoqué.
-
-        Args:
-            token: Token à vérifier.
-
-        Returns:
-            True si révoqué.
-        """
+        """Vérifie si un token est révoqué."""
         try:
             payload = jwt.decode(
                 token,
@@ -771,14 +699,10 @@ class ApiKeyManager:
     """
 
     def __init__(self, config: AuthConfig) -> None:
-        """Initialise le gestionnaire.
-
-        Args:
-            config: Configuration d'authentification.
-        """
+        """Initialise le gestionnaire."""
         self._config = config
         self._api_keys: dict[str, ApiKeyInfo] = {}  # hash -> info
-        self._lock = __import__("asyncio").Lock()
+        self._lock = asyncio.Lock()
 
     def create_api_key(
         self,
@@ -787,17 +711,7 @@ class ApiKeyManager:
         permissions: list[str] | None = None,
         expires_at: datetime | None = None,
     ) -> tuple[str, ApiKeyInfo]:
-        """Crée une nouvelle API key.
-
-        Args:
-            user_id: ID de l'utilisateur.
-            name: Nom descriptif.
-            permissions: Permissions associées.
-            expires_at: Date d'expiration (None = jamais).
-
-        Returns:
-            Tuple (api_key, api_key_info).
-        """
+        """Crée une nouvelle API key."""
         # Générer une clé aléatoire
         api_key = secrets.token_urlsafe(self._config.api_key_length)
 
@@ -821,14 +735,7 @@ class ApiKeyManager:
         return api_key, info
 
     async def validate_api_key(self, api_key: str) -> ApiKeyInfo | None:
-        """Valide une API key.
-
-        Args:
-            api_key: Clé à valider.
-
-        Returns:
-            ApiKeyInfo si valide, None sinon.
-        """
+        """Valide une API key."""
         key_hash = self._hash_api_key(api_key)
 
         async with self._lock:
@@ -847,14 +754,7 @@ class ApiKeyManager:
         return info
 
     async def revoke_api_key(self, api_key: str) -> bool:
-        """Révoque une API key.
-
-        Args:
-            api_key: Clé à révoquer.
-
-        Returns:
-            True si révoquée, False si non trouvée.
-        """
+        """Révoque une API key."""
         key_hash = self._hash_api_key(api_key)
 
         async with self._lock:
@@ -866,14 +766,7 @@ class ApiKeyManager:
         return False
 
     def _hash_api_key(self, api_key: str) -> str:
-        """Hash une API key pour stockage sécurisé.
-
-        Args:
-            api_key: Clé à hasher.
-
-        Returns:
-            Hash SHA-256.
-        """
+        """Hash une API key pour stockage sécurisé."""
         return hashlib.sha256(api_key.encode()).hexdigest()
 
 
@@ -894,26 +787,13 @@ class AuthValidator:
         token_manager: TokenManager,
         api_key_manager: ApiKeyManager,
     ) -> None:
-        """Initialise le validateur.
-
-        Args:
-            config: Configuration.
-            token_manager: Gestionnaire de tokens.
-            api_key_manager: Gestionnaire d'API keys.
-        """
+        """Initialise le validateur."""
         self._config = config
         self._token_manager = token_manager
         self._api_key_manager = api_key_manager
 
     async def validate_request(self, request: Any) -> tuple[AuthDecision, UserIdentity | None, str | None]:
-        """Valide l'authentification d'une requête.
-
-        Args:
-            request: Requête HTTP.
-
-        Returns:
-            Tuple (decision, user_identity, reason).
-        """
+        """Valide l'authentification d'une requête."""
         # Essayer chaque méthode autorisée
         for method in self._config.allowed_methods:
             if method == AuthMethod.API_KEY:
@@ -940,14 +820,7 @@ class AuthValidator:
         return AuthDecision.REJECTED, None, "no_valid_credentials"
 
     async def _validate_api_key(self, request: Any) -> tuple[AuthDecision, UserIdentity | None, str | None]:
-        """Valide une API key.
-
-        Args:
-            request: Requête HTTP.
-
-        Returns:
-            Tuple (decision, user, reason).
-        """
+        """Valide une API key."""
         api_key = request.headers.get(HEADER_API_KEY)
         if not api_key:
             return AuthDecision.ANONYMOUS, None, None
@@ -965,14 +838,7 @@ class AuthValidator:
         return AuthDecision.AUTHENTICATED, user, None
 
     async def _validate_jwt_bearer(self, request: Any) -> tuple[AuthDecision, UserIdentity | None, str | None]:
-        """Valide un JWT Bearer token.
-
-        Args:
-            request: Requête HTTP.
-
-        Returns:
-            Tuple (decision, user, reason).
-        """
+        """Valide un JWT Bearer token."""
         auth_header = request.headers.get(HEADER_AUTHORIZATION)
         if not auth_header or not auth_header.startswith(BEARER_PREFIX):
             return AuthDecision.ANONYMOUS, None, None
@@ -996,14 +862,7 @@ class AuthValidator:
             return AuthDecision.REJECTED, None, e.reason
 
     async def _validate_basic_auth(self, request: Any) -> tuple[AuthDecision, UserIdentity | None, str | None]:
-        """Valide une authentification Basic.
-
-        Args:
-            request: Requête HTTP.
-
-        Returns:
-            Tuple (decision, user, reason).
-        """
+        """Valide une authentification Basic."""
         auth_header = request.headers.get(HEADER_AUTHORIZATION)
         if not auth_header or not auth_header.startswith(BASIC_PREFIX):
             return AuthDecision.ANONYMOUS, None, None
@@ -1022,14 +881,7 @@ class AuthValidator:
             return AuthDecision.REJECTED, None, f"invalid_format: {e}"
 
     async def _validate_session(self, request: Any) -> tuple[AuthDecision, UserIdentity | None, str | None]:
-        """Valide une session (cookie).
-
-        Args:
-            request: Requête HTTP.
-
-        Returns:
-            Tuple (decision, user, reason).
-        """
+        """Valide une session (cookie)."""
         session_cookie = request.cookies.get(self._config.session_cookie_name)
         if not session_cookie:
             return AuthDecision.ANONYMOUS, None, None
@@ -1051,11 +903,6 @@ if STARLETTE_AVAILABLE:
 
         Valide les credentials de chaque requête et injecte l'identité
         utilisateur dans request.state.
-
-        Example:
-            >>> app = FastAPI()
-            >>> config = AuthConfig(jwt_secret="your-secret")
-            >>> app.add_middleware(AuthMiddleware, config=config)
         """
 
         def __init__(
@@ -1064,12 +911,7 @@ if STARLETTE_AVAILABLE:
             *,
             config: AuthConfig | None = None,
         ) -> None:
-            """Initialise le middleware.
-
-            Args:
-                app: Application FastAPI.
-                config: Configuration d'authentification.
-            """
+            """Initialise le middleware."""
             super().__init__(app)
             self._config = config or AuthConfig()
             self._token_manager = TokenManager(self._config)
@@ -1080,19 +922,11 @@ if STARLETTE_AVAILABLE:
                 self._api_key_manager,
             )
             self._stats = AuthStats()
-            self._stats_lock = __import__("asyncio").Lock()
+            self._stats_lock = asyncio.Lock()
             self._logger = logger.bind(module="nexusdl.api.auth")
 
         async def dispatch(self, request: Request, call_next: Callable) -> Response:
-            """Traite une requête HTTP avec authentification.
-
-            Args:
-                request: Requête HTTP.
-                call_next: Fonction pour appeler le handler suivant.
-
-            Returns:
-                Réponse HTTP.
-            """
+            """Traite une requête HTTP avec authentification."""
             # Vérifier si le middleware est activé
             if not self._config.enabled:
                 return await call_next(request)
@@ -1137,14 +971,7 @@ if STARLETTE_AVAILABLE:
                 return self._unauthorized_response(reason or ERROR_INVALID_CREDENTIALS)
 
         def _unauthorized_response(self, reason: str) -> JSONResponse:
-            """Crée une réponse 401 Unauthorized.
-
-            Args:
-                reason: Raison de l'échec.
-
-            Returns:
-                Réponse JSON 401.
-            """
+            """Crée une réponse 401 Unauthorized."""
             return JSONResponse(
                 status_code=401,
                 content={
@@ -1168,18 +995,10 @@ if STARLETTE_AVAILABLE:
             reason: str | None,
             duration_ms: float,
         ) -> None:
-            """Log une tentative d'authentification.
-
-            Args:
-                request: Requête HTTP.
-                decision: Décision.
-                user: Identité utilisateur (si authentifié).
-                reason: Raison de l'échec.
-                duration_ms: Durée de validation.
-            """
+            """Log une tentative d'authentification."""
             log_entry = AuthRequestLog(
                 timestamp=datetime.now(UTC).isoformat(),
-                method=request.headers.get(HEADER_AUTHORIZATION, "none")[:10] if request.headers.get(HEADER_AUTHORIZATION) else "none",
+                method=user.auth_method.value if user else "anonymous",
                 path=request.url.path,
                 client_ip=request.client.host if request.client else None,
                 user_agent=request.headers.get("User-Agent"),
@@ -1198,12 +1017,7 @@ if STARLETTE_AVAILABLE:
             decision: AuthDecision,
             user: UserIdentity | None,
         ) -> None:
-            """Met à jour les statistiques.
-
-            Args:
-                decision: Décision.
-                user: Identité utilisateur.
-            """
+            """Met à jour les statistiques."""
             async with self._stats_lock:
                 new_stats = self._stats.model_dump()
                 new_stats["total_attempts"] += 1
@@ -1231,14 +1045,7 @@ if STARLETTE_AVAILABLE:
             user: UserIdentity | None,
             reason: str | None,
         ) -> None:
-            """Émet un événement sur l'EventBus.
-
-            Args:
-                request: Requête HTTP.
-                decision: Décision.
-                user: Identité utilisateur.
-                reason: Raison de l'échec.
-            """
+            """Émet un événement sur l'EventBus."""
             try:
                 event_bus = get_event_bus()
                 await event_bus.emit(
@@ -1256,11 +1063,7 @@ if STARLETTE_AVAILABLE:
                 logger.debug("Impossible d'émettre l'événement d'auth: {}", e)
 
         async def get_stats(self) -> AuthStats:
-            """Récupère les statistiques.
-
-            Returns:
-                Statistiques actuelles.
-            """
+            """Récupère les statistiques."""
             async with self._stats_lock:
                 return self._stats
 
@@ -1286,16 +1089,7 @@ if STARLETTE_AVAILABLE:
 
 
 def get_current_user() -> Callable:
-    """Dépendance FastAPI pour obtenir l'utilisateur courant.
-
-    Returns:
-        Fonction de dépendance.
-
-    Example:
-        >>> @app.get("/api/v1/manga")
-        >>> async def get_manga(user: UserIdentity = Depends(get_current_user())):
-        ...     return {"user": user.user_id}
-    """
+    """Dépendance FastAPI pour obtenir l'utilisateur courant."""
     async def dependency(request: Request) -> UserIdentity:
         if not hasattr(request.state, "user"):
             raise AuthenticationError("unknown", "User not authenticated")
@@ -1305,19 +1099,7 @@ def get_current_user() -> Callable:
 
 
 def require_role(role: str) -> Callable:
-    """Dépendance FastAPI pour exiger un rôle spécifique.
-
-    Args:
-        role: Rôle requis.
-
-    Returns:
-        Fonction de dépendance.
-
-    Example:
-        >>> @app.delete("/api/v1/manga/{id}")
-        >>> async def delete_manga(user: UserIdentity = Depends(require_role("admin"))):
-        ...     pass
-    """
+    """Dépendance FastAPI pour exiger un rôle spécifique."""
     async def dependency(request: Request) -> UserIdentity:
         if not hasattr(request.state, "user"):
             raise AuthenticationError("unknown", "User not authenticated")
@@ -1332,19 +1114,7 @@ def require_role(role: str) -> Callable:
 
 
 def require_permission(permission: str) -> Callable:
-    """Dépendance FastAPI pour exiger une permission spécifique.
-
-    Args:
-        permission: Permission requise.
-
-    Returns:
-        Fonction de dépendance.
-
-    Example:
-        >>> @app.post("/api/v1/manga")
-        >>> async def create_manga(user: UserIdentity = Depends(require_permission("write"))):
-        ...     pass
-    """
+    """Dépendance FastAPI pour exiger une permission spécifique."""
     async def dependency(request: Request) -> UserIdentity:
         if not hasattr(request.state, "user"):
             raise AuthenticationError("unknown", "User not authenticated")
@@ -1367,20 +1137,12 @@ _auth_middleware: Any = None
 
 
 def get_auth_middleware() -> Any:
-    """Retourne l'instance globale du AuthMiddleware.
-
-    Returns:
-        Instance de AuthMiddleware ou None.
-    """
+    """Retourne l'instance globale du AuthMiddleware."""
     return _auth_middleware
 
 
 def set_auth_middleware(middleware: Any) -> None:
-    """Définit l'instance globale du AuthMiddleware.
-
-    Args:
-        middleware: Instance de AuthMiddleware.
-    """
+    """Définit l'instance globale du AuthMiddleware."""
     global _auth_middleware
     _auth_middleware = middleware
 
@@ -1402,16 +1164,7 @@ def create_auth_config(
     allowed_methods: list[AuthMethod] | None = None,
     development: bool = False,
 ) -> AuthConfig:
-    """Crée une configuration d'authentification avec des valeurs par défaut.
-
-    Args:
-        jwt_secret: Secret JWT (généré automatiquement si None).
-        allowed_methods: Méthodes autorisées.
-        development: Si True, active le mode développement.
-
-    Returns:
-        Instance de AuthConfig.
-    """
+    """Crée une configuration d'authentification avec des valeurs par défaut."""
     if development:
         return AuthConfig(
             jwt_secret=jwt_secret or secrets.token_urlsafe(32),
@@ -1427,35 +1180,22 @@ def create_auth_config(
 
 
 def generate_api_key(length: int = DEFAULT_API_KEY_LENGTH) -> str:
-    """Génère une API key aléatoire.
-
-    Args:
-        length: Longueur de la clé.
-
-    Returns:
-        API key.
-    """
+    """Génère une API key aléatoire."""
     return secrets.token_urlsafe(length)
 
 
 def hash_password(password: str) -> str:
-    """Hash un mot de passe de manière sécurisée.
-
-    Args:
-        password: Mot de passe à hasher.
-
-    Returns:
-        Hash du mot de passe.
-    """
-    return hash_string(password, algorithm=__import__("nexusdl.core.utils.hash", fromlist=["HashAlgorithm"]).HashAlgorithm.SHA256)
+    """Hash un mot de passe de manière sécurisée."""
+    try:
+        from nexusdl.core.utils.hash import hash_string, HashAlgorithm
+        return hash_string(password, algorithm=HashAlgorithm.SHA256)
+    except ImportError:
+        # Fallback sécurisé si le module n'est pas disponible
+        return hashlib.sha256(password.encode("utf-8")).hexdigest()
 
 
 async def get_auth_stats() -> AuthStats:
-    """Récupère les statistiques d'authentification.
-
-    Returns:
-        Statistiques actuelles.
-    """
+    """Récupère les statistiques d'authentification."""
     middleware = get_auth_middleware()
     if middleware is None:
         return AuthStats()

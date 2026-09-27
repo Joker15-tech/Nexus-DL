@@ -1,419 +1,464 @@
-# ==============================================================================
-#  NexusDL — .gitattributes
-# ==============================================================================
-#  Contrôle le comportement de Git sur les fichiers du dépôt :
-#    - Normalisation des fins de ligne (LF/CRLF)
-#    - Détection linguistique (stats GitHub)
-#    - Comportement des diffs et merges
-#    - Marquage des fichiers binaires
-#    - Export via `git archive`
-#    - Filtres (LFS, smudge/clean)
+# ============================================================================
+# NEXUSDL - Git Attributes
+# ============================================================================
+# Ce fichier contrôle le comportement de Git pour différents types de fichiers.
+# Il garantit la cohérence des fins de ligne, la gestion des fichiers binaires,
+# et optimise les exports Git.
 #
-#  Documentation :
-#    https://git-scm.com/docs/gitattributes
-#    https://github.com/gitattributes/gitattributes
-#
-#  Copyright (C) 2026 NEXUS-QUANTUM
-#  SPDX-License-Identifier: GPL-3.0-or-later
-# ==============================================================================
+# Documentation : https://git-scm.com/docs/gitattributes
+# ============================================================================
 
+# ============================================================================
+# RÈGLES GLOBALES PAR DÉFAUT
+# ============================================================================
 
-# ==============================================================================
-#  1. RÈGLE PAR DÉFAUT — NORMALISATION
-# ==============================================================================
-#  Tous les fichiers texte sont normalisés en LF dans le dépôt.
-#  Sur checkout, Git peut convertir en CRLF selon `core.autocrlf` et `eol`.
-#
-#  Recommandation NexusDL : LF partout, même sous Windows.
-#  Utilisateurs Windows : `git config --global core.autocrlf input`
-# ==============================================================================
-
+# Auto-detection des fichiers texte vs binaires
+# Git convertira automatiquement les fins de ligne selon l'OS
 * text=auto eol=lf
 
+# ============================================================================
+# FICHIERS PYTHON
+# ============================================================================
+*.py text diff=python
+*.pyi text diff=python
+*.pyc binary
+*.pyo binary
+*.pyd binary
+*.pyw text
+*.pyx text diff=python
+*.pxd text diff=python
+*.pxi text diff=python
 
-# ==============================================================================
-#  2. FICHIERS TEXTE — FORCÉS EN LF (Unix)
-# ==============================================================================
-#  Tous les fichiers de code et de configuration sont en LF.
-#  Cela évite les diffs parasites et les problèmes de shebang.
-# ==============================================================================
+# Fichiers de configuration Python
+*.toml text
+*.cfg text
+*.ini text
+setup.py text diff=python
+setup.cfg text
+pyproject.toml text
 
-# --- Python ---
-*.py         text eol=lf
-*.pyi        text eol=lf
-*.pyx        text eol=lf
-*.pxd        text eol=lf
-*.pyw        text eol=lf
-*.ipynb      text eol=lf
+# Environnements virtuels (ne pas tracker)
+.venv/ -text
+venv/ -text
+env/ -text
+ENV/ -text
 
-# --- Web / Frontend ---
-*.js         text eol=lf
-*.jsx        text eol=lf
-*.mjs        text eol=lf
-*.cjs        text eol=lf
-*.ts         text eol=lf
-*.tsx        text eol=lf
-*.mts        text eol=lf
-*.cts        text eol=lf
-*.vue        text eol=lf
-*.svelte     text eol=lf
-*.html       text eol=lf
-*.htm        text eol=lf
-*.css        text eol=lf
-*.scss       text eol=lf
-*.sass       text eol=lf
-*.less       text eol=lf
-*.styl       text eol=lf
+# ============================================================================
+# FICHIERS JAVASCRIPT & TYPESCRIPT
+# ============================================================================
+*.js text
+*.jsx text
+*.mjs text
+*.cjs text
+*.ts text
+*.tsx text
+*.mts text
+*.cts text
+*.d.ts text
 
-# --- Data / Config ---
-*.json       text eol=lf
-*.json5      text eol=lf
-*.jsonc      text eol=lf
-*.yaml       text eol=lf
-*.yml        text eol=lf
-*.toml       text eol=lf
-*.ini        text eol=lf
-*.cfg        text eol=lf
-*.conf       text eol=lf
-*.properties text eol=lf
-*.env        text eol=lf
-*.env.*      text eol=lf
+# Fichiers de configuration Node.js
+package.json text
+package-lock.json text
+pnpm-lock.yaml text
+pnpm-workspace.yaml text
+yarn.lock text
+.npmrc text
+.nvmrc text
+.eslintrc* text
+.prettierrc* text
+.stylelintrc* text
+tsconfig*.json text
+jsconfig*.json text
+next.config.* text
+postcss.config.* text
+tailwind.config.* text
 
-# --- Markup / Documentation ---
-*.md         text eol=lf
-*.markdown   text eol=lf
-*.mdown      text eol=lf
-*.mkd        text eol=lf
-*.rst        text eol=lf
-*.txt        text eol=lf
-*.adoc       text eol=lf
-*.asciidoc   text eol=lf
-*.tex        text eol=lf
+# ============================================================================
+# FICHIERS WEB (HTML, CSS, SVG)
+# ============================================================================
+*.html text diff=html
+*.htm text diff=html
+*.css text diff=css
+*.scss text
+*.sass text
+*.less text
+*.svg text
 
-# --- Scripts / Shells ---
-*.sh         text eol=lf
-*.bash       text eol=lf
-*.zsh        text eol=lf
-*.fish       text eol=lf
-*.ksh        text eol=lf
-*.csh        text eol=lf
-*.ps1        text eol=lf
-*.psm1       text eol=lf
-*.psd1       text eol=lf
-*.bat        text eol=crlf      # ⚠️ Windows batch = CRLF obligatoire
-*.cmd        text eol=crlf      # ⚠️ Windows command = CRLF obligatoire
+# ============================================================================
+# FICHIERS DE DONNÉES & CONFIGURATION
+# ============================================================================
+*.json text
+*.jsonc text
+*.yaml text
+*.yml text
+*.xml text
+*.csv text
+*.tsv text
+*.sql text
+*.graphql text
+*.gql text
 
-# --- Autres langages ---
-*.sql        text eol=lf
-*.graphql    text eol=lf
-*.gql        text eol=lf
-*.proto      text eol=lf
-*.dockerfile text eol=lf
-Dockerfile   text eol=lf
-*.tf         text eol=lf
-*.tfvars     text eol=lf
-*.hcl        text eol=lf
-*.rs         text eol=lf
-*.go         text eol=lf
-*.java       text eol=lf
-*.kt         text eol=lf
-*.kts        text eol=lf
-*.rb         text eol=lf
-*.php        text eol=lf
-*.pl         text eol=lf
-*.pm         text eol=lf
-*.lua        text eol=lf
-*.r          text eol=lf
-*.R          text eol=lf
-*.jl         text eol=lf
-*.swift      text eol=lf
-*.m          text eol=lf
-*.mm         text eol=lf
-*.c          text eol=lf
-*.h          text eol=lf
-*.cpp        text eol=lf
-*.hpp        text eol=lf
-*.cc         text eol=lf
-*.hh         text eol=lf
-*.cs         text eol=lf
-*.fs         text eol=lf
-*.fsx        text eol=lf
-*.vb         text eol=lf
-*.clj        text eol=lf
-*.cljs       text eol=lf
-*.edn        text eol=lf
-*.ex         text eol=lf
-*.exs        text eol=lf
-*.erl        text eol=lf
-*.hrl        text eol=lf
-*.ml         text eol=lf
-*.mli        text eol=lf
-*.hs         text eol=lf
-*.lhs        text eol=lf
-*.elm        text eol=lf
-*.dart       text eol=lf
-*.scala      text eol=lf
+# ============================================================================
+# FICHIERS DE DOCUMENTATION
+# ============================================================================
+*.md text diff=markdown
+*.markdown text diff=markdown
+*.mdx text
+*.rst text
+*.txt text
+*.tex text
+*.bib text
+LICENSE text
+LICENSE.* text
+CHANGELOG* text
+CONTRIBUTING* text
+CODE_OF_CONDUCT* text
+SECURITY* text
+NOTICE text
 
-# --- Configs spécifiques ---
-.editorconfig     text eol=lf
-.gitattributes    text eol=lf
-.gitignore        text eol=lf
-.gitmodules       text eol=lf
-.prettierrc       text eol=lf
-.prettierignore   text eol=lf
-.eslintrc         text eol=lf
-.eslintignore     text eol=lf
-.stylelintrc      text eol=lf
-.babelrc          text eol=lf
-.browserslistrc   text eol=lf
-.nvmrc            text eol=lf
-.python-version   text eol=lf
-.ruby-version     text eol=lf
-.node-version     text eol=lf
-.tool-versions    text eol=lf
-.dockerignore     text eol=lf
-.yamllint         text eol=lf
-.yamllint.yaml    text eol=lf
-.yamllint.yml     text eol=lf
-.secrets.baseline text eol=lf
+# ============================================================================
+# FICHIERS SHELL & SCRIPTS
+# ============================================================================
+*.sh text eol=lf
+*.bash text eol=lf
+*.zsh text eol=lf
+*.fish text eol=lf
+*.ksh text eol=lf
+*.csh text eol=lf
+*.tcsh text eol=lf
 
-# --- Fichiers sans extension (shebang) ---
-Makefile          text eol=lf
-makefile          text eol=lf
-GNUmakefile       text eol=lf
-justfile          text eol=lf
-Justfile          text eol=lf
-Rakefile          text eol=lf
-Dockerfile        text eol=lf
-LICENSE           text eol=lf
-COPYING           text eol=lf
-CHANGELOG         text eol=lf
-CONTRIBUTING      text eol=lf
-CODE_OF_CONDUCT   text eol=lf
-SECURITY          text eol=lf
-README            text eol=lf
-AUTHORS           text eol=lf
-CONTRIBUTORS      text eol=lf
+# Scripts Windows (CRLF obligatoire)
+*.bat text eol=crlf
+*.cmd text eol=crlf
+*.ps1 text eol=crlf
+*.psm1 text eol=crlf
+*.psd1 text eol=crlf
 
+# ============================================================================
+# FICHIERS DOCKER & CONTENEURS
+# ============================================================================
+Dockerfile* text
+docker-compose*.yml text
+docker-compose*.yaml text
+.dockerignore text
+*.dockerfile text
 
-# ==============================================================================
-#  3. FICHIERS BINAIRES — MARQUÉS COMME TELS
-# ==============================================================================
-#  Git ne tentera PAS de diff ou merge sur ces fichiers.
-#  Les statistiques de langue ne les prendront pas en compte.
-# ==============================================================================
+# ============================================================================
+# FICHIERS CI/CD & AUTOMATISATION
+# ============================================================================
+.github/** text
+.gitlab-ci.yml text
+.travis.yml text
+.circleci/** text
+.azure-pipelines/** text
+Jenkinsfile text
+*.jenkinsfile text
 
-# --- Images ---
-*.png        binary
-*.jpg        binary
-*.jpeg       binary
-*.jpe        binary
-*.gif        binary
-*.bmp        binary
-*.tiff       binary
-*.tif        binary
-*.webp       binary
-*.avif       binary
-*.heic       binary
-*.heif       binary
-*.ico        binary
-*.icns       binary
-*.svgz       binary
-*.psd        binary
-*.ai         binary
-*.xcf        binary
-*.sketch     binary
-*.fig        binary
+# ============================================================================
+# FICHIERS MAKE & BUILD
+# ============================================================================
+Makefile text
+makefile text
+GNUmakefile text
+*.mk text
+CMakeLists.txt text
+*.cmake text
+justfile text
+Justfile text
+*.just text
+Rakefile text
+*.rake text
+Gruntfile* text
+Gulpfile* text
+Webpack.config.* text
+rollup.config.* text
+vite.config.* text
 
-# --- Audio / Vidéo ---
-*.mp3        binary
-*.wav        binary
-*.flac       binary
-*.ogg        binary
-*.m4a        binary
-*.aac        binary
-*.opus       binary
-*.mp4        binary
-*.m4v        binary
-*.mkv        binary
-*.webm       binary
-*.avi        binary
-*.mov        binary
-*.wmv        binary
-*.flv        binary
+# ============================================================================
+# IMAGES & GRAPHIQUES (BINAIRE)
+# ============================================================================
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.webp binary
+*.avif binary
+*.bmp binary
+*.tiff binary
+*.tif binary
+*.psd binary
+*.ai binary
+*.eps binary
+*.raw binary
+*.cr2 binary
+*.nef binary
+*.orf binary
+*.sr2 binary
 
-# --- Archives ---
-*.zip        binary
-*.tar        binary
-*.gz         binary
-*.tgz        binary
-*.bz2        binary
-*.xz         binary
-*.lz         binary
-*.lzma       binary
-*.zst        binary
-*.7z         binary
-*.rar        binary
-*.cbz        binary      # ⚠️ Comic Book ZIP
-*.cbr        binary      # ⚠️ Comic Book RAR
-*.cb7        binary
-*.cbt        binary
+# ============================================================================
+# IMAGES VECTORIELLES
+# ============================================================================
+*.svg text
+*.ai binary
+*.eps binary
 
-# --- Documents ---
-*.pdf        binary
-*.doc        binary
-*.docx       binary
-*.xls        binary
-*.xlsx       binary
-*.ppt        binary
-*.pptx       binary
-*.odt        binary
-*.ods        binary
-*.odp        binary
-*.epub       binary
-*.mobi       binary
+# ============================================================================
+# POLICES & FONTS (BINAIRE)
+# ============================================================================
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.otf binary
+*.eot binary
+*.fon binary
+*.ttc binary
 
-# --- Exécutables / Bibliothèques ---
-*.exe        binary
-*.dll        binary
-*.so         binary
-*.dylib      binary
-*.a          binary
-*.lib        binary
-*.o          binary
-*.obj        binary
-*.class      binary
-*.jar        binary
-*.war        binary
-*.ear        binary
-*.pyc        binary
-*.pyo        binary
-*.pyd        binary
-*.wasm       binary
-*.node       binary
+# ============================================================================
+# AUDIO & VIDÉO (BINAIRE)
+# ============================================================================
+*.mp3 binary
+*.wav binary
+*.ogg binary
+*.flac binary
+*.aac binary
+*.m4a binary
+*.wma binary
+*.aiff binary
+*.mp4 binary
+*.webm binary
+*.mkv binary
+*.avi binary
+*.mov binary
+*.wmv binary
+*.flv binary
+*.m4v binary
 
-# --- Bases de données ---
-*.db         binary
-*.sqlite     binary
-*.sqlite3    binary
-*.mdb        binary
-*.accdb      binary
+# ============================================================================
+# DOCUMENTS (BINAIRE)
+# ============================================================================
+*.pdf binary
+*.doc binary
+*.docx binary
+*.xls binary
+*.xlsx binary
+*.ppt binary
+*.pptx binary
+*.odt binary
+*.ods binary
+*.odp binary
 
-# --- Polices ---
-*.ttf        binary
-*.otf        binary
-*.woff       binary
-*.woff2      binary
-*.eot        binary
+# ============================================================================
+# ARCHIVES & COMPRESSÉS (BINAIRE)
+# ============================================================================
+*.zip binary
+*.tar binary
+*.gz binary
+*.bz2 binary
+*.xz binary
+*.7z binary
+*.rar binary
+*.tgz binary
+*.tbz2 binary
+*.txz binary
+*.lz binary
+*.lzma binary
+*.z binary
+*.Z binary
+*.cab binary
+*.iso binary
+*.dmg binary
+*.jar binary
+*.war binary
+*.ear binary
 
-# --- Divers ---
-*.iso        binary
-*.img        binary
-*.dmg        binary
-*.vhd        binary
-*.vmdk       binary
-*.qcow2      binary
-*.deb        binary
-*.rpm        binary
-*.apk        binary
-*.ipa        binary
-*.crx        binary
-*.xpi        binary
+# ============================================================================
+# BASES DE DONNÉES (BINAIRE)
+# ============================================================================
+*.db binary
+*.sqlite binary
+*.sqlite3 binary
+*.mdb binary
+*.accdb binary
+*.ldf binary
+*.mdf binary
 
+# ============================================================================
+# EXÉCUTABLES & BINAIRES COMPILÉS (BINAIRE)
+# ============================================================================
+*.exe binary
+*.dll binary
+*.so binary
+*.dylib binary
+*.bin binary
+*.app binary
+*.msi binary
+*.deb binary
+*.rpm binary
+*.pkg binary
+*.apk binary
+*.ipa binary
 
-# ==============================================================================
-#  4. FICHIERS GÉNÉRÉS — EXCLUS DE L'EXPORT
-# ==============================================================================
-#  `git archive` ne les inclura PAS (utile pour les releases).
-#  `export-ignore` = exclu des archives de release.
-# ==============================================================================
+# ============================================================================
+# FICHIERS DE CERTIFICATS & CLÉS (BINAIRE)
+# ============================================================================
+*.pem binary
+*.crt binary
+*.cer binary
+*.der binary
+*.p12 binary
+*.pfx binary
+*.key binary
+*.keystore binary
+*.jks binary
 
-# --- Configuration de développement ---
-.github/         export-ignore
-.gitattributes   export-ignore
-.gitignore       export-ignore
-.gitmodules      export-ignore
-.editorconfig    export-ignore
-.pre-commit-config.yaml  export-ignore
-.secrets.baseline        export-ignore
-.yamllint        export-ignore
-.yamllint.yaml   export-ignore
-.yamllint.yml    export-ignore
-.cz.toml         export-ignore
-.cz.yaml         export-ignore
+# ============================================================================
+# FICHIERS D'ENVIRONNEMENT (SENSIBLES)
+# ============================================================================
+.env text
+.env.* text
+*.env text
+*.env.* text
 
-# --- Tests (optionnel : ne pas distribuer) ---
-tests/           export-ignore
-.tox/            export-ignore
-.nox/            export-ignore
-.pytest_cache/   export-ignore
-.mypy_cache/     export-ignore
-.ruff_cache/     export-ignore
-.coverage        export-ignore
-coverage.xml     export-ignore
-htmlcov/         export-ignore
+# ============================================================================
+# FICHIERS GIT
+# ============================================================================
+.gitignore text
+.gitattributes text
+.gitmodules text
+.gitkeep text
 
-# --- Frontend (build séparé) ---
-src/nexusdl/interfaces/web/frontend/  export-ignore
+# ============================================================================
+# FICHIERS D'ÉDITEURS & IDE (NE PAS TRACKER)
+# ============================================================================
+.vscode/** -text
+.idea/** -text
+*.swp -text
+*.swo -text
+*~ -text
+.project -text
+.classpath -text
+.settings/** -text
+*.sublime-project -text
+*.sublime-workspace -text
 
-# --- Docs (distribué séparément) ---
-docs/            export-ignore    # Décommenter si docs distribuées séparément
-                                 # Sinon laisser commenté pour inclure dans l'archive
+# ============================================================================
+# FICHIERS DE CACHE (NE PAS TRACKER)
+# ============================================================================
+__pycache__/** -text
+*.pyc -text
+.pytest_cache/** -text
+.mypy_cache/** -text
+.ruff_cache/** -text
+.tox/** -text
+.nox/** -text
+.coverage -text
+htmlcov/** -text
+node_modules/** -text
+.next/** -text
+.turbo/** -text
+.parcel-cache/** -text
 
-# --- Scripts dev ---
-scripts/         export-ignore    # Décommenter si scripts dev non distribués
+# ============================================================================
+# FICHIERS DE LOGS (NE PAS TRACKER)
+# ============================================================================
+*.log -text
+logs/** -text
+npm-debug.log* -text
+yarn-debug.log* -text
+yarn-error.log* -text
+pnpm-debug.log* -text
 
-# --- Divers ---
-.dockerignore    export-ignore
-Dockerfile*      export-ignore
-docker/          export-ignore
-docker-compose*.yml  export-ignore
+# ============================================================================
+# FICHIERS TEMPORAIRES (NE PAS TRACKER)
+# ============================================================================
+*.tmp -text
+*.temp -text
+*.bak -text
+*.backup -text
+*.old -text
+*.orig -text
+*~ -text
+.#* -text
+\#*# -text
+.DS_Store -text
+Thumbs.db -text
+desktop.ini -text
 
+# ============================================================================
+# EXPORT GIT (optimiser les archives git archive)
+# ============================================================================
 
-# ==============================================================================
-#  5. DÉTECTION LINGUISTIQUE (STATS GITHUB)
-# ==============================================================================
-#  Force GitHub Linguist à classifier correctement les fichiers.
-# ==============================================================================
+# Exclure ces fichiers/dossiers des exports git archive
+.github/ export-ignore
+.gitattributes export-ignore
+.gitignore export-ignore
+.gitmodules export-ignore
+.editorconfig export-ignore
+.vscode/ export-ignore
+.idea/ export-ignore
+tests/ export-ignore
+docs/ export-ignore
+*.md export-ignore
+!README.md export-ignore
+!CHANGELOG.md export-ignore
+!LICENSE export-ignore
+*.log export-ignore
+*.tmp export-ignore
+*.temp export-ignore
+__pycache__/ export-ignore
+.pytest_cache/ export-ignore
+.mypy_cache/ export-ignore
+.ruff_cache/ export-ignore
+node_modules/ export-ignore
+.next/ export-ignore
+.turbo/ export-ignore
+.parcel-cache/ export-ignore
+.coverage export-ignore
+htmlcov/ export-ignore
+*.pyc export-ignore
+*.pyo export-ignore
 
-# --- Fichiers exclus des statistiques ---
-*.min.js         linguist-generated=true
-*.min.css        linguist-generated=true
-*.map            linguist-generated=true
-*.lock           linguist-generated=true
-uv.lock          linguist-generated=true
-pnpm-lock.yaml   linguist-generated=true
-package-lock.json linguist-generated=true
+# ============================================================================
+# DIFF CUSTOM POUR CERTAINS TYPES DE FICHIERS
+# ============================================================================
 
-# --- Fichiers de documentation (exclus du code) ---
-docs/**          linguist-documentation=true
-*.md             linguist-documentation=true
-*.rst            linguist-documentation=true
-*.txt            linguist-documentation=true
+# Utiliser un diff spécifique pour les fichiers de verrouillage
+package-lock.json -diff
+pnpm-lock.yaml -diff
+yarn.lock -diff
+Pipfile.lock -diff
+poetry.lock -diff
+Cargo.lock -diff
+Gemfile.lock -diff
+composer.lock -diff
 
-# --- Fichiers de config (exclus du code) ---
-*.yaml           linguist-detectable=true
-*.yml            linguist-detectable=true
-*.json           linguist-detectable=false
-*.toml           linguist-detectable=false
-*.ini            linguist-detectable=false
-*.cfg            linguist-detectable=false
+# ============================================================================
+# FICHIERS SPÉCIFIQUES NEXUSDL
+# ============================================================================
 
-# --- Vendeurs (exclus) ---
-node_modules/**  linguist-vendored=true
-.venv/**         linguist-vendored=true
-venv/**          linguist-vendored=true
-vendor/**        linguist-vendored=true
-third_party/**   linguist-vendored=true
-external/**      linguist-vendored=true
+# Fichiers de configuration NexusDL
+nexus.dl text
+*.nexusdl text
 
-# --- Force le langage de certains fichiers ---
-*.py             linguist-language=Python
-*.pyi            linguist-language=Python
-*.tcss           linguist-language=CSS
-justfile         linguist-language=Makefile
-Justfile         linguist-language=Makefile
+# Fichiers de traduction
+*.po text
+*.mo binary
+*.properties text
 
-# --- Marqueurs pour les fichiers générés (générés automatiquement) ---
-src/nexusdl/version.py         linguist-generated=true
-src/nexusdl/data/sites_schema.json  linguist-generated=true
+# Fichiers de schéma
+*.schema.json text
+*.schema.yaml text
+
+# Fichiers de fixture (tests)
+tests/fixtures/** text
+tests/data/** text
+
+# Fichiers de configuration des sites
+src/nexusdl/core/registry/sites/**/*.yaml text
+src/nexusdl/core/registry/sites/**/*.yml text
+src/nexusdl/core/registry/sites/**/*.json text
+
+# ============================================================================
+# FIN DU FICHIER
+# ============================================================================

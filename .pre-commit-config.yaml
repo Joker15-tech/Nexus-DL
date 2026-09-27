@@ -1,369 +1,385 @@
-# ==============================================================================
-#  NexusDL — .pre-commit-config.yaml
-# ==============================================================================
-#  Configuration des hooks pre-commit pour garantir la qualité du code,
-#  la sécurité et la cohérence du projet avant chaque commit.
+# ============================================================================
+# NEXUSDL - Pre-commit Configuration
+# ============================================================================
+# Ce fichier configure les hooks Git qui s'exécutent automatiquement avant
+# chaque commit pour garantir la qualité du code.
 #
-#  Installation :
-#      pre-commit install
-#      pre-commit install --hook-type commit-msg
-#      pre-commit install --hook-type pre-push
+# Installation :
+#   pip install pre-commit
+#   pre-commit install
+#   pre-commit install --hook-type commit-msg
 #
-#  Exécution manuelle :
-#      pre-commit run --all-files
-#      pre-commit run --all-files --hook-stage pre-push
-#      pre-commit autoupdate
+# Exécution manuelle :
+#   pre-commit run --all-files
 #
-#  Documentation : https://pre-commit.com/
+# Mise à jour des hooks :
+#   pre-commit autoupdate
 #
-#  Copyright (C) 2026 NEXUS-QUANTUM
-#  SPDX-License-Identifier: GPL-3.0-or-later
-# ==============================================================================
+# Documentation : https://pre-commit.com
+# ============================================================================
 
 # Version minimale de pre-commit requise
-minimum_pre_commit_version: "4.0.0"
+minimum_pre_commit_version: "3.0.0"
 
-# Langue Python par défaut pour les environnements
+# Répertoire de cache des hooks
 default_language_version:
   python: python3.12
+  node: "20"
 
-# Ne pas exécuter les hooks sur ces fichiers
-exclude: |
-  (?x)^(
-    \.git/|
-    \.venv/|
-    venv/|
-    __pycache__/|
-    build/|
-    dist/|
-    node_modules/|
-    \.next/|
-    \.tox/|
-    \.mypy_cache/|
-    \.ruff_cache/|
-    \.pytest_cache/|
-    htmlcov/|
-    coverage\.xml|
-    \.coverage.*|
-    src/nexusdl/interfaces/web/frontend/(node_modules|\.next|out)/
-  )$
-
-# ==============================================================================
-#  HOOKS
-# ==============================================================================
-
+# ============================================================================
+# HOOKS STANDARDS (pré-commit)
+# ============================================================================
 repos:
-  # ---------------------------------------------------------------------------
-  # 1. VÉRIFICATIONS GÉNÉRALES DE FICHIERS
-  # ---------------------------------------------------------------------------
+  # --------------------------------------------------------------------------
+  # HOOKS GÉNÉRAUX (fichiers texte, fins de ligne, etc.)
+  # --------------------------------------------------------------------------
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v5.0.0
     hooks:
-      # Vérifie la syntaxe des fichiers Python (AST)
-      - id: check-ast
-        name: "Python: Vérification syntaxe AST"
-        types: [python]
-
-      # Vérifie la syntaxe JSON
-      - id: check-json
-        name: "JSON: Vérification syntaxe"
-        types: [json]
-
-      # Vérifie la syntaxe TOML (pyproject.toml, etc.)
-      - id: check-toml
-        name: "TOML: Vérification syntaxe"
-        types: [toml]
-
-      # Vérifie la syntaxe YAML (workflows, configs, nexus.dl)
-      - id: check-yaml
-        name: "YAML: Vérification syntaxe"
-        args: [--allow-multiple-documents]
-        types: [yaml]
-
-      # Vérifie les fichiers XML (ComicInfo.xml)
-      - id: check-xml
-        name: "XML: Vérification syntaxe"
-        types: [xml]
-
-      # Vérifie les fichiers de merge en cours
-      - id: check-merge-conflict
-        name: "Git: Conflits de merge non résolus"
-
-      # Vérifie les fichiers ajoutés à Git LFS
-      - id: check-added-large-files
-        name: "Git: Fichiers volumineux"
-        args: [--maxkb=5000]
-
-      # Vérifie les symlinks qui pointent dans le vide
-      - id: check-symlinks
-        name: "FS: Symlinks cassés"
-
-      # Vérifie la présence de shebangs valides
-      - id: check-executables-have-shebangs
-        name: "FS: Shebangs sur exécutables"
-
-      # Vérifie que les fichiers texte ne sont pas exécutables
-      - id: check-shebang-scripts-are-executable
-        name: "FS: Scripts exécutables avec shebang"
-
-      # Détecte les statements de debug oubliés (pdb, breakpoint, etc.)
-      - id: debug-statements
-        name: "Python: Debug statements oubliés"
-        types: [python]
-
       # Supprime les espaces en fin de ligne
       - id: trailing-whitespace
-        name: "Format: Espaces en fin de ligne"
         args: [--markdown-linebreak-ext=md]
-        exclude: |
-          (?x)^(
-            .*\.min\.(js|css)$|
-            .*\.md$|
-            docs/source/_static/.*
-          )$
-
-      # Corrige les fins de fichier sans newline
+      
+      # Assure une ligne vide à la fin des fichiers
       - id: end-of-file-fixer
-        name: "Format: Fin de fichier (newline)"
-        exclude: |
-          (?x)^(
-            .*\.min\.(js|css)$|
-            docs/source/_static/.*|
-            src/nexusdl/data/translations/.*
-          )$
-
-      # Uniformise les fins de ligne en LF
+      
+      # Convertit les fins de ligne en LF (sauf pour les fichiers Windows)
       - id: mixed-line-ending
-        name: "Format: Fins de ligne (LF)"
         args: [--fix=lf]
-
-      # Détecte les caractères de conflit de merge
+        exclude: ^.*\.(bat|cmd|ps1|psm1|psd1)$
+      
+      # Vérifie la validité des fichiers YAML
+      - id: check-yaml
+        args: [--allow-multiple-documents]
+      
+      # Vérifie la validité des fichiers JSON
+      - id: check-json
+      
+      # Vérifie la validité des fichiers TOML
+      - id: check-toml
+      
+      # Vérifie la validité des fichiers XML
+      - id: check-xml
+      
+      # Vérifie la validité des fichiers mergés
+      - id: check-merge-conflict
+      
+      # Vérifie qu'il n'y a pas de conflits de cas (Windows/macOS)
       - id: check-case-conflict
-        name: "FS: Conflits de casse"
+      
+      # Vérifie qu'il n'y a pas de fichiers avec des espaces dans le nom
+      - id: check-executables-have-shebangs
+      
+      # Vérifie les shebangs des scripts
+      - id: check-shebang-scripts-are-executable
+      
+      # Détecte les fichiers avec des caractères spéciaux Windows
+      - id: check-added-large-files
+        args: [--maxkb=1000]
+      
+      # Détecte les clés privées
+      - id: detect-private-key
+      
+      # Empêche l'ajout de fichiers de conflits Git
+      - id: forbid-new-submodules
+      
+      # Trie les requirements.txt
+      - id: requirements-txt-fixer
+      
+      # Vérifie les liens cassés dans les fichiers
+      - id: fix-encoding-pragma
+        args: [--remove]
 
-      # Vérifie que les fichiers ne se terminent pas par un caractère spécial
-      - id: fix-byte-order-marker
-        name: "Format: Byte Order Marker (BOM)"
-
-  # ---------------------------------------------------------------------------
-  # 2. RUFF — LINTER ET FORMATTER PYTHON
-  # ---------------------------------------------------------------------------
+  # --------------------------------------------------------------------------
+  # PYTHON - RUFF (Linter & Formatter ultra-rapide)
+  # --------------------------------------------------------------------------
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.8.4
+    rev: v0.8.6
     hooks:
-      # Linter avec auto-fix
+      # Ruff linter
       - id: ruff
-        name: "Ruff: Linter + auto-fix"
-        args: [--fix, --exit-non-zero-on-fix]
-        types_or: [python, pyi]
-        files: ^(src|tests|scripts)/
-
-      # Formatter
+        args: [
+          --fix,
+          --exit-non-zero-on-fix,
+          --show-fixes,
+        ]
+        types_or: [python, pyi, jupyter]
+      
+      # Ruff formatter
       - id: ruff-format
-        name: "Ruff: Formatter"
-        types_or: [python, pyi]
-        files: ^(src|tests|scripts)/
+        types_or: [python, pyi, jupyter]
 
-  # ---------------------------------------------------------------------------
-  # 3. MYPY — VÉRIFICATION DE TYPAGE STATIQUE
-  # ---------------------------------------------------------------------------
+  # --------------------------------------------------------------------------
+  # PYTHON - MYPY (Type checking)
+  # --------------------------------------------------------------------------
   - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v1.14.0
+    rev: v1.14.1
     hooks:
       - id: mypy
-        name: "Mypy: Vérification de typage strict"
-        args: [--config-file=pyproject.toml]
+        args: [
+          --ignore-missing-imports,
+          --scripts-are-modules,
+        ]
         additional_dependencies:
-          - pydantic>=2.9
-          - types-aiofiles>=24.1
-          - types-pyyaml>=6.0.12
-          - types-pillow>=10.2
-          - types-requests>=2.32
-        pass_filenames: false
-        entry: mypy src/nexusdl
-        types: [python]
-        files: ^src/nexusdl/
+          - types-PyYAML
+          - types-requests
+          - types-beautifulsoup4
+          - types-jsonschema
+          - types-passlib
+          - types-Pillow
+          - types-aiofiles
+          - types-python-dateutil
+          - types-setuptools
+        exclude: ^(tests/|docs/)
 
-  # ---------------------------------------------------------------------------
-  # 4. BANDIT — ANALYSE DE SÉCURITÉ (SAST)
-  # ---------------------------------------------------------------------------
+  # --------------------------------------------------------------------------
+  # PYTHON - PYTEST (Tests)
+  # --------------------------------------------------------------------------
+  - repo: local
+    hooks:
+      - id: pytest
+        name: pytest
+        entry: python -m pytest
+        language: system
+        types: [python]
+        pass_filenames: false
+        always_run: true
+        args: [
+          tests/,
+          -v,
+          --tb=short,
+          -x,
+          --disable-warnings,
+        ]
+
+  # --------------------------------------------------------------------------
+  # PYTHON - PYLINT (Analyse statique complémentaire)
+  # --------------------------------------------------------------------------
+  - repo: https://github.com/pycqa/pylint
+    rev: v3.3.2
+    hooks:
+      - id: pylint
+        args: [
+          --disable=C0114,C0115,C0116,  # Désactive les warnings de docstrings manquantes
+          --max-line-length=100,
+        ]
+        exclude: ^(tests/|docs/)
+
+  # --------------------------------------------------------------------------
+  # SÉCURITÉ - Bandit (Analyse de sécurité Python)
+  # --------------------------------------------------------------------------
   - repo: https://github.com/PyCQA/bandit
     rev: 1.8.0
     hooks:
       - id: bandit
-        name: "Bandit: Analyse de sécurité"
-        args: [-c, pyproject.toml, -q, -r]
-        additional_dependencies:
-          - bandit[toml]
-        types: [python]
-        files: ^src/nexusdl/
+        args: [
+          -r,
+          src/nexusdl,
+          --severity-level=medium,
+          --confidence-level=medium,
+        ]
+        additional_dependencies: ["bandit[toml]"]
 
-  # ---------------------------------------------------------------------------
-  # 5. GITLEAKS — DÉTECTION DE SECRETS
-  # ---------------------------------------------------------------------------
-  - repo: https://github.com/gitleaks/gitleaks
-    rev: v8.22.1
-    hooks:
-      - id: gitleaks
-        name: "Gitleaks: Détection de secrets"
-        args: [--verbose, --redact]
-        stages: [pre-commit]
-
-  # ---------------------------------------------------------------------------
-  # 6. DETECT-SECRETS — DÉTECTION DE SECRETS (ALTERNATIF)
-  # ---------------------------------------------------------------------------
+  # --------------------------------------------------------------------------
+  # SÉCURITÉ - Detect-secrets (Détection de secrets)
+  # --------------------------------------------------------------------------
   - repo: https://github.com/Yelp/detect-secrets
     rev: v1.5.0
     hooks:
       - id: detect-secrets
-        name: "Detect-Secrets: Audit de secrets"
-        args: [--baseline, .secrets.baseline]
-        exclude: |
-          (?x)^(
-            tests/fixtures/.*|
-            .*\.lock$|
-            \.secrets\.baseline$
-          )$
+        args: [
+          --baseline,
+          .secrets.baseline,
+        ]
+        exclude: ^(package-lock\.json|pnpm-lock\.yaml|\.env\.example)$
 
-  # ---------------------------------------------------------------------------
-  # 7. CHECK-YAMLSCHEMA — VALIDATION DES MANIFESTES nexus.dl
-  # ---------------------------------------------------------------------------
-  - repo: https://github.com/jmlrt/check-yamlschema
-    rev: v0.0.7
+  # --------------------------------------------------------------------------
+  # SÉCURITÉ - pip-audit (Audit des dépendances Python)
+  # --------------------------------------------------------------------------
+  - repo: local
     hooks:
-      - id: check-yamlschema
-        name: "Nexus.dl: Validation des manifestes"
-        files: nexus\.dl$
+      - id: pip-audit
+        name: pip-audit
+        entry: pip-audit
+        language: system
+        pass_filenames: false
+        always_run: true
+        args: [
+          --require-hashes,
+          --desc,
+        ]
 
-  # ---------------------------------------------------------------------------
-  # 8. YAMLLINT — LINTER YAML
-  # ---------------------------------------------------------------------------
-  - repo: https://github.com/adrienverge/yamllint
-    rev: v1.35.1
+  # --------------------------------------------------------------------------
+  # FRONTEND - ESLint (Linter JavaScript/TypeScript)
+  # --------------------------------------------------------------------------
+  - repo: local
     hooks:
-      - id: yamllint
-        name: "Yamllint: Linter YAML"
-        args: [-c, .yamllint.yaml]
-        types: [yaml]
-        files: ^(\.github/|docker/|config/|.*\.ya?ml$)
-        exclude: |
-          (?x)^(
-            src/nexusdl/core/registry/sites\.yaml|
-            .*\.lock$
-          )$
+      - id: eslint
+        name: eslint
+        entry: bash -c 'cd src/nexusdl/interfaces/web/frontend && pnpm eslint --fix "${@/#src\/nexusdl\/interfaces\/web\/frontend\//}"'
+        language: system
+        types_or: [javascript, jsx, ts, tsx]
+        files: ^src/nexusdl/interfaces/web/frontend/
 
-  # ---------------------------------------------------------------------------
-  # 9. COMMITIZEN — FORMAT DES MESSAGES DE COMMIT
-  # ---------------------------------------------------------------------------
+  # --------------------------------------------------------------------------
+  # FRONTEND - Prettier (Formatter)
+  # --------------------------------------------------------------------------
+  - repo: local
+    hooks:
+      - id: prettier
+        name: prettier
+        entry: bash -c 'cd src/nexusdl/interfaces/web/frontend && pnpm prettier --write "${@/#src\/nexusdl\/interfaces\/web\/frontend\//}"'
+        language: system
+        types_or: [javascript, jsx, ts, tsx, json, css, scss, sass, less, html, markdown, yaml]
+        files: ^src/nexusdl/interfaces/web/frontend/
+
+  # --------------------------------------------------------------------------
+  # FRONTEND - Stylelint (Linter CSS/SCSS)
+  # --------------------------------------------------------------------------
+  - repo: local
+    hooks:
+      - id: stylelint
+        name: stylelint
+        entry: bash -c 'cd src/nexusdl/interfaces/web/frontend && pnpm stylelint --fix "${@/#src\/nexusdl\/interfaces\/web\/frontend\//}"'
+        language: system
+        types_or: [css, scss, sass, less]
+        files: ^src/nexusdl/interfaces/web/frontend/
+
+  # --------------------------------------------------------------------------
+  # MARKDOWN - Markdownlint
+  # --------------------------------------------------------------------------
+  - repo: https://github.com/igorshubovych/markdownlint-cli
+    rev: v0.43.0
+    hooks:
+      - id: markdownlint
+        args: [
+          --fix,
+          --ignore,
+          CHANGELOG.md,
+        ]
+
+  # --------------------------------------------------------------------------
+  # DOCKER - Hadolint (Linter Dockerfile)
+  # --------------------------------------------------------------------------
+  - repo: https://github.com/hadolint/hadolint
+    rev: v2.13.1-beta
+    hooks:
+      - id: hadolint
+        args: [
+          --ignore,
+          DL3008,  # Ignore "Pin versions in apt get install"
+          --ignore,
+          DL3013,  # Ignore "Pin versions in pip"
+        ]
+
+  # --------------------------------------------------------------------------
+  # SHELL - ShellCheck (Linter Bash)
+  # --------------------------------------------------------------------------
+  - repo: https://github.com/shellcheck-py/shellcheck-py
+    rev: v0.10.0.1
+    hooks:
+      - id: shellcheck
+        args: [
+          --severity=warning,
+        ]
+
+  # --------------------------------------------------------------------------
+  # GIT - Commit message convention
+  # --------------------------------------------------------------------------
   - repo: https://github.com/commitizen-tools/commitizen
     rev: v4.1.0
     hooks:
       - id: commitizen
-        name: "Commitizen: Format des messages"
         stages: [commit-msg]
-      - id: commitizen-branch
-        name: "Commitizen: Branche"
-        stages: [pre-push]
 
-  # ---------------------------------------------------------------------------
-  # 10. HOOKS LOCAUX — VALIDATIONS SPÉCIFIQUES À NEXUSDL
-  # ---------------------------------------------------------------------------
+  # --------------------------------------------------------------------------
+  # GIT - Conventional commits
+  # --------------------------------------------------------------------------
+  - repo: https://github.com/compilerla/conventional-pre-commit
+    rev: v3.6.0
+    hooks:
+      - id: conventional-pre-commit
+        stages: [commit-msg]
+        args: [
+          feat,      # Nouvelle fonctionnalité
+          fix,       # Correction de bug
+          docs,      # Documentation
+          style,     # Formatage
+          refactor,  # Refactorisation
+          perf,      # Performance
+          test,      # Tests
+          build,     # Build
+          ci,        # CI/CD
+          chore,     # Tâches diverses
+          revert,    # Revert
+        ]
+
+  # --------------------------------------------------------------------------
+  # GIT - GPG signature (optionnel)
+  # --------------------------------------------------------------------------
   - repo: local
     hooks:
-      # --- Validation des manifestes nexus.dl ---
-      - id: validate-nexus-dl
-        name: "NexusDL: Validation des manifestes nexus.dl"
-        entry: python scripts/validate_nexus_dl.py
+      - id: check-gpg
+        name: check-gpg-signature
+        entry: bash -c 'git config --get commit.gpgsign || echo "GPG signing not enabled"'
         language: system
         pass_filenames: false
-        files: nexus\.dl$
-        stages: [pre-commit]
-
-      # --- Validation de la configuration des sites ---
-      - id: validate-sites
-        name: "NexusDL: Validation de sites.yaml"
-        entry: python scripts/validate_sites.py --quiet
-        language: system
-        pass_filenames: false
-        files: ^src/nexusdl/core/registry/sites\.yaml$
-        stages: [pre-commit]
-
-      # --- Vérification de la synchronisation des requirements ---
-      - id: check-requirements-sync
-        name: "NexusDL: requirements*.txt synchronisés"
-        entry: python scripts/check_requirements_sync.py
-        language: system
-        pass_filenames: false
-        files: ^(pyproject\.toml|requirements.*\.txt)$
-        stages: [pre-push]
-
-      # --- Vérification de la version Python ---
-      - id: check-python-version
-        name: "NexusDL: Version Python cohérente"
-        entry: python scripts/check_python_version.py
-        language: system
-        pass_filenames: false
-        files: ^(\.python-version|pyproject\.toml)$
-        stages: [pre-commit]
-
-      # --- Tests unitaires rapides sur pre-push ---
-      - id: pytest-fast
-        name: "NexusDL: Tests unitaires rapides (pre-push)"
-        entry: python -m pytest tests/unit -x -q --no-header --timeout=30
-        language: system
-        pass_filenames: false
-        stages: [pre-push]
         always_run: true
 
-      # --- Mise à jour des manifestes nexus.dl ---
-      - id: generate-nexus-manifests
-        name: "NexusDL: Génération des manifestes nexus.dl"
-        entry: python scripts/generate_nexus_manifests.py --root .
+  # --------------------------------------------------------------------------
+  # UTILITAIRES - Codespell (Correction d'orthographe)
+  # --------------------------------------------------------------------------
+  - repo: https://github.com/codespell-project/codespell
+    rev: v2.3.0
+    hooks:
+      - id: codespell
+        args: [
+          --skip,
+          "*.lock,*.min.js,*.min.css,pnpm-lock.yaml,package-lock.json",
+          --ignore-words,
+          .codespell-ignore,
+        ]
+
+  # --------------------------------------------------------------------------
+  # UTILITAIRES - Typos (Correction d'orthographe rapide)
+  # --------------------------------------------------------------------------
+  - repo: https://github.com/crate-ci/typos
+    rev: v1.28.1
+    hooks:
+      - id: typos
+
+  # --------------------------------------------------------------------------
+  # UTILITAIRES - Gitleaks (Détection de secrets dans l'historique Git)
+  # --------------------------------------------------------------------------
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.21.2
+    hooks:
+      - id: gitleaks
+
+  # --------------------------------------------------------------------------
+  # UTILITAIRES - Checkov (Infrastructure as Code security)
+  # --------------------------------------------------------------------------
+  - repo: local
+    hooks:
+      - id: checkov
+        name: checkov
+        entry: checkov
         language: system
+        files: \.(tf|yml|yaml|json)$
+        args: [
+          --quiet,
+          --compact,
+        ]
+
+  # --------------------------------------------------------------------------
+  # UTILITAIRES - Docker compose validation
+  # --------------------------------------------------------------------------
+  - repo: local
+    hooks:
+      - id: docker-compose-check
+        name: docker-compose-check
+        entry: docker compose config
+        language: system
+        files: docker-compose\.(yml|yaml)$
         pass_filenames: false
-        files: ^(src/|scripts/|docs/|docker/|config/)nexus\.dl$
-        stages: [pre-commit]
-
-      # --- Vérification SPDX headers ---
-      - id: check-spdx-headers
-        name: "NexusDL: En-têtes SPDX"
-        entry: python scripts/check_spdx_headers.py
-        language: system
-        pass_filenames: true
-        types: [python]
-        files: ^(src|tests|scripts)/.*\.py$
-
-      # --- Vérification des imports interdits ---
-      - id: check-forbidden-imports
-        name: "NexusDL: Imports interdits (architecture)"
-        entry: python scripts/check_forbidden_imports.py
-        language: system
-        pass_filenames: false
-        files: ^src/nexusdl/.*\.py$
-        stages: [pre-commit]
-
-      # --- Vérification des traductions ---
-      - id: check-translations
-        name: "NexusDL: Cohérence des traductions"
-        entry: python scripts/check_translations.py
-        language: system
-        pass_filenames: false
-        files: ^src/nexusdl/data/translations/.*\.json$
-        stages: [pre-commit]
-
-# ==============================================================================
-#  CONFIGURATION DE PRE-COMMIT CI
-# ==============================================================================
-#  Si vous utilisez pre-commit.ci (service gratuit pour les repos open-source),
-#  décommentez la section suivante pour activer les auto-fixes.
-# ==============================================================================
-
-ci:
-  autofix_prs: true
-  autofix_commit_msg: |
-    [pre-commit.ci] auto fixes from pre-commit hooks
-
-    for more information, see https://pre-commit.ci
-  autoupdate_schedule: monthly
-  autoupdate_commit_msg: "[pre-commit.ci] pre-commit autoupdate"
-  skip: [pytest-fast, validate-sites, check-requirements-sync]
+        always_run: true

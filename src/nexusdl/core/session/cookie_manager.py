@@ -1370,7 +1370,7 @@ class CookieManager:
         self._logger.info("Tous les cookies supprimés: {}", count)
         return count
 
-    def clear_expired(self) -> int:
+    async def clear_expired(self) -> int:  # ⚠️ CORRIGÉ : async def au lieu de def
         """Supprime tous les cookies expirés de tous les domaines.
 
         Returns:
@@ -1885,7 +1885,8 @@ class CookieManager:
                 if not self._started:
                     break
 
-                removed = self.clear_expired()
+                # ⚠️ CORRIGÉ : ajout de await devant self.clear_expired()
+                removed = await self.clear_expired()
                 if removed > 0:
                     self._logger.debug(
                         "Nettoyage automatique: {} cookies expirés supprimés",

@@ -1,36 +1,40 @@
 # ============================================================================
-# NEXUSDL FRONTEND - Configuration Netlify
+# NEXUSDL FRONTEND - Configuration Netlify (VERSION FINALE)
 # ============================================================================
-# URL de déploiement : https://nexusdldev.netlify.app
+# Frontend : https://nexusdldev.netlify.app
+# Backend  : https://nexus-dl-production.up.railway.app
+# GitHub   : https://github.com/JokerApocalypse-cmd/Nexus-DL
 # ============================================================================
 
+# ============================================================================
+# BUILD CONFIGURATION
+# ============================================================================
 [build]
-  # ⚠️ CRUCIAL : Indique à Netlify où se trouve le package.json du frontend
+  # ⚠️ CRUCIAL : Dossier contenant le package.json du frontend Next.js
   base = "src/nexusdl/interfaces/web/frontend"
-  
-  # Commande de build (Netlify détectera automatiquement pnpm grâce au pnpm-lock.yaml)
+
+  # Commande de build (Netlify détecte pnpm via pnpm-lock.yaml)
   command = "pnpm build"
-  
+
   # Répertoire de publication (géré par le plugin Next.js)
   publish = ".next"
 
+# ============================================================================
+# VARIABLES D'ENVIRONNEMENT DE BUILD
+# ============================================================================
 [build.environment]
   # Version de Node.js (LTS recommandée pour Next.js 14+)
   NODE_VERSION = "20"
-  
-  # ========================================================================
-  # VARIABLES D'ENVIRONNEMENT DE BUILD
-  # ========================================================================
-  # ⚠️ IMPORTANT : Modifiez ces valeurs pour qu'elles pointent vers VOTRE backend déployé.
-  
-  # Option A : Si vous utilisez les redirections Netlify ci-dessous (Recommandé pour éviter le CORS)
-  # Le frontend appellera /api/v1/..., et Netlify le redirigera vers votre vrai backend.
+
+  # Active pnpm via Corepack
+  COREPACK_ENABLE_DOWNLOAD_PROMPT = "0"
+
+  # URL de l'API (chemin relatif pour profiter du proxy Netlify → évite le CORS)
   NEXT_PUBLIC_API_URL = "/api/v1"
-  
-  # Option B : URL directe du backend (Nécessaire pour les WebSockets, car Netlify ne proxyfie pas les WS vers l'extérieur)
-  # ⚠️ REMPLACEZ "api.nexusdl.dev" par le domaine réel de votre backend.
-  NEXT_PUBLIC_WS_URL = "wss://api.nexusdl.dev/ws"
-  
+
+  # ⚠️ WebSocket : connexion DIRECTE vers Railway (Netlify ne proxyfie pas les WS)
+  NEXT_PUBLIC_WS_URL = "wss://nexus-dl-production.up.railway.app/ws"
+
   # Méta-données de l'application
   NEXT_PUBLIC_APP_NAME = "NexusDL"
   NEXT_PUBLIC_APP_VERSION = "0.1.0"
@@ -39,40 +43,83 @@
 # PLUGINS
 # ============================================================================
 [[plugins]]
-  # Plugin officiel Next.js pour Netlify (INDISPENSABLE pour l'App Router, le SSR et les optimisations)
+  # Plugin officiel Next.js pour Netlify (INDISPENSABLE)
+  # Gère l'App Router, le SSR, les optimisations d'images, les rewrites, etc.
   package = "@netlify/plugin-nextjs"
 
 # ============================================================================
-# REDIRECTIONS (Proxy API pour contourner les restrictions CORS)
+# REDIRECTIONS (Proxy API vers Railway pour contourner le CORS)
 # ============================================================================
-# Ces règles permettent au frontend de parler au backend comme s'il était 
-# sur le même domaine (nexusdldev.netlify.app), ce qui résout 99% des problèmes CORS.
 
 # 1. Proxy pour l'API REST
-# Si le frontend appelle: https://nexusdldev.netlify.app/api/v1/manga
-# Netlify le transmettra à: https://VOTRE_BACKEND/api/v1/manga
+# Frontend appelle : https://nexusdldev.netlify.app/api/v1/...
+# Netlify transmet à : https://nexus-dl-production.up.railway.app/api/v1/...
 [[redirects]]
   from = "/api/v1/*"
-  # ⚠️ REMPLACEZ cette URL par l'URL réelle de votre backend déployé
-  to = "https://api.nexusdl.dev/api/v1/:splat"
+  to = "https://nexus-dl-production.up.railway.app/api/v1/:splat"
   status = 200
   force = true
 
-# 2. Proxy pour les endpoints de santé (Health checks)
+# 2. Proxy pour les endpoints de santé
 [[redirects]]
-  from = "/health/*"
-  to = "https://api.nexusdl.dev/health/:splat"
+  from = "/health"
+  to = "https://nexus-dl-production.up.railway.app/health"
   status = 200
   force = true
+
+[[redirects]]
+  from = "/health/*"
+  to = "https://nexus-dl-production.up.railway.app/health/:splat"
+  status = 200
+  force = true
+
+# 3. Proxy pour la documentation Swagger UI
+[[redirects]]
+  from = "/docs"
+  to = "https://nexus-dl-production.up.railway.app/docs"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/docs/*"
+  to = "https://nexus-dl-production.up.railway.app/docs/:splat"
+  status = 200
+  force = true
+
+# 4. Proxy pour OpenAPI JSON
+[[redirects]]
+  from = "/openapi.json"
+  to = "https://nexus-dl-production.up.railway.app/openapi.json"
+  status = 200
+  force = true
+
+# 5. Proxy pour ReDoc
+[[redirects]]
+  from = "/redoc"
+  to = "https://nexus-dl-production.up.railway.app/redoc"
+  status = 200
+  force = true
+
+# 6. Proxy pour la racine de l'API (infos générales)
+[[redirects]]
+  from = "/api"
+  to = "https://nexus-dl-production.up.railway.app/"
+  status = 200
+  force = true
+
+# 7. Fallback SPA : toutes les routes non-API vers le frontend Next.js
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
 
 # ============================================================================
 # EN-TÊTES DE SÉCURITÉ (Security Headers)
 # ============================================================================
-# Applique des politiques de sécurité strictes à toutes les réponses du frontend.
 [[headers]]
   for = "/*"
   [headers.values]
-    # Empêche l'incorporation du site dans des iframes (anti-clickjacking)
+    # Empêche l'incorporation dans des iframes (anti-clickjacking)
     X-Frame-Options = "DENY"
     # Empêche le navigateur de deviner le type MIME (anti-sniffing)
     X-Content-Type-Options = "nosniff"
@@ -82,8 +129,44 @@
     Referrer-Policy = "strict-origin-when-cross-origin"
     # Désactive l'accès aux API matérielles non nécessaires
     Permissions-Policy = "geolocation=(), microphone=(), camera=()"
-    # HSTS : Force l'utilisation de HTTPS (Netlify fournit déjà le SSL)
+    # HSTS : Force HTTPS (Netlify fournit déjà le SSL)
     Strict-Transport-Security = "max-age=31536000; includeSubDomains; preload"
-    # Content Security Policy (CSP) de base pour Next.js
-    # ⚠️ À ajuster si vous ajoutez des scripts externes (Google Analytics, etc.)
-    Content-Security-Policy = "default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; connect-src 'self' https: wss:;"
+    # Content Security Policy (CSP)
+    # ⚠️ IMPORTANT : autorise explicitement le backend Railway pour les connexions
+    Content-Security-Policy = "default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; connect-src 'self' https://nexus-dl-production.up.railway.app wss://nexus-dl-production.up.railway.app https: wss:; media-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self';"
+
+# ============================================================================
+# EN-TÊTES SPÉCIFIQUES POUR LES ASSETS STATIQUES (cache long)
+# ============================================================================
+[[headers]]
+  for = "/_next/static/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "/static/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+# ============================================================================
+# EN-TÊTES POUR LES IMAGES (cache moyen)
+# ============================================================================
+[[headers]]
+  for = "*.jpg"
+  [headers.values]
+    Cache-Control = "public, max-age=86400"
+
+[[headers]]
+  for = "*.png"
+  [headers.values]
+    Cache-Control = "public, max-age=86400"
+
+[[headers]]
+  for = "*.webp"
+  [headers.values]
+    Cache-Control = "public, max-age=86400"
+
+[[headers]]
+  for = "*.svg"
+  [headers.values]
+    Cache-Control = "public, max-age=86400"

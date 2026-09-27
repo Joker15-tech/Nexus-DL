@@ -1,187 +1,448 @@
-```markdown
-# ============================================================================
-# NEXUSDL - Instructions d'Installation Complètes
-# ============================================================================
-#
-# Ce guide couvre l'installation et le déploiement de NexusDL pour :
-#   1. CLI (Interface en ligne de commande - Textual)
-#   2. GUI (Interface graphique - PyQt6)
-#   3. Web (Interface web - FastAPI + Next.js)
-#   4. Netlify (Déploiement frontend)
-#
-# ============================================================================
 
-# TABLE DES MATIÈRES
+================================================================================
+                    NEXUSDL - GUIDE DE DÉPLOIEMENT COMPLET
+================================================================================
 
-1. Prérequis Système
-2. Installation de Base (Core)
-3. Installation CLI
-4. Installation GUI
-5. Installation Web
-6. Configuration
-7. Lancement
-8. Déploiement Netlify
-9. Docker
-10. Dépannage
-11. Exemples d'Utilisation
+Ce document couvre TOUTES les méthodes de déploiement pour NexusDL :
+  ✓ Développement local (Windows/Linux/macOS)
+  ✓ Backend Web (Railway)
+  ✓ Frontend Web (Netlify)
+  ✓ Docker (conteneur complet)
+  ✓ GUI Desktop (PyQt6)
+  ✓ CLI Terminal (Textual)
+  ✓ VPS (Ubuntu/Debian)
+  ✓ PowerShell & Terminal
 
-# ============================================================================
-# 1. PRÉREQUIS SYSTÈME
-# ============================================================================
+================================================================================
+                              TABLE DES MATIÈRES
+================================================================================
 
-## Python
-- Version : 3.11 ou supérieure
-- Vérification : python --version
-- Installation : https://www.python.org/downloads/
+1. PRÉREQUIS
+2. INSTALLATION LOCALE (DÉVELOPPEMENT)
+3. DÉPLOIEMENT BACKEND (RAILWAY)
+4. DÉPLOIEMENT FRONTEND (NETLIFY)
+5. DÉPLOIEMENT DOCKER (COMPLET)
+6. DÉPLOIEMENT GUI (PYQT6)
+7. DÉPLOIEMENT CLI (TEXTUAL)
+8. DÉPLOIEMENT VPS (UBUNTU/DEBIAN)
+9. COMMANDS UTILES (POWERSHELL & TERMINAL)
+10. DÉPANNAGE
+11. URLs DE RÉFÉRENCE
 
-## Node.js (pour Web et Netlify)
-- Version : 18.17.0 ou supérieure
-- Vérification : node --version
-- Installation : https://nodejs.org/
+================================================================================
+                              1. PRÉREQUIS
+================================================================================
 
-## Package Managers
-- pip (inclus avec Python)
-- pnpm (recommandé) ou npm
-- Installation pnpm : npm install -g pnpm
+### Outils nécessaires :
 
-## Git
-- Pour cloner le dépôt
-- Installation : https://git-scm.com/downloads
+- Python 3.11+ (3.12 recommandé)
+- Node.js 20+ (pour le frontend)
+- pnpm (gestionnaire de paquets Node)
+- Git
+- Docker (optionnel, pour le déploiement conteneurisé)
 
-## Systèmes d'Exploitation Supportés
-- Linux (Ubuntu 20.04+, Fedora 36+, Arch)
-- macOS (12 Monterey ou supérieur)
-- Windows (10/11)
+### Installation des outils :
 
-# ============================================================================
-# 2. INSTALLATION DE BASE (CORE)
-# ============================================================================
+#### Windows (PowerShell) :
+```powershell
+# Python
+winget install Python.Python.3.12
 
-## Étape 1 : Cloner le dépôt
+# Node.js
+winget install OpenJS.NodeJS.LTS
 
-```bash
-git clone https://github.com/nexusdl/nexusdl.git
-cd nexusdl
+# pnpm
+npm install -g pnpm
+
+# Git
+winget install Git.Git
+
+# Docker Desktop
+winget install Docker.DockerDesktop
 ```
 
-## Étape 2 : Créer un environnement virtuel (recommandé)
-
+#### macOS (Terminal) :
 ```bash
-# Linux/macOS
-python -m venv venv
-source venv/bin/activate
+# Homebrew (si pas installé)
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
 
-# Windows
-python -m venv venv
-venv\Scripts\activate
+# Python
+brew install python@3.12
+
+# Node.js
+brew install node@20
+
+# pnpm
+brew install pnpm
+
+# Docker
+brew install --cask docker
 ```
 
-## Étape 3 : Installer les dépendances Python de base
-
+#### Linux (Ubuntu/Debian) :
 ```bash
-# Dépendances minimales
-pip install -r requirements.txt
+# Python
+sudo apt update
+sudo apt install python3.12 python3.12-venv python3-pip
 
-# Ou avec toutes les dépendances
-pip install -r requirements-all.txt
+# Node.js (via NodeSource)
+curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
+sudo apt install -y nodejs
+
+# pnpm
+npm install -g pnpm
+
+# Docker
+curl -fsSL https://get.docker.com -o get-docker.sh
+sh get-docker.sh
+sudo usermod -aG docker $USER
 ```
 
-## Étape 4 : Installer NexusDL en mode développement
+================================================================================
+                    2. INSTALLATION LOCALE (DÉVELOPPEMENT)
+================================================================================
+
+### Étape 1 : Cloner le dépôt
 
 ```bash
-pip install -e .
+git clone https://github.com/JokerApocalypse-cmd/Nexus-DL.git
+cd Nexus-DL
 ```
 
-## Vérification
+### Étape 2 : Créer un environnement virtuel Python
 
-```bash
-nexusdl --version
-# Devrait afficher : NexusDL 0.1.0
+#### Windows (PowerShell) :
+```powershell
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
 ```
 
-# ============================================================================
-# 3. INSTALLATION CLI (Interface Ligne de Commande)
-# ============================================================================
-
-## Prérequis
-- Python 3.11+
-- Dépendances de base installées
-
-## Installation
-
+#### Linux/macOS (Terminal) :
 ```bash
-# Installer Textual (framework TUI)
-pip install textual
-
-# Ou installer toutes les dépendances CLI
-pip install -r requirements-cli.txt
+python3 -m venv .venv
+source .venv/bin/activate
 ```
 
-## Vérification
+### Étape 3 : Installer les dépendances Python
 
 ```bash
-# Vérifier que Textual est installé
-python -c "import textual; print(textual.__version__)"
+# Installation complète (dev + CLI + GUI + Web)
+pip install -e ".[all]"
+
+# OU installation minimale (backend uniquement)
+pip install -e ".[web]"
+
+# Installer Playwright
+playwright install chromium
 ```
 
-## Lancement
+### Étape 4 : Installer les dépendances frontend
 
 ```bash
-# Lancer l'interface CLI
-nexusdl --cli
+cd src/nexusdl/interfaces/web/frontend
+pnpm install
+cd ../../..
+```
 
-# Ou directement
+### Étape 5 : Configurer l'environnement
+
+```bash
+# Copier le fichier .env.example vers .env.local
+cp .env.example .env.local
+
+# Éditer .env.local avec vos valeurs
+# (Windows PowerShell)
+notepad .env.local
+
+# (Linux/macOS)
+nano .env.local
+```
+
+### Étape 6 : Lancer l'application
+
+#### Backend (FastAPI) :
+```bash
+# Mode développement avec hot-reload
+uvicorn nexusdl.interfaces.web.backend.main:app --reload --host 127.0.0.1 --port 8000
+
+# OU via le script principal
+python -m nexusdl --web
+```
+
+#### Frontend (Next.js) :
+```bash
+cd src/nexusdl/interfaces/web/frontend
+pnpm dev
+```
+
+#### CLI (Textual) :
+```bash
 python -m nexusdl --cli
-
-# Avec options
-nexusdl --cli --debug
-nexusdl --cli --config /path/to/config.yaml
-nexusdl --cli --lang fr
 ```
 
-## Utilisation
+#### GUI (PyQt6) :
+```bash
+python -m nexusdl --gui
+```
 
-L'interface CLI fournit :
-- Navigation au clavier (flèches, Tab, Enter)
-- Recherche de mangas
-- Gestion des téléchargements
-- Bibliothèque locale
-- Configuration
-- Logs en temps réel
+### Accès local :
+- Backend API : http://localhost:8000
+- Documentation Swagger : http://localhost:8000/docs
+- Frontend : http://localhost:3000
 
-Raccourcis clavier :
-- q : Quitter
-- ? : Aide
-- / : Rechercher
-- F1 : Écran d'aide
-- F2 : Bibliothèque
-- F3 : Téléchargements
-- F4 : Paramètres
+================================================================================
+                      3. DÉPLOIEMENT BACKEND (RAILWAY)
+================================================================================
 
-# ============================================================================
-# 4. INSTALLATION GUI (Interface Graphique)
-# ============================================================================
+### Étape 1 : Créer un compte Railway
 
-## Prérequis
-- Python 3.11+
-- Dépendances de base installées
-- Système avec display (X11, Wayland, Windows, macOS)
+1. Aller sur https://railway.com
+2. Se connecter avec GitHub
 
-## Installation
+### Étape 2 : Créer un nouveau projet
+
+1. Cliquer sur "+ New Project"
+2. Nommer le projet : "NexusDL"
+3. Cliquer sur "+ New" → "GitHub Repo"
+4. Sélectionner "JokerApocalypse-cmd/Nexus-DL"
+5. Branche : "main"
+
+### Étape 3 : Configurer le Build
+
+Dans Settings → Build :
+- **Builder** : `Railpack`
+- **Custom Build Command** :
+  ```bash
+  pip install --upgrade pip && pip install -e . && playwright install chromium
+  ```
+
+### Étape 4 : Configurer le Deploy
+
+Dans Settings → Deploy :
+- **Custom Start Command** :
+  ```bash
+  uvicorn nexusdl.interfaces.web.backend.main:app --host 0.0.0.0 --port $PORT --workers 1 --proxy-headers --forwarded-allow-ips '*'
+  ```
+- **Healthcheck Path** : `/health`
+- **Serverless** : ❌ DÉCOCHÉ (très important !)
+
+### Étape 5 : Ajouter les variables d'environnement
+
+Dans l'onglet Variables, ajouter :
+
+```env
+# Configuration générale
+NEXUSDL_ENV=production
+NEXUSDL_LOG_LEVEL=INFO
+PYTHONUNBUFFERED=1
+
+# Sécurité
+NEXUSDL_SECRET_KEY=<votre-clé-64-caractères>
+NEXUSDL_ADMIN_EMAIL=drxenon487@gmail.com
+NEXUSDL_ADMIN_PASSWORD=<votre-mot-de-passe>
+NEXUSDL_API_KEY=<votre-clé-api>
+
+# CORS
+NEXUSDL_CORS_ORIGINS=https://nexusdldev.netlify.app,http://localhost:3000
+
+# Chemins
+NEXUSDL_DATA_DIR=/app/data
+NEXUSDL_DB_PATH=/app/data/nexusdl.db
+DATABASE_URL=sqlite:////app/data/nexusdl.db
+
+# Performance
+NEXUSDL_MAX_CONCURRENT_DOWNLOADS=3
+NEXUSDL_MAX_CONCURRENT_PAGES=5
+
+# Réseau
+HOST=0.0.0.0
+PORT=8000
+
+# Corrections critiques
+MISE_PYTHON_GITHUB_ATTESTATIONS=false
+RAILPACK_PYTHON_PLAYWRIGHT_INSTALL=1
+```
+
+### Étape 6 : Monter un volume persistant
+
+1. Settings → Volumes
+2. Cliquer sur "+ Add Volume"
+3. Mount Path : `/app/data`
+
+### Étape 7 : Générer un domaine public
+
+1. Settings → Networking
+2. Cliquer sur "Generate Domain"
+3. Copier l'URL générée (ex: https://nexus-dl-production.up.railway.app)
+
+### Étape 8 : Déployer
+
+1. Cliquer sur "Deploy"
+2. Attendre que le build se termine (5-10 minutes)
+3. Vérifier dans les logs que vous voyez :
+   ```
+   ✅ Application startup complete.
+   ✅ Uvicorn running on http://0.0.0.0:$PORT
+   ```
+
+### Test :
+```bash
+curl https://nexus-dl-production.up.railway.app/health
+# Attendu : {"status":"healthy","version":"0.1.0",...}
+```
+
+================================================================================
+                      4. DÉPLOIEMENT FRONTEND (NETLIFY)
+================================================================================
+
+### Étape 1 : Créer un compte Netlify
+
+1. Aller sur https://netlify.com
+2. Se connecter avec GitHub
+
+### Étape 2 : Créer un nouveau site
+
+1. Cliquer sur "Add new site" → "Import an existing project"
+2. Sélectionner "JokerApocalypse-cmd/Nexus-DL"
+3. Branche : "main"
+
+### Étape 3 : Configurer le build
+
+Dans Site settings → Build & deploy :
+- **Base directory** : `src/nexusdl/interfaces/web/frontend`
+- **Build command** : `pnpm build`
+- **Publish directory** : `.next`
+
+### Étape 4 : Ajouter les variables d'environnement
+
+Dans Site settings → Environment variables :
+
+```env
+NODE_VERSION=20
+NEXT_PUBLIC_API_URL=/api/v1
+NEXT_PUBLIC_WS_URL=wss://nexus-dl-production.up.railway.app/ws
+NEXT_PUBLIC_APP_NAME=NexusDL
+NEXT_PUBLIC_APP_VERSION=0.1.0
+```
+
+### Étape 5 : Déployer
+
+1. Cliquer sur "Deploy site"
+2. Attendre que le build se termine (2-3 minutes)
+3. Netlify génère une URL (ex: https://nexusdldev.netlify.app)
+
+### Test :
+Ouvrir https://nexusdldev.netlify.app dans un navigateur
+Vérifier dans la console (F12) qu'il n'y a PAS d'erreur CORS
+
+================================================================================
+                      5. DÉPLOIEMENT DOCKER (COMPLET)
+================================================================================
+
+### Option A : Backend uniquement
 
 ```bash
-# Installer PyQt6
-pip install PyQt6
+# Build
+docker build -f docker/Dockerfile -t nexusdl-backend:latest .
 
-# Ou installer toutes les dépendances GUI
-pip install -r requirements-gui.txt
+# Run
+docker run -d \
+  -p 8000:8000 \
+  -v nexusdl-data:/app/data \
+  -e NEXUSDL_SECRET_KEY=<votre-clé> \
+  -e NEXUSDL_CORS_ORIGINS=https://nexusdldev.netlify.app \
+  --name nexusdl-backend \
+  nexusdl-backend:latest
+
+# Logs
+docker logs -f nexusdl-backend
+
+# Stop
+docker stop nexusdl-backend
 ```
 
-## Dépendances Système (Linux)
+### Option B : Web complet (Backend + Frontend)
+
+```bash
+# Build
+docker build -f docker/Dockerfile.web -t nexusdl-web:latest .
+
+# Run
+docker run -d \
+  -p 8000:8000 \
+  -v nexusdl-web-data:/app/data \
+  -e NEXUSDL_SECRET_KEY=<votre-clé> \
+  --name nexusdl-web \
+  nexusdl-web:latest
+
+# Accès
+# Frontend : http://localhost:8000
+# Backend : http://localhost:8000/api/v1
+# Docs : http://localhost:8000/docs
+```
+
+### Option C : Via Docker Compose (recommandé)
+
+```bash
+# Développement
+docker compose -f docker/docker-compose.dev.yml up -d
+
+# Production
+docker compose -f docker/docker-compose.yml up -d --build
+
+# Logs
+docker compose logs -f
+
+# Stop
+docker compose down
+```
+
+### Option D : GUI avec noVNC (accès via navigateur)
+
+```bash
+# Build
+docker build -f docker/Dockerfile.gui -t nexusdl-gui:latest .
+
+# Run
+docker run -d \
+  -p 6080:6080 \
+  -p 5900:5900 \
+  -v nexusdl-gui-data:/app/data \
+  -e VNC_PASSWORD=nexusdl \
+  --name nexusdl-gui \
+  nexusdl-gui:latest
+
+# Accès via navigateur
+# http://localhost:6080/vnc.html
+# Mot de passe : nexusdl
+```
+
+================================================================================
+                        6. DÉPLOIEMENT GUI (PYQT6)
+================================================================================
+
+### Installation locale (Windows/Linux/macOS)
+
+```bash
+# Activer l'environnement virtuel
+# Windows
+.\.venv\Scripts\Activate.ps1
+
+# Linux/macOS
+source .venv/bin/activate
+
+# Installer les dépendances GUI
+pip install -e ".[gui]"
+
+# Lancer la GUI
+python -m nexusdl --gui
+```
+
+### Dépendances système (Linux uniquement)
 
 ```bash
 # Ubuntu/Debian
-sudo apt-get install -y \
+sudo apt install -y \
     libgl1-mesa-glx \
     libegl1-mesa \
     libxkbcommon0 \
@@ -196,793 +457,322 @@ sudo apt-get install -y \
 # Fedora
 sudo dnf install -y \
     mesa-libGL \
-    mesa-libEGL \
     libxkbcommon \
     xcb-util-wm \
-    xcb-util-image \
-    xcb-util-keysyms \
-    xcb-util-renderutil
-
-# Arch Linux
-sudo pacman -S --needed \
-    mesa \
-    libxkbcommon \
-    xcb-util-wm \
-    xcb-util-image \
-    xcb-util-keysyms \
-    xcb-util-renderutil
+    xcb-util-image
 ```
 
-## Vérification
+### Création d'un exécutable standalone (Windows)
 
 ```bash
-# Vérifier que PyQt6 est installé
-python -c "import PyQt6; print('PyQt6 OK')"
+# Installer PyInstaller
+pip install pyinstaller
 
-# Tester l'affichage (Linux)
-python -c "from PyQt6.QtWidgets import QApplication; app = QApplication([]); print('Display OK')"
+# Créer l'exécutable
+pyinstaller --noconfirm --onedir --windowed \
+    --name "NexusDL" \
+    --icon "src/nexusdl/interfaces/gui/assets/icon.ico" \
+    --add-data "src/nexusdl;src/nexusdl" \
+    src/nexusdl/__main__.py
+
+# L'exécutable sera dans dist/NexusDL/
 ```
 
-## Lancement
-
-```bash
-# Lancer l'interface GUI
-nexusdl --gui
-
-# Ou directement
-python -m nexusdl --gui
-
-# Avec options
-nexusdl --gui --debug
-nexusdl --gui --config /path/to/config.yaml
-```
-
-## Utilisation
-
-L'interface GUI fournit :
-- Interface graphique moderne
-- Thème cyberpunk néon
-- Navigation par onglets
-- Drag & drop
-- Notifications système
-- Raccourcis clavier
-
-# ============================================================================
-# 5. INSTALLATION WEB (Interface Web)
-# ============================================================================
-
-## Architecture
-
-L'interface web comprend deux composants :
-1. **Backend** : API REST FastAPI (Python)
-2. **Frontend** : Interface Next.js (Node.js)
-
-## 5.1 Installation Backend
-
-### Prérequis
-- Python 3.11+
-- Dépendances de base installées
+================================================================================
+                        7. DÉPLOIEMENT CLI (TEXTUAL)
+================================================================================
 
 ### Installation
 
 ```bash
-# Installer FastAPI et Uvicorn
-pip install fastapi uvicorn[standard]
+# Activer l'environnement virtuel
+source .venv/bin/activate  # Linux/macOS
+.\.venv\Scripts\Activate.ps1  # Windows
 
-# Ou installer toutes les dépendances web
-pip install -r requirements-web.txt
+# Installer les dépendances CLI
+pip install -e ".[cli]"
 
-# Dépendances supplémentaires recommandées
-pip install python-multipart pyjwt bcrypt
+# Lancer la CLI
+python -m nexusdl --cli
 ```
 
-### Vérification
+### Commandes CLI disponibles
 
 ```bash
-# Vérifier que FastAPI est installé
-python -c "import fastapi; print(fastapi.__version__)"
+# Recherche
+nexusdl search "one piece"
 
-# Vérifier qu'Uvicorn est installé
-python -c "import uvicorn; print(uvicorn.__version__)"
-```
+# Téléchargement
+nexusdl download <manga-id>
 
-### Lancement Backend
+# Liste des sites
+nexusdl sites
 
-```bash
-# Lancer le backend seul
-nexusdl --web
+# Configuration
+nexusdl config
 
-# Ou avec options
-nexusdl --web --host 0.0.0.0 --port 8000
-
-# Mode développement (avec rechargement automatique)
-nexusdl --web --reload
-
-# Mode production (plusieurs workers)
-nexusdl --web --workers 4
-
-# Ou directement avec Python
-python -m nexusdl.interfaces.web.backend.main
-```
-
-### Accès Backend
-
-- API : http://localhost:8000/api/v1
-- Documentation Swagger : http://localhost:8000/docs
-- Documentation ReDoc : http://localhost:8000/redoc
-- Health check : http://localhost:8000/health
-
-## 5.2 Installation Frontend
-
-### Prérequis
-- Node.js 18.17+
-- pnpm (recommandé) ou npm
-
-### Installation
-
-```bash
-# Naviguer vers le dossier frontend
-cd src/nexusdl/interfaces/web/frontend
-
-# Installer pnpm (si pas déjà fait)
-npm install -g pnpm
-
-# Installer les dépendances
-pnpm install
-
-# Ou avec npm
-npm install
-```
-
-### Configuration
-
-```bash
-# Copier le fichier d'environnement
-cp .env.example .env.local
-
-# Éditer .env.local
-nano .env.local
-```
-
-Contenu de .env.local :
-
-```bash
-# URL de l'API backend
-NEXT_PUBLIC_API_URL=http://localhost:8000/api/v1
-
-# URL du WebSocket backend
-NEXT_PUBLIC_WS_URL=ws://localhost:8000/ws
-
-# Nom de l'application
-NEXT_PUBLIC_APP_NAME=NexusDL
-
-# Version de l'application
-NEXT_PUBLIC_APP_VERSION=0.1.0
-```
-
-### Lancement Frontend (Mode Développement)
-
-```bash
-# Depuis le dossier frontend
-pnpm dev
-
-# Ou avec npm
-npm run dev
-```
-
-Le frontend sera accessible sur : http://localhost:3000
-
-### Build Frontend (Mode Production)
-
-```bash
-# Construire le frontend
-pnpm build
-
-# Ou avec npm
-npm run build
-
-# Démarrer le serveur de production
-pnpm start
-
-# Ou avec npm
-npm start
-```
-
-### Analyse du Bundle
-
-```bash
-# Analyser la taille du bundle
-pnpm analyze
-
-# Ou avec npm
-npm run analyze
-```
-
-## 5.3 Lancement Combiné (Backend + Frontend)
-
-```bash
-# Lancer les deux en même temps
-nexusdl --web --dev
-
-# Ou avec le script Python
-python -m nexusdl.interfaces.web
-```
-
-Cela lancera :
-- Backend sur http://localhost:8000
-- Frontend sur http://localhost:3000
-
-# ============================================================================
-# 6. CONFIGURATION
-# ============================================================================
-
-## Fichier de Configuration
-
-Le fichier de configuration principal est :
-
-```bash
-# Linux/macOS
-~/.config/nexusdl/config.yaml
-
-# Windows
-%APPDATA%\nexusdl\config.yaml
-```
-
-## Création du Fichier de Configuration
-
-```bash
-# Générer un fichier de configuration par défaut
-nexusdl --reset-config
-
-# Ou copier l'exemple
-cp config/config.example.yaml ~/.config/nexusdl/config.yaml
-```
-
-## Configuration Minimale
-
-```yaml
-# ~/.config/nexusdl/config.yaml
-
-app:
-  language: fr
-  theme: cyberpunk
-  timezone: Europe/Paris
-
-download:
-  max_concurrent_tasks: 5
-  max_concurrent_pages: 10
-  default_format: cbz
-  default_quality: original
-  output_dir: ~/manga
-
-library:
-  path: ~/manga-library
-  auto_scan: true
-  scan_interval_minutes: 60
-
-network:
-  timeout: 30
-  max_connections: 100
-  verify_ssl: true
-
-logging:
-  level: INFO
-  format: text
-  file_enabled: true
-```
-
-## Variables d'Environnement
-
-```bash
-# Configuration via variables d'environnement
-export NEXUSDL_CONFIG=/path/to/config.yaml
-export NEXUSDL_LOG_LEVEL=DEBUG
-export NEXUSDL_LANGUAGE=fr
-```
-
-# ============================================================================
-# 7. LANCEMENT
-# ============================================================================
-
-## Lancement Automatique
-
-```bash
-# Détecte et lance la meilleure interface disponible
-nexusdl
-
-# Ou
-python -m nexusdl
-```
-
-Priorité de détection :
-1. GUI (si PyQt6 installé + display disponible)
-2. CLI (si Textual installé)
-3. Web (si FastAPI + Node.js installés)
-
-## Lancement Spécifique
-
-```bash
-# Interface CLI
-nexusdl --cli
-
-# Interface GUI
-nexusdl --gui
-
-# Interface Web
-nexusdl --web
-```
-
-## Options Communes
-
-```bash
-# Afficher la version
-nexusdl --version
-
-# Afficher l'aide
+# Aide
 nexusdl --help
-
-# Mode debug
-nexusdl --debug
-
-# Fichier de configuration personnalisé
-nexusdl --config /path/to/config.yaml
-
-# Langue
-nexusdl --lang fr
-
-# Niveau de log
-nexusdl --log-level DEBUG
 ```
 
-## Actions Rapides
+================================================================================
+                    8. DÉPLOIEMENT VPS (UBUNTU/DEBIAN)
+================================================================================
+
+### Étape 1 : Préparer le serveur
 
 ```bash
-# Télécharger un manga directement
-nexusdl --download https://mangadex.org/title/12345
+# Connexion SSH
+ssh user@your-vps-ip
 
-# Rechercher des mangas
-nexusdl --search "one piece"
-
-# Lister les sites disponibles
-nexusdl --list-sites
-
-# Afficher les chemins
-nexusdl --show-paths
-
-# Diagnostics
-nexusdl --diagnose
-```
-
-# ============================================================================
-# 8. DÉPLOIEMENT NETLIFY
-# ============================================================================
-
-## Prérequis
-
-- Compte Netlify (gratuit)
-- CLI Netlify installé : `npm install -g netlify-cli`
-- Frontend buildé
-
-## Étape 1 : Build du Frontend
-
-```bash
-cd src/nexusdl/interfaces/web/frontend
+# Mise à jour
+sudo apt update && sudo apt upgrade -y
 
 # Installer les dépendances
-pnpm install
+sudo apt install -y \
+    python3.12 \
+    python3.12-venv \
+    python3-pip \
+    nodejs \
+    npm \
+    git \
+    docker.io \
+    docker-compose \
+    nginx \
+    certbot \
+    python3-certbot-nginx
 
-# Build pour production
-pnpm build
+# Activer Docker
+sudo systemctl enable docker
+sudo systemctl start docker
+sudo usermod -aG docker $USER
 ```
 
-Le build sera généré dans le dossier `.next/` ou `out/` (selon la configuration).
-
-## Étape 2 : Configuration Netlify
-
-### Option A : Via Netlify CLI
+### Étape 2 : Cloner le projet
 
 ```bash
-# Se connecter à Netlify
-netlify login
-
-# Déployer
-netlify deploy
-
-# Pour déployer en production
-netlify deploy --prod
+cd /opt
+sudo git clone https://github.com/JokerApocalypse-cmd/Nexus-DL.git
+cd Nexus-DL
+sudo chown -R $USER:$USER .
 ```
 
-### Option B : Via Netlify Dashboard
-
-1. Aller sur https://app.netlify.com
-2. Cliquer sur "Add new site" → "Deploy manually"
-3. Glisser-déposer le dossier `out/` ou `.next/`
-
-### Option C : Via Git (Recommandé)
-
-1. Pousser le code sur GitHub/GitLab
-2. Connecter le dépôt à Netlify
-3. Configurer les paramètres de build
-
-## Configuration netlify.toml
-
-Créer un fichier `netlify.toml` à la racine du frontend :
-
-```toml
-[build]
-  command = "pnpm build"
-  publish = ".next"
-
-[build.environment]
-  NODE_VERSION = "20"
-  NEXT_PUBLIC_API_URL = "https://api.nexusdl.dev/api/v1"
-  NEXT_PUBLIC_WS_URL = "wss://api.nexusdl.dev/ws"
-
-[[plugins]]
-  package = "@netlify/plugin-nextjs"
-
-[[redirects]]
-  from = "/api/*"
-  to = "https://api.nexusdl.dev/api/v1/:splat"
-  status = 200
-
-[[redirects]]
-  from = "/ws"
-  to = "wss://api.nexusdl.dev/ws"
-  status = 200
-
-[[headers]]
-  for = "/*"
-  [headers.values]
-    X-Frame-Options = "DENY"
-    X-Content-Type-Options = "nosniff"
-    X-XSS-Protection = "1; mode=block"
-    Referrer-Policy = "strict-origin-when-cross-origin"
-```
-
-## Étape 3 : Configuration du Backend
-
-Le backend doit être déployé séparément (VPS, Heroku, Railway, etc.).
-
-### Variables d'Environnement Backend
+### Étape 3 : Déployer avec Docker
 
 ```bash
-# API URL publique
-NEXT_PUBLIC_API_URL=https://api.nexusdl.dev/api/v1
+# Copier le fichier .env
+cp .env.example .env
+nano .env  # Éditer avec vos valeurs
 
-# WebSocket URL publique
-NEXT_PUBLIC_WS_URL=wss://api.nexusdl.dev/ws
+# Lancer avec Docker Compose
+docker compose -f docker/docker-compose.yml up -d --build
+
+# Vérifier les logs
+docker compose logs -f
 ```
 
-## Étape 4 : Vérification
+### Étape 4 : Configurer Nginx (reverse proxy)
 
 ```bash
-# Vérifier le déploiement
-netlify status
-
-# Ouvrir le site
-netlify open
+# Créer la configuration Nginx
+sudo nano /etc/nginx/sites-available/nexusdl
 ```
 
-## Déploiement Continu
+Contenu :
+```nginx
+server {
+    listen 80;
+    server_name your-domain.com;
 
-### GitHub Actions
-
-Créer `.github/workflows/netlify-deploy.yml` :
-
-```yaml
-name: Deploy to Netlify
-
-on:
-  push:
-    branches: [main]
-
-jobs:
-  deploy:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-      
-      - name: Setup Node.js
-        uses: actions/setup-node@v3
-        with:
-          node-version: '20'
-      
-      - name: Install pnpm
-        uses: pnpm/action-setup@v2
-        with:
-          version: 8
-      
-      - name: Install dependencies
-        run: pnpm install
-        working-directory: src/nexusdl/interfaces/web/frontend
-      
-      - name: Build
-        run: pnpm build
-        working-directory: src/nexusdl/interfaces/web/frontend
-      
-      - name: Deploy to Netlify
-        uses: nwtgck/actions-netlify@v2
-        with:
-          publish-dir: src/nexusdl/interfaces/web/frontend/.next
-          production-branch: main
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          deploy-message: "Deploy from GitHub Actions"
-        env:
-          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
-          NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
+    location / {
+        proxy_pass http://localhost:8000;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        
+        # WebSocket support
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+    }
+}
 ```
-
-## Déploiement Backend sur Railway/Heroku
-
-### Railway
 
 ```bash
-# Installer Railway CLI
-npm install -g @railway/cli
+# Activer le site
+sudo ln -s /etc/nginx/sites-available/nexusdl /etc/nginx/sites-enabled/
+sudo nginx -t
+sudo systemctl reload nginx
 
-# Se connecter
-railway login
-
-# Créer un projet
-railway init
-
-# Déployer
-railway up
+# Obtenir un certificat SSL
+sudo certbot --nginx -d your-domain.com
 ```
 
-### Heroku
+### Étape 5 : Automatiser avec systemd
 
 ```bash
-# Installer Heroku CLI
-# https://devcenter.heroku.com/articles/heroku-cli
-
-# Se connecter
-heroku login
-
-# Créer une app
-heroku create nexusdl-backend
-
-# Déployer
-git push heroku main
-
-# Configurer les variables d'environnement
-heroku config:set PYTHON_VERSION=3.11.0
-heroku config:set WEB_CONCURRENCY=4
+sudo nano /etc/systemd/system/nexusdl.service
 ```
 
-# ============================================================================
-# 9. DOCKER
-# ============================================================================
+Contenu :
+```ini
+[Unit]
+Description=NexusDL Backend
+After=network.target
 
-## Installation Docker
+[Service]
+Type=simple
+User=www-data
+WorkingDirectory=/opt/Nexus-DL
+Environment="PATH=/opt/Nexus-DL/.venv/bin"
+ExecStart=/opt/Nexus-DL/.venv/bin/uvicorn nexusdl.interfaces.web.backend.main:app --host 0.0.0.0 --port 8000
+Restart=always
 
-```bash
-# Linux
-sudo apt-get install docker.io docker-compose
-
-# macOS
-brew install docker docker-compose
-
-# Windows
-# Télécharger Docker Desktop : https://www.docker.com/products/docker-desktop
+[Install]
+WantedBy=multi-user.target
 ```
 
-## Build des Images
-
 ```bash
-# Build complet
-docker-compose build
-
-# Build backend seul
-docker build -t nexusdl-backend -f docker/Dockerfile .
-
-# Build frontend seul
-docker build -t nexusdl-frontend -f src/nexusdl/interfaces/web/frontend/Dockerfile src/nexusdl/interfaces/web/frontend
-
-# Build GUI
-docker build -t nexusdl-gui -f docker/Dockerfile.gui .
+# Activer le service
+sudo systemctl daemon-reload
+sudo systemctl enable nexusdl
+sudo systemctl start nexusdl
+sudo systemctl status nexusdl
 ```
 
-## Lancement avec Docker Compose
+================================================================================
+                9. COMMANDS UTILES (POWERSHELL & TERMINAL)
+================================================================================
 
-```bash
-# Démarrer tous les services
-docker-compose up -d
+### PowerShell (Windows)
 
-# Voir les logs
-docker-compose logs -f
+```powershell
+# Installation
+pip install -e ".[all]"
+playwright install chromium
+cd src/nexusdl/interfaces/web/frontend; pnpm install; cd ../../..
 
-# Arrêter
-docker-compose down
+# Développement
+uvicorn nexusdl.interfaces.web.backend.main:app --reload
+cd src/nexusdl/interfaces/web/frontend; pnpm dev
+
+# Tests
+pytest tests/ -v
+pytest tests/ --cov=src/nexusdl
+
+# Linting
+ruff check src/ tests/
+ruff format src/ tests/
+mypy src/nexusdl
+
+# Build
+python -m build
+cd src/nexusdl/interfaces/web/frontend; pnpm build
+
+# Docker
+docker build -f docker/Dockerfile -t nexusdl-backend:latest .
+docker run -d -p 8000:8000 nexusdl-backend:latest
+
+# Nettoyage
+Remove-Item -Recurse -Force __pycache__, .pytest_cache, .mypy_cache, .ruff_cache
 ```
 
-## Lancement Manuel
+### Terminal (Linux/macOS)
 
 ```bash
-# Backend
-docker run -d \
-  --name nexusdl-backend \
-  -p 8000:8000 \
-  -v ~/.config/nexusdl:/root/.config/nexusdl \
-  nexusdl-backend
+# Installation
+pip install -e ".[all]"
+playwright install chromium
+cd src/nexusdl/interfaces/web/frontend && pnpm install && cd ../../..
 
-# Frontend
-docker run -d \
-  --name nexusdl-frontend \
-  -p 3000:3000 \
-  -e NEXT_PUBLIC_API_URL=http://localhost:8000/api/v1 \
-  -e NEXT_PUBLIC_WS_URL=ws://localhost:8000/ws \
-  nexusdl-frontend
+# Développement
+uvicorn nexusdl.interfaces.web.backend.main:app --reload
+cd src/nexusdl/interfaces/web/frontend && pnpm dev
+
+# Tests
+pytest tests/ -v
+pytest tests/ --cov=src/nexusdl
+
+# Linting
+ruff check src/ tests/
+ruff format src/ tests/
+mypy src/nexusdl
+
+# Build
+python -m build
+cd src/nexusdl/interfaces/web/frontend && pnpm build
+
+# Docker
+docker build -f docker/Dockerfile -t nexusdl-backend:latest .
+docker run -d -p 8000:8000 nexusdl-backend:latest
+
+# Nettoyage
+find . -type d -name "__pycache__" -exec rm -rf {} +
+find . -type d -name ".pytest_cache" -exec rm -rf {} +
 ```
 
-# ============================================================================
-# 10. DÉPANNAGE
-# ============================================================================
+================================================================================
+                            10. DÉPANNAGE
+================================================================================
 
-## Problèmes Courants
+### Erreur : "ModuleNotFoundError: No module named 'jsonschema'"
 
-### Python Version Incorrecte
-
+**Solution** :
 ```bash
-# Erreur : Python 3.11+ is required
-# Solution : Mettre à jour Python
-
-# Linux
-sudo apt-get install python3.11
-
-# macOS
-brew install python@3.11
-
-# Windows
-# Télécharger depuis python.org
+pip install jsonschema
+# OU
+pip install -e .
 ```
 
-### Module Not Found
+### Erreur : "Host system is missing dependencies to run browsers"
 
+**Solution** :
 ```bash
-# Erreur : ModuleNotFoundError: No module named 'textual'
-# Solution : Installer les dépendances manquantes
-
-pip install textual
-# ou
-pip install -r requirements-cli.txt
+playwright install-deps chromium
+playwright install chromium
 ```
 
-### Display Not Available (GUI)
+### Erreur CORS sur Netlify
 
-```bash
-# Erreur : Could not connect to display
-# Solution (Linux) :
+**Solution** :
+1. Vérifier que `NEXUSDL_CORS_ORIGINS` sur Railway contient `https://nexusdldev.netlify.app`
+2. Vérifier que `netlify.toml` contient les redirections vers Railway
 
-# Vérifier que X11 ou Wayland est actif
-echo $DISPLAY
-echo $WAYLAND_DISPLAY
+### Erreur : "No GitHub artifact attestations found"
 
-# Si vide, exporter la variable
-export DISPLAY=:0
-
-# Ou lancer avec xvfb (headless)
-xvfb-run nexusdl --gui
+**Solution** :
+Ajouter dans les variables Railway :
+```
+MISE_PYTHON_GITHUB_ATTESTATIONS=false
 ```
 
-### Port Already in Use
+### Erreur : Build Netlify échoue avec "require is not defined"
 
+**Solution** :
+Renommer les fichiers :
+- `next.config.js` → `next.config.cjs`
+- `postcss.config.js` → `postcss.config.cjs`
+
+### Erreur : WebSocket ne se connecte pas
+
+**Solution** :
+1. Vérifier que `NEXT_PUBLIC_WS_URL` sur Netlify est `wss://nexus-dl-production.up.railway.app/ws`
+2. Vérifier que le backend Railway supporte les WebSockets
+
+### Erreur : "Permission denied" sur Docker
+
+**Solution** :
 ```bash
-# Erreur : Address already in use
-# Solution : Changer le port
-
-# Backend
-nexusdl --web --port 8001
-
-# Frontend
-cd src/nexusdl/interfaces/web/frontend
-pnpm dev --port 3001
+sudo usermod -aG docker $USER
+# Se déconnecter et se reconnecter
 ```
 
-### CORS Errors (Web)
-
-```bash
-# Erreur : CORS policy blocked
-# Solution : Configurer CORS dans le backend
-
-# Éditer config.yaml
-interface:
-  web:
-    cors_origins:
-      - http://localhost:3000
-      - https://nexusdl.netlify.app
 ```
 
-### WebSocket Connection Failed
-
-```bash
-# Erreur : WebSocket connection failed
-# Solutions :
-
-# 1. Vérifier que le backend est lancé
-curl http://localhost:8000/health
-
-# 2. Vérifier l'URL WebSocket
-echo $NEXT_PUBLIC_WS_URL
-
-# 3. Vérifier les logs du backend
-nexusdl --web --debug
+```powershell
+git add instruction.txt
+git commit -m "docs: add comprehensive deployment guide for all platforms"
+git push origin main
 ```
-
-### Build Frontend Failed
-
-```bash
-# Erreur : Build failed
-# Solutions :
-
-# 1. Nettoyer le cache
-cd src/nexusdl/interfaces/web/frontend
-rm -rf .next node_modules
-pnpm install
-pnpm build
-
-# 2. Augmenter la mémoire Node.js
-export NODE_OPTIONS="--max-old-space-size=4096"
-pnpm build
-```
-
-### Netlify Deploy Failed
-
-```bash
-# Erreur : Deploy failed
-# Solutions :
-
-# 1. Vérifier les variables d'environnement
-netlify env:list
-
-# 2. Vérifier le build local
-pnpm build
-
-# 3. Vérifier les logs Netlify
-netlify logs
-```
-
-## Logs
-
-```bash
-# Logs CLI
-tail -f ~/.local/share/nexusdl/logs/nexusdl.log
-
-# Logs Backend
-journalctl -u nexusdl-backend -f
-
-# Logs Frontend
-# Dans le navigateur : F12 → Console
-
-# Logs Docker
-docker logs nexusdl-backend -f
-docker logs nexusdl-frontend -f
-```
-
-## Diagnostics
-
-```bash
-# Exécuter les diagnostics
-nexusdl --diagnose
-
-# Vérifier les dépendances
-nexusdl --check-deps
-
-# Afficher les chemins
-nexusdl --show-paths
-```
-
-# ============================================================================
-# 11. EXEMPLES D'UTILISATION
-# ============================================================================
-
-## CLI
-
-```bash
-# Lancer l'interface CLI
-nexusdl --cli
-
-# Rechercher un manga
-# (dans l'interface CLI, appuyer sur /)
-# Tape
+winget install Docker.DockerDesktop

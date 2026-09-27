@@ -70,11 +70,11 @@ Intégration :
 
 from __future__ import annotations
 
+import asyncio
 import re
-import time
 from datetime import UTC, datetime
 from enum import Enum
-from typing import Any, Callable, Final
+from typing import Any, Awaitable, Callable, Final
 from urllib.parse import urlparse
 
 from loguru import logger
@@ -968,12 +968,12 @@ if STARLETTE_AVAILABLE:
             self._config = config or CorsConfig()
             self._validator = CorsValidator(self._config)
             self._stats = CorsStats()
-            self._stats_lock = __import__("asyncio").Lock()
+            self._stats_lock = asyncio.Lock()
 
             # Logger
             self._logger = logger.bind(module="nexusdl.api.cors")
 
-        async def dispatch(self, request: Request, call_next: Callable) -> Response:
+        async def dispatch(self, request: Request, call_next: Callable[[Request], Awaitable[Response]]) -> Response:
             """Traite une requête HTTP avec gestion CORS.
 
             Args:
@@ -1075,8 +1075,8 @@ if STARLETTE_AVAILABLE:
 
             # Déterminer les méthodes et headers autorisés
             rule = self._validator.get_rule_for_origin(origin)
-            allowed_methods = rule.allowed_methods if rule and rule.allowed_methods else self._config.allowed_methods
-            allowed_headers = rule.allowed_headers if rule and rule.allowed_headers else self._config.allowed_headers
+            allowed_methods = list(rule.allowed_methods) if rule and rule.allowed_methods else self._config.allowed_methods
+            allowed_headers = list(rule.allowed_headers) if rule and rule.allowed_headers else self._config.allowed_headers
             max_age = rule.max_age if rule and rule.max_age is not None else self._config.max_age
             allow_credentials = rule.allow_credentials if rule and rule.allow_credentials is not None else self._config.allow_credentials
 
@@ -1131,7 +1131,7 @@ if STARLETTE_AVAILABLE:
 
             # Déterminer les valeurs
             rule = self._validator.get_rule_for_origin(origin)
-            exposed_headers = rule.exposed_headers if rule and rule.exposed_headers else self._config.exposed_headers
+            exposed_headers = list(rule.exposed_headers) if rule and rule.exposed_headers else self._config.exposed_headers
             allow_credentials = rule.allow_credentials if rule and rule.allow_credentials is not None else self._config.allow_credentials
 
             # Access-Control-Allow-Origin

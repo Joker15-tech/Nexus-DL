@@ -1,107 +1,124 @@
-# ==============================================================================
-#  NexusDL — requirements-dev.txt (Développement)
-# ==============================================================================
-#  Dépendances pour contribuer à NexusDL (tests, lint, build, docs).
+# ============================================================================
+# NEXUSDL - Dépendances de développement (DEV)
+# Version complète pour développement local + CI/CD
+# ============================================================================
+# Ce fichier contient :
+#   - Toutes les dépendances de base (via -r requirements.txt)
+#   - Outils de linting & formatting (Ruff)
+#   - Outils de type checking (MyPy + stubs)
+#   - Framework de tests (Pytest + plugins)
+#   - Outils de build & publication (build, twine)
+#   - Outils de documentation (MkDocs)
+#   - Outils de développement (pre-commit, ipython, etc.)
 #
-#  Généré depuis pyproject.toml via :
-#      uv pip compile pyproject.toml --extra dev -o requirements-dev.txt
+# Installation :
+#   pip install -r requirements-dev.txt
 #
-#  Inclut requirements.txt + outils de développement.
-# ==============================================================================
+# Ou via pyproject.toml :
+#   pip install -e ".[dev]"
+# ============================================================================
 
-# --- Core (reprend requirements.txt) ---
+# --- Inclure les dépendances de base ---
 -r requirements.txt
 
-# --- Tests ---
-pytest==8.3.4
-pytest-asyncio==0.25.0
-pytest-cov==6.0.0
-pytest-xdist==3.6.1
-pytest-mock==3.14.0
-pytest-timeout==2.3.1
-pytest-httpx==0.35.0
-pytest-watch==4.2.0
-pytest-benchmark==5.1.0
-pytest-sugar==1.0.0
-pytest-randomly==3.16.0
-respx==0.22.0
-hypothesis==6.122.6
-sortedcontainers==2.4.0
-faker==33.1.0
-freezegun==1.5.1
-inline-snapshot==0.19.3
+# ============================================================================
+# LINTING & FORMATTING
+# ============================================================================
+ruff==0.8.6                   # Linter ultra-rapide (remplace flake8, isort, pyupgrade)
 
-# --- Lint & format ---
-ruff==0.8.4
-mypy==1.14.0
-mypy-extensions==1.0.0
-types-aiofiles==24.1.0.20241221
-types-pyyaml==6.0.12.20241221
+# ============================================================================
+# TYPE CHECKING
+# ============================================================================
+mypy==1.14.1                  # Vérification de types statique
+
+# Stubs de types pour les bibliothèques tierces
+types-PyYAML==6.0.12.20241230
 types-requests==2.32.0.20241016
-types-pillow==10.2.0.20240822
-pathspec==0.12.1
-typing-extensions==4.12.2
+types-beautifulsoup4==4.12.0.20241029
+types-jsonschema==4.23.0.20241201
+types-passlib==1.7.7.20240819
+types-Pillow==10.2.0.20240822
+types-aiofiles==24.1.0.20241221
+types-python-dateutil==2.9.0.20241206
+types-setuptools==75.6.0.20241126
 
-# --- Sécurité ---
-bandit==1.8.0
-bandit-sarif-formatter==1.1.1
-stevedore==5.4.0
-pbr==6.1.0
-PyYAML==6.0.2
-pip-audit==2.7.3
-safety==3.2.14
-gitleaks-python==8.22.1
-detect-secrets==1.5.0
+# ============================================================================
+# TESTING
+# ============================================================================
+pytest==8.3.4                 # Framework de tests principal
+pytest-asyncio==0.25.0        # Support async/await dans pytest
+pytest-cov==6.0.0             # Mesure de couverture de code
+pytest-mock==3.14.0           # Mocking simplifié
+pytest-xdist==3.6.1           # Exécution parallèle des tests
+pytest-timeout==2.3.1         # Timeout pour les tests (évite les blocages)
+pytest-html==4.1.1            # Rapports HTML des tests
+pytest-sugar==1.0.0           # Affichage plus lisible des tests
+pytest-benchmark==5.1.0       # Benchmarks de performance
 
-# --- Build & release ---
-build==1.2.2.post1
-twine==6.0.1
-hatch==1.14.0
-hatchling==1.27.0
-hatch-vcs==0.4.0
-bump-my-version==0.29.0
-pyproject-hooks==1.2.0
+# HTTP testing
+httpx[http2]==0.28.1          # Client HTTP pour tester les endpoints (déjà dans requirements.txt)
+respx==0.22.0                 # Mock de httpx pour les tests
+aioresponses==0.7.7           # Mock de aiohttp pour les tests
 
-# --- Git hooks ---
-pre-commit==4.0.1
-cfgv==3.4.0
-identify==2.6.3
-nodeenv==1.9.1
-virtualenv==20.28.0
-distlib==0.3.9
-filelock==3.16.1
+# Fixtures et helpers
+factory-boy==3.3.1            # Génération de données de test
+faker==33.1.0                 # Données aléatoires réalistes
 
-# --- Environnement ---
-tox==4.23.2
-tox-uv==1.15.0
-tox-gh-actions==3.2.0
-uv==0.5.13
-cachetools==5.5.0
-chardet==5.2.0
-colorama==0.4.6
+# ============================================================================
+# BUILD & PUBLISH
+# ============================================================================
+build==1.2.2.post1            # Build des packages Python (PEP 517)
+twine==6.0.1                  # Publication sur PyPI
+setuptools==75.6.0            # Outil de packaging
+wheel==0.45.1                 # Création de wheels
 
-# --- Profiling ---
-py-spy==0.4.0
-memray==1.15.0 ; sys_platform != "win32"
-rich-cli==1.8.0
+# ============================================================================
+# DOCUMENTATION
+# ============================================================================
+mkdocs==1.6.1                 # Générateur de documentation
+mkdocs-material==9.5.48       # Thème Material pour MkDocs
+mkdocstrings[python]==0.27.0  # Documentation automatique depuis les docstrings
+mkdocs-awesome-pages-plugin==2.10.1  # Organisation flexible des pages
+mkdocs-git-revision-date-localized-plugin==1.3.0  # Dates de modification
+mkdocs-minify-plugin==0.8.0   # Minification HTML/JS/CSS
 
-# --- Analyse avancée ---
-radon==6.0.1
-mando==0.7.1
-vulture==2.14
-deptry==0.22.0
-pylint==3.3.3
-astroid==3.3.6
-dill==0.3.9
-isort==5.13.2
-mccabe==0.7.0
-platformdirs==4.3.6
-tomlkit==0.13.2
+# ============================================================================
+# DEVELOPMENT UTILITIES
+# ============================================================================
+pre-commit==4.0.1             # Hooks Git automatiques
+ipython==8.31.0               # Shell Python interactif amélioré
+ipdb==0.13.13                 # Debugger interactif
+rich-cli==1.8.0               # Outils CLI riches
 
-# --- Utilitaires dev ---
-ipython==8.31.0
-ipdb==0.13.13
-rich==13.9.4
-watchdog==6.0.0
-python-dotenv==1.0.1
-colorlog==6.9.0
+# ============================================================================
+# SECURITY AUDIT
+# ============================================================================
+pip-audit==2.7.3              # Audit de sécurité des dépendances
+safety==3.2.11                # Vérification des vulnérabilités
+bandit==1.8.0                 # Analyse statique de sécurité Python
+
+# ============================================================================
+# PERFORMANCE PROFILING
+# ============================================================================
+py-spy==0.4.0                 # Profiler Python sans modifier le code
+memory-profiler==0.61.0       # Profiler de mémoire
+
+# ============================================================================
+# CODE QUALITY
+# ============================================================================
+pylint==3.3.2                 # Analyse statique complémentaire
+flake8==7.1.1                 # Linter classique (backup)
+black==24.10.0                # Formatter (backup si Ruff insuffisant)
+isort==5.13.2                 # Tri des imports (backup)
+
+# ============================================================================
+# DEBUGGING & MONITORING
+# ============================================================================
+debugpy==1.8.11               # Debugger pour VS Code / IDE
+sentry-sdk==2.19.2            # Monitoring d'erreurs (optionnel)
+
+# ============================================================================
+# GIT UTILITIES
+# ============================================================================
+gitpython==3.1.43             # Manipulation Git depuis Python
+commitizen==4.1.0             # Conventional commits
