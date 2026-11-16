@@ -18,7 +18,7 @@ packaging==24.2
 
 # --- Dépendances indirectes ---
 pillow==11.1.0
-typing-extensions==4.12.2
+typing-extensions==4.16.0
 
 # --- Windows spécifique ---
 pywinstyles==1.8 ; sys_platform == "win32"
